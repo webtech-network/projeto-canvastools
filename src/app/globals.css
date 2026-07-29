@@ -656,6 +656,36 @@ a {
   font-size: 1rem;
 }
 
+.ai-providers-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.api-key-manager h3 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.provider-select {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1.25rem;
+}
+.provider-select label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.provider-select select {
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
 .ai-key-form {
   display: flex;
   flex-wrap: wrap;

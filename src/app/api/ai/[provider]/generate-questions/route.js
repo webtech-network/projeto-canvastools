@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession, isSessionValid } from '@/lib/session';
-import { generateQuestions } from '@/lib/aiProviders/openai';
+import { getProvider } from '@/lib/aiProviders';
 import { validateStructural, createSchemaValidator } from '@/lib/quizValidation';
 import quizSchema from '@/lib/quiz.schema.json';
 
@@ -28,15 +28,23 @@ function validateSpecs(specs) {
   return null;
 }
 
-export async function POST(request) {
+export async function POST(request, { params }) {
   const session = await getSession();
   if (!isSessionValid(session)) {
     return NextResponse.json({ error: 'Sessão inválida. Faça login novamente.' }, { status: 401 });
   }
 
-  const apiKey = session.aiApiKeys?.openai;
+  const { provider: providerId } = await params;
+  let provider;
+  try {
+    provider = getProvider(providerId);
+  } catch {
+    return NextResponse.json({ error: 'Provedor de IA desconhecido.' }, { status: 404 });
+  }
+
+  const apiKey = session.aiApiKeys?.[providerId];
   if (!apiKey) {
-    return NextResponse.json({ error: 'Nenhuma chave de API da OpenAI configurada.' }, { status: 401 });
+    return NextResponse.json({ error: `Nenhuma chave de API configurada para ${provider.label}.` }, { status: 401 });
   }
 
   const body = await request.json().catch(() => null);
@@ -49,7 +57,7 @@ export async function POST(request) {
 
   let quiz;
   try {
-    quiz = await generateQuestions({ apiKey, model: process.env.OPENAI_MODEL, specs });
+    quiz = await provider.generateQuestions({ apiKey, model: process.env[`${providerId.toUpperCase()}_MODEL`], specs });
   } catch (err) {
     const message = err.response?.data?.error?.message || err.message || 'Falha ao gerar questões.';
     return NextResponse.json({ error: message }, { status: 502 });
@@ -58,7 +66,7 @@ export async function POST(request) {
   const structural = validateStructural(quiz);
   if (!structural.valid) {
     return NextResponse.json(
-      { error: 'A OpenAI retornou questões inválidas.', details: structural.errors },
+      { error: `${provider.label} retornou questões inválidas.`, details: structural.errors },
       { status: 502 },
     );
   }

@@ -29,7 +29,8 @@ function stripHtml(html) {
   return doc.body.textContent || '';
 }
 
-export default function QuestionGenerator({ hasApiKey }) {
+export default function QuestionGenerator({ providers }) {
+  const [providerId, setProviderId] = useState(providers[0]?.id || '');
   const [specs, setSpecs] = useState([emptySpec()]);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState(null);
@@ -56,7 +57,7 @@ export default function QuestionGenerator({ hasApiKey }) {
     setWarnings([]);
 
     try {
-      const response = await fetch('/api/ai/openai/generate-questions', {
+      const response = await fetch(`/api/ai/${providerId}/generate-questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ specs }),
@@ -91,12 +92,25 @@ export default function QuestionGenerator({ hasApiKey }) {
 
   return (
     <div className="question-generator">
-      {!hasApiKey ? (
+      {providers.length === 0 ? (
         <div className="alert alert-warning">
-          Configure sua chave de API da OpenAI em <Link href="/perfil">seu perfil</Link> para gerar questões.
+          Configure ao menos uma chave de API de IA em <Link href="/perfil">seu perfil</Link> para gerar questões.
         </div>
       ) : (
         <>
+          {providers.length > 1 && (
+            <div className="provider-select">
+              <label htmlFor="ai-provider">Motor de IA</label>
+              <select id="ai-provider" value={providerId} onChange={(e) => setProviderId(e.target.value)}>
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="spec-list-header">
             <span>Num. de Questões</span>
             <span>Tema</span>

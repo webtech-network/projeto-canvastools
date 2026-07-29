@@ -1,4 +1,5 @@
 import { getSession, isSessionValid } from '@/lib/session';
+import { listProviders } from '@/lib/aiProviders';
 import ApiKeyManager from '@/components/ApiKeyManager';
 
 export default async function PerfilPage() {
@@ -26,7 +27,20 @@ export default async function PerfilPage() {
       </section>
 
       <section className="profile-section">
-        <ApiKeyManager hasApiKey={Boolean(session.aiApiKeys?.openai)} />
+        <h2>Motores de IA</h2>
+        <p className="lede">
+          Registre chaves de API para os provedores usados na geração de questões e em futuras funcionalidades — cada
+          um fica salvo separadamente e pode ser trocado ou removido a qualquer momento.
+        </p>
+        <div className="ai-providers-list">
+          {listProviders().map((provider) => (
+            <ApiKeyManager
+              key={provider.id}
+              provider={provider}
+              hasApiKey={Boolean(session.aiApiKeys?.[provider.id])}
+            />
+          ))}
+        </div>
       </section>
 
       <section className="profile-section">
