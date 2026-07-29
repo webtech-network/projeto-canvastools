@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { exchangeCodeForToken } from '@/lib/canvasOAuth';
+import { exchangeCodeForToken, getAppBaseUrl } from '@/lib/canvasOAuth';
 import { getSession } from '@/lib/session';
 
 export async function GET(request) {
@@ -7,9 +7,10 @@ export async function GET(request) {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   const cookieState = request.cookies.get('oauth_state')?.value;
+  const baseUrl = getAppBaseUrl();
 
   if (!code || !state || !cookieState || state !== cookieState) {
-    const response = NextResponse.redirect(new URL('/login?error=state_invalido', request.url));
+    const response = NextResponse.redirect(new URL('/login?error=state_invalido', baseUrl));
     response.cookies.delete('oauth_state');
     return response;
   }
@@ -25,12 +26,12 @@ export async function GET(request) {
     await session.save();
   } catch (err) {
     console.error('Falha no login OAuth do Canvas:', err.message);
-    const response = NextResponse.redirect(new URL('/login?error=oauth_falhou', request.url));
+    const response = NextResponse.redirect(new URL('/login?error=oauth_falhou', baseUrl));
     response.cookies.delete('oauth_state');
     return response;
   }
 
-  const response = NextResponse.redirect(new URL('/courses', request.url));
+  const response = NextResponse.redirect(new URL('/courses', baseUrl));
   response.cookies.delete('oauth_state');
   return response;
 }

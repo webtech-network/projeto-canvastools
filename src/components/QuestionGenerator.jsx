@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 
 const NIVEL_OPTIONS = [
   { value: 'baixo', label: 'Baixo' },
@@ -29,43 +30,12 @@ function stripHtml(html) {
 }
 
 export default function QuestionGenerator({ hasApiKey }) {
-  const [keyConfigured, setKeyConfigured] = useState(hasApiKey);
-  const [showKeyForm, setShowKeyForm] = useState(!hasApiKey);
-  const [apiKeyInput, setApiKeyInput] = useState('');
-  const [keySaving, setKeySaving] = useState(false);
-  const [keyError, setKeyError] = useState(null);
-
   const [specs, setSpecs] = useState([emptySpec()]);
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState(null);
   const [quiz, setQuiz] = useState(null);
   const [warnings, setWarnings] = useState([]);
   const [warningsOpen, setWarningsOpen] = useState(false);
-
-  async function handleSaveKey() {
-    if (!apiKeyInput.trim()) return;
-    setKeySaving(true);
-    setKeyError(null);
-    try {
-      const response = await fetch('/api/ai/openai/key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ apiKey: apiKeyInput.trim() }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        setKeyError(data.error || 'Falha ao validar a chave.');
-      } else {
-        setKeyConfigured(true);
-        setShowKeyForm(false);
-        setApiKeyInput('');
-      }
-    } catch (err) {
-      setKeyError(err.message);
-    } finally {
-      setKeySaving(false);
-    }
-  }
 
   function updateSpec(index, field, value) {
     setSpecs((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
@@ -121,31 +91,11 @@ export default function QuestionGenerator({ hasApiKey }) {
 
   return (
     <div className="question-generator">
-      {!keyConfigured || showKeyForm ? (
-        <div className="ai-key-form">
-          <label htmlFor="openai-key">Chave de API da OpenAI</label>
-          <input
-            id="openai-key"
-            type="password"
-            value={apiKeyInput}
-            onChange={(e) => setApiKeyInput(e.target.value)}
-            placeholder="sk-..."
-          />
-          <button type="button" className="btn btn-primary" disabled={keySaving || !apiKeyInput.trim()} onClick={handleSaveKey}>
-            {keySaving ? 'Validando…' : 'Salvar e validar chave'}
-          </button>
-          {keyError && <div className="alert alert-error">{keyError}</div>}
+      {!hasApiKey ? (
+        <div className="alert alert-warning">
+          Configure sua chave de API da OpenAI em <Link href="/perfil">seu perfil</Link> para gerar questões.
         </div>
       ) : (
-        <div className="ai-key-status">
-          <span>Chave da OpenAI configurada ✓</span>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowKeyForm(true)}>
-            Trocar chave
-          </button>
-        </div>
-      )}
-
-      {keyConfigured && !showKeyForm && (
         <>
           <div className="spec-list-header">
             <span>Num. de Questões</span>

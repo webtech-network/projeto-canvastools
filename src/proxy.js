@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getIronSession } from 'iron-session';
 import { getSessionOptions } from '@/lib/session';
-import { refreshAccessToken } from '@/lib/canvasOAuth';
+import { refreshAccessToken, getAppBaseUrl } from '@/lib/canvasOAuth';
 
 // Refresh proactively this far ahead of actual expiry. This margin — not
 // same-request cookie propagation — is what keeps the *current* request
@@ -20,7 +20,7 @@ export async function proxy(request) {
     if (isApi) {
       return NextResponse.json({ error: 'Sessão inválida. Faça login novamente.' }, { status: 401 });
     }
-    return NextResponse.redirect(new URL('/login', request.url));
+    return NextResponse.redirect(new URL('/login', getAppBaseUrl()));
   }
 
   const expiringSoon =
@@ -37,7 +37,7 @@ export async function proxy(request) {
       if (isApi) {
         return NextResponse.json({ error: 'Sessão expirada. Faça login novamente.' }, { status: 401 });
       }
-      return NextResponse.redirect(new URL('/login', request.url));
+      return NextResponse.redirect(new URL('/login', getAppBaseUrl()));
     }
   }
 
@@ -45,5 +45,5 @@ export async function proxy(request) {
 }
 
 export const config = {
-  matcher: ['/', '/courses/:path*', '/api/canvas/:path*', '/questoes/:path*', '/api/ai/:path*'],
+  matcher: ['/', '/courses/:path*', '/api/canvas/:path*', '/questoes/:path*', '/api/ai/:path*', '/perfil/:path*'],
 };

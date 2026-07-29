@@ -19,6 +19,20 @@ function getConfig() {
   };
 }
 
+/**
+ * Fixed public origin the app is reachable at, derived from the same
+ * CANVAS_OAUTH_REDIRECT_URI Canvas already validates the OAuth redirect
+ * against — so it can't drift from what's actually public. Route handlers
+ * must use this (not `request.url`) to build absolute redirect targets:
+ * behind a container/reverse-proxy setup, the `Host` the Next.js process
+ * sees on the incoming request can be an internal address rather than the
+ * public domain, which silently sends users to the wrong place.
+ */
+export function getAppBaseUrl() {
+  const { redirectUri } = getConfig();
+  return new URL(redirectUri).origin;
+}
+
 export function getAuthorizeUrl(state) {
   const { domain, clientId, redirectUri, scopes } = getConfig();
   const url = new URL(`${domain}/login/oauth2/auth`);
