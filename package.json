@@ -1,0 +1,24 @@
+{
+  "name": "canvas-tools",
+  "version": "2.0.0",
+  "description": "CanvasTools — web app (Next.js) and CLI to bulk-import quiz questions into Canvas LMS",
+  "type": "module",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "next dev -p 80",
+    "build": "next build",
+    "start": "next start",
+    "cli": "node src/cli/index.js"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "axios": "^1.6.8",
+    "dotenv": "^16.4.5",
+    "iron-session": "^8.0.4",
+    "next": "^16.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  }
+}
