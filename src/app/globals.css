@@ -154,6 +154,51 @@ a {
   color: #fff9f2;
 }
 
+.sidebar-menu {
+  position: relative;
+  width: 100%;
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+}
+.sidebar-menu-trigger {
+  width: 100%;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+.sidebar-menu-trigger img {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+}
+.sidebar-menu-popover {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 0.3rem;
+  min-width: 240px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.4rem;
+  z-index: 30;
+}
+.sidebar-menu-item {
+  display: block;
+  padding: 0.6rem 0.75rem;
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.sidebar-menu-item:hover {
+  background: var(--paper);
+  color: var(--accent);
+}
+
 .dashboard-main {
   flex: 1;
   margin-left: var(--sidebar-width);
@@ -183,6 +228,13 @@ a {
   max-width: 960px;
   margin: 0 auto;
   width: 100%;
+}
+/* The courses and messages panels want the full available width for their
+   tables (more columns/actions than other dashboard pages) — scoped via
+   :has() so only these pages' content area drops the shared 960px cap. */
+.dashboard-content:has(.courses-page),
+.dashboard-content:has(.mensagens-page) {
+  max-width: none;
 }
 
 .topbar-user {
@@ -401,9 +453,26 @@ a {
   white-space: nowrap;
 }
 
-.favorite-star {
+.fav-toggle-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--line);
+  cursor: pointer;
+  transition: color 0.12s ease, transform 0.12s ease;
+}
+.fav-toggle-btn:hover:not(:disabled) {
   color: var(--accent);
-  margin-right: 0.4rem;
+  transform: scale(1.15);
+}
+.fav-toggle-btn.is-favorite {
+  color: var(--accent);
+}
+.fav-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .browser-controls {
@@ -539,6 +608,33 @@ a {
 .data-table tbody tr:hover {
   background: var(--paper);
 }
+.data-table th {
+  padding: 0;
+}
+.th-sort-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: none;
+  border: none;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.th-sort-btn:hover {
+  color: var(--ink);
+}
+.sort-icon {
+  flex: none;
+  opacity: 0.35;
+}
+.sort-icon.active {
+  opacity: 1;
+}
 
 .btn-sm {
   padding: 0.4rem 0.8rem;
@@ -564,8 +660,25 @@ a {
   text-decoration: underline;
   color: var(--accent);
 }
+.subject-toggle-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.subject-toggle-btn:hover {
+  text-decoration: underline;
+  color: var(--accent);
+}
 .actions-cell {
-  text-align: right;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
   white-space: nowrap;
 }
 
@@ -597,6 +710,196 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+.unread-dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.message-snippet {
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.message-browser {
+  margin-top: 0.5rem;
+}
+
+.col-emoji {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.message-group {
+  margin: 1.25rem 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.message-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--paper);
+  border: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: left;
+}
+.message-group-header:hover {
+  background: var(--line);
+}
+.group-chevron {
+  display: inline-block;
+  transition: transform 0.12s ease;
+  color: var(--ink-soft);
+}
+.group-chevron.expanded {
+  transform: rotate(90deg);
+}
+.group-title {
+  flex: 1;
+}
+.message-group-body .data-table {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  border-top: 1px solid var(--line);
+}
+
+.expand-cell {
+  width: 1%;
+  text-align: center;
+}
+.row-expand-btn {
+  background: none;
+  border: none;
+  padding: 0.2rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.row-expand-btn:hover {
+  color: var(--ink);
+}
+
+.message-detail-row td {
+  background: var(--paper);
+}
+.message-detail {
+  padding: 0.75rem 0.5rem;
+}
+.message-detail-text {
+  white-space: pre-wrap;
+  color: var(--ink);
+  margin: 0 0 0.85rem;
+}
+.message-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.message-detail-actions select {
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
+.thread-list {
+  list-style: none;
+  margin: 0.9rem 0 0;
+  padding: 0.6rem 0 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+.thread-message {
+  font-size: 0.9rem;
+}
+.thread-message-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+.thread-message-sender {
+  font-weight: 600;
+  color: var(--ink);
+}
+.thread-message-date {
+  color: var(--ink-soft);
+}
+.thread-message-text {
+  margin: 0.15rem 0 0;
+  white-space: pre-wrap;
+  color: var(--ink);
+}
+.thread-attachment-flag {
+  display: inline-block;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 100;
+}
+.modal {
+  background: var(--paper-raised);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--ink-soft);
+  padding: 0.25rem;
+}
+.modal-close:hover {
+  color: var(--ink);
+}
+.modal-body {
+  padding: 1.25rem;
 }
 
 .import-results {

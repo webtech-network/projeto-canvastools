@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { SYSTEM_PROMPT, buildUserMessage, buildQuizOutputSchema } from './shared';
+import { REPLY_SYSTEM_PROMPT, buildReplyUserMessage } from './replyPrompt';
 
 export const id = 'openai';
 export const label = 'OpenAI (ChatGPT)';
@@ -58,4 +59,35 @@ export async function generateQuestions({ apiKey, model, specs }) {
   }
 
   return JSON.parse(content.text);
+}
+
+export async function suggestReply({ apiKey, model, context }) {
+  const response = await axios.post(
+    'https://api.openai.com/v1/responses',
+    {
+      model: model || defaultModel,
+      input: [
+        { role: 'system', content: REPLY_SYSTEM_PROMPT },
+        { role: 'user', content: buildReplyUserMessage(context) },
+      ],
+    },
+    { headers: { Authorization: `Bearer ${apiKey}` } },
+  );
+
+  const data = response.data;
+  if (data.status !== 'completed') {
+    throw new Error(`Geração não concluída pela OpenAI (status: ${data.status}).`);
+  }
+
+  const message = (data.output || []).find((item) => item.type === 'message');
+  const content = message?.content?.find((c) => c.type === 'output_text' || c.type === 'refusal');
+
+  if (!content) {
+    throw new Error('A resposta da OpenAI não contém conteúdo utilizável.');
+  }
+  if (content.type === 'refusal') {
+    throw new Error(`A OpenAI recusou a geração: ${content.refusal}`);
+  }
+
+  return content.text;
 }

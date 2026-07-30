@@ -64,18 +64,6 @@ Lets a professor pick a registered AI provider (a `<select>` only appears once m
 
 Reached by clicking the username in `Topbar.jsx` (a `<Link href="/perfil">`, not a dropdown). Shows basic account info (`session.user?.name`, `session.baseUrl`) and, for every entry in `listProviders()`, one `src/components/ApiKeyManager.jsx` instance (`provider` + `hasApiKey` props) — a self-contained save/validate/swap/remove form hitting `POST`/`DELETE /api/ai/[provider]/key`. This is the **only** place keys are entered; `QuestionGenerator` and any future AI feature only ever read whether a key is configured, never manage it inline — single source of truth by construction. A "Preferências" section exists as a placeholder for future non-AI settings.
 
-## Commands
-
-```bash
-npm install
-npm run dev              # Next.js dev server (web app)
-npm run build             # Next.js production build
-npm start                 # Next.js production server (build first)
-npm run cli -- [file.json] [--yes] [--dry-run] [--no-color] [--help]
-```
-
-There is no lint or test suite in this package.
-
 ## Two separate auth models — do not conflate them
 
 - **CLI**: `CANVAS_API_URL` (includes `/api/v1`) + `CANVAS_API_TOKEN`, a long-lived personal access token, read from `.env` via `dotenv`. Never expires, no refresh logic.
@@ -101,15 +89,3 @@ The 5-minute safety margin is a deliberate choice, not an oversight: it sidestep
 
 Unchanged in nature from before this refactor: real exam content across `DIW-prova1`/`DIW-prova2` exam folders, including multiple independent LLM-generated drafts of the same quiz (`claude_quiz/`, `gpt_quiz/`, `Gemini/`) and, in some subfolders, a paired `.md` human-readable version of each `.json` file — keep both in sync when hand-editing. `question_model` values map to Portuguese pedagogical question types: `RU` (Resposta Única), `CM` (Complementação Múltipla), `AR` (Asserção-Razão), `INT` (Interpretação).
 
-## Layout
-
-```
-src/
-  app/
-    (dashboard)/  layout.jsx (Sidebar+Topbar shell) + page.jsx (capa/home), courses/**, questoes/, perfil/ — route group, invisible in the URL, proxy-gated
-    login/, api/**   outside the dashboard group, unauthenticated-reachable — no shell chrome
-  components/     Sidebar.jsx, Topbar.jsx, CourseBrowser.jsx, StatusIcon.jsx, WebTechFooter.jsx + ImportQuestions.jsx, QuestionGenerator.jsx, ApiKeyManager.jsx (client)
-  lib/            canvasClient.js, canvasOAuth.js, session.js, quizValidation.js, quiz.schema.json, aiProviders/{index,shared,openai,gemini,claude}.js
-  cli/            index.js (entry), colors.js, prompt.js
-  proxy.js        OAuth + AI-key session gate, proactive Canvas token refresh (Next.js "Proxy", ex-middleware)
-```

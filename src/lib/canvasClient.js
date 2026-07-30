@@ -128,3 +128,42 @@ export async function createQuestion(client, courseId, quizId, payload) {
   const response = await client.post(`/courses/${courseId}/quizzes/${quizId}/questions`, payload);
   return response.data;
 }
+
+/**
+ * Lists the current user's Inbox conversations (Canvas's messaging system),
+ * optionally scoped with the same course-context filter Canvas's own Inbox
+ * UI uses (`filter: ['course_123']`) — this doesn't mean a conversation
+ * "belongs" to that course permanently, it means the conversation shares
+ * that context with the current user, which is Canvas's own notion of
+ * "messages for this course". Excludes archived conversations by default,
+ * same as the default (no `scope`) Inbox view in Canvas's own UI.
+ */
+export async function listConversations(client, { filter, scope } = {}) {
+  return fetchAllPages(client, '/conversations', {
+    per_page: 50,
+    ...(scope ? { scope } : {}),
+    ...(filter && filter.length ? { 'filter[]': filter } : {}),
+  });
+}
+
+/**
+ * Fetches one conversation's full thread — unlike the list endpoint (whose
+ * `last_message` is just a one-line synthesis), this returns a `messages`
+ * array with every individual message's author, timestamp, full body, and
+ * attachments. Fetched on demand (only when a row is expanded in the UI),
+ * not eagerly for every conversation in a list.
+ */
+export async function getConversation(client, conversationId) {
+  const response = await client.get(`/conversations/${conversationId}`);
+  return response.data;
+}
+
+export async function addCourseFavorite(client, courseId) {
+  const response = await client.post(`/users/self/favorites/courses/${courseId}`);
+  return response.data;
+}
+
+export async function removeCourseFavorite(client, courseId) {
+  const response = await client.delete(`/users/self/favorites/courses/${courseId}`);
+  return response.data;
+}

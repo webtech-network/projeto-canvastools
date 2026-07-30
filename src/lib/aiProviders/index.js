@@ -9,6 +9,7 @@ import * as claude from './claude';
  *   defaultModel: string       — used when no model override is supplied
  *   validateApiKey(apiKey): Promise<{ valid: boolean, error?: string }>
  *   generateQuestions({ apiKey, model, specs }): Promise<quiz>  — quiz.schema.json shape
+ *   suggestReply({ apiKey, model, context }): Promise<string>  — plain-text reply suggestion
  *
  * To add a new provider: write a module implementing this contract (see
  * openai.js for the simplest reference) and add it to PROVIDERS below —
