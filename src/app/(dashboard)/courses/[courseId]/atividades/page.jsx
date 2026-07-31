@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ClipboardCheck, FileQuestion } from 'lucide-react';
+import { ClipboardCheck, FileQuestion, CircleCheckBig, CircleDashed, Archive } from 'lucide-react';
 import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listAssignments } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
@@ -49,6 +49,7 @@ export default async function AtividadesPage({ params }) {
       {assignments.length === 0 ? (
         <p>Nenhuma atividade encontrada neste curso.</p>
       ) : (
+        <>
         <table className="data-table">
           <thead>
             <tr>
@@ -107,6 +108,22 @@ export default async function AtividadesPage({ params }) {
             ))}
           </tbody>
         </table>
+
+        <ul className="icon-legend">
+          <li>
+            <CircleCheckBig size={14} strokeWidth={1.8} aria-hidden="true" style={{ color: 'var(--ok)' }} /> Publicado
+          </li>
+          <li>
+            <CircleDashed size={14} strokeWidth={1.8} aria-hidden="true" /> Não publicado
+          </li>
+          <li>
+            <Archive size={14} strokeWidth={1.8} aria-hidden="true" /> Encerrado
+          </li>
+          <li>
+            <ClipboardCheck size={14} strokeWidth={1.8} aria-hidden="true" /> Correções pendentes
+          </li>
+        </ul>
+        </>
       )}
     </main>
   );

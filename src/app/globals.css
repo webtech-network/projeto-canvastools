@@ -727,12 +727,19 @@ a {
   text-decoration: underline;
   color: var(--accent);
 }
+/* Deliberately NOT display:flex — a flex <td> doesn't shrink-to-fit like a
+   normal table cell, so on narrow viewports it gets pushed onto its own row
+   instead of wrapping naturally alongside a long-wrapping neighbor cell
+   (e.g. course-name-cell). text-align + inline-flex .btn children + margin
+   gets the same right-aligned, gapped button row without breaking table
+   layout. */
 .actions-cell {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 0.5rem;
+  text-align: right;
   white-space: nowrap;
+  vertical-align: middle;
+}
+.actions-cell > * + * {
+  margin-left: 0.5rem;
 }
 
 .pending-cell,
@@ -740,6 +747,25 @@ a {
   width: 1%;
   text-align: center;
   white-space: nowrap;
+}
+
+/* Explains the icon-only column headers (courses table, atividades table) —
+   sits right under the table since the icons themselves have no visible
+   text label, only a title/sr-only hint on hover/screen reader. */
+.icon-legend {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+.icon-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .pending-badge {

@@ -24,9 +24,9 @@ const SORTERS = {
 };
 
 const STATUS_FILTERS = [
-  { key: 'all', label: 'Qualquer status' },
   { key: 'published', label: 'Publicados' },
   { key: 'unpublished', label: 'Não publicados' },
+  { key: 'all', label: 'Todos' },
 ];
 
 export default function CourseBrowser({ courses }) {
@@ -36,7 +36,9 @@ export default function CourseBrowser({ courses }) {
   // "Todos" when the account has no favorited/starred courses in Canvas, so
   // the first screen is never an empty dead end.
   const [onlyFavorites, setOnlyFavorites] = useState(() => courses.some((c) => c.is_favorite));
-  const [statusFilter, setStatusFilter] = useState('all');
+  // Defaults to "Publicados" — unpublished courses aren't usually what a
+  // professor is looking for on first load; "Todos" is still one click away.
+  const [statusFilter, setStatusFilter] = useState('published');
   const [sort, setSort] = useState({ key: null, direction: 'asc' });
   const [pendingFavoriteId, setPendingFavoriteId] = useState(null);
   const [favoriteError, setFavoriteError] = useState(null);
@@ -116,18 +118,18 @@ export default function CourseBrowser({ courses }) {
         <div className="segmented" role="group" aria-label="Filtrar por favorito">
           <button
             type="button"
-            className={`segmented-btn${!onlyFavorites ? ' active' : ''}`}
-            onClick={() => setOnlyFavorites(false)}
-          >
-            Todos ({courseList.length})
-          </button>
-          <button
-            type="button"
             className={`segmented-btn${onlyFavorites ? ' active' : ''}`}
             onClick={() => setOnlyFavorites(true)}
           >
             <Star size={14} strokeWidth={2} fill="currentColor" aria-hidden="true" />
             Favoritos ({favoritesCount})
+          </button>
+          <button
+            type="button"
+            className={`segmented-btn${!onlyFavorites ? ' active' : ''}`}
+            onClick={() => setOnlyFavorites(false)}
+          >
+            Todos ({courseList.length})
           </button>
         </div>
         <div className="segmented" role="group" aria-label="Filtrar por status de publicação">
@@ -158,6 +160,7 @@ export default function CourseBrowser({ courses }) {
             : 'Nenhum curso encontrado com esse filtro ou pesquisa.'}
         </p>
       ) : (
+        <>
         <table className="data-table">
           <thead>
             <tr>
@@ -278,6 +281,22 @@ export default function CourseBrowser({ courses }) {
             ))}
           </tbody>
         </table>
+
+        <ul className="icon-legend">
+          <li>
+            <Star size={14} strokeWidth={1.8} fill="currentColor" aria-hidden="true" /> Favorito
+          </li>
+          <li>
+            <ClipboardCheck size={14} strokeWidth={1.8} aria-hidden="true" /> Correções pendentes
+          </li>
+          <li>
+            <Megaphone size={14} strokeWidth={1.8} aria-hidden="true" /> Status de publicação
+          </li>
+          <li>
+            <Mail size={14} strokeWidth={1.8} aria-hidden="true" /> Mensagens
+          </li>
+        </ul>
+        </>
       )}
     </div>
   );
