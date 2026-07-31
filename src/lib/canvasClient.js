@@ -181,6 +181,62 @@ export async function archiveConversation(client, conversationId) {
   return response.data;
 }
 
+/**
+ * Lists the course's active students (Canvas's short enrollment_type form —
+ * 'student', not 'StudentEnrollment'). Used both to build an explicit
+ * recipient list for sending a message to "the students" of a course
+ * (Canvas's own `recipients[]` shorthand only understands `course_<id>`
+ * (everyone in the course: teachers/TAs included) or `group_<id>`, there is
+ * no `course_<id>_students` shorthand) and to power the student report.
+ *
+ * `include` lets a caller opt into extra per-user detail beyond the bare
+ * id/name/login_id: 'enrollments' brings enrollment_state, section
+ * (course_section_id), last_activity_at, total_activity_time and — account
+ * permissions allowing — grades. Canvas's own docs for this endpoint do
+ * **not** list 'email' as a valid include[] value (only 'enrollments',
+ * 'locked', 'avatar_url', 'test_student', 'bio', 'custom_links',
+ * 'current_grading_period_scores', 'uuid') — it's requested anyway since an
+ * unrecognized include[] value is silently ignored rather than erroring, and
+ * some Canvas instances do return it; callers should still fall back to the
+ * always-present `login_id` when `email` doesn't come back.
+ */
+export async function listCourseStudents(client, courseId, { include = [] } = {}) {
+  return fetchAllPages(client, `/courses/${courseId}/users`, {
+    per_page: 100,
+    'enrollment_type[]': 'student',
+    'enrollment_state[]': 'active',
+    ...(include.length ? { 'include[]': include } : {}),
+  });
+}
+
+/**
+ * Lists a course's sections. An enrollment (see listCourseStudents's
+ * include:['enrollments']) only carries course_section_id, not the
+ * section's name — this is the lookup needed to turn that id into something
+ * displayable in the student report.
+ */
+export async function listCourseSections(client, courseId) {
+  return fetchAllPages(client, `/courses/${courseId}/sections`, { per_page: 100 });
+}
+
+/**
+ * Creates a Canvas conversation. `group_conversation` is always false —
+ * this app only ever sends individual, private copies to each recipient
+ * (never a shared thread where recipients see each other) — Canvas requires
+ * `group_conversation: true` once `recipients` exceeds 100, so callers
+ * sending to a large course must chunk the recipient list themselves.
+ */
+export async function createConversation(client, { recipients, subject, body, contextCode }) {
+  const response = await client.post('/conversations', {
+    recipients,
+    subject,
+    body,
+    context_code: contextCode,
+    group_conversation: false,
+  });
+  return response.data;
+}
+
 export async function addCourseFavorite(client, courseId) {
   const response = await client.post(`/users/self/favorites/courses/${courseId}`);
   return response.data;

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { SYSTEM_PROMPT, buildUserMessage, buildQuizOutputSchema } from './shared';
 import { REPLY_SYSTEM_PROMPT, buildReplyUserMessage } from './replyPrompt';
+import { IMPROVE_SYSTEM_PROMPT, buildImproveUserMessage } from './improvePrompt';
 
 export const id = 'gemini';
 export const label = 'Google Gemini';
@@ -66,4 +67,22 @@ export async function suggestReply({ apiKey, model, context }) {
   }
 
   return text;
+}
+
+export async function improveMessage({ apiKey, model, text }) {
+  const response = await axios.post(
+    `${BASE_URL}/models/${model || defaultModel}:generateContent`,
+    {
+      system_instruction: { parts: [{ text: IMPROVE_SYSTEM_PROMPT }] },
+      contents: [{ role: 'user', parts: [{ text: buildImproveUserMessage(text) }] }],
+    },
+    { params: { key: apiKey } },
+  );
+
+  const improved = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!improved) {
+    throw new Error('A resposta do Gemini não contém conteúdo utilizável.');
+  }
+
+  return improved;
 }

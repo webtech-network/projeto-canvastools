@@ -2,6 +2,7 @@ import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listConversations } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
 import { listProviders } from '@/lib/aiProviders';
+import ComposeMessage from '@/components/ComposeMessage';
 import MessageList from '@/components/MessageList';
 
 export default async function CourseMensagensPage({ params }) {
@@ -41,6 +42,8 @@ export default async function CourseMensagensPage({ params }) {
     <main className="page">
       <h1>Mensagens — {course.name}</h1>
       <p className="lede">Mensagens da caixa de entrada do Canvas associadas a este curso.</p>
+
+      <ComposeMessage courseId={courseId} providers={configuredProviders} />
 
       {loadError ? (
         <p className="alert alert-error" role="alert">

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ListChecks, Mail, Star, Megaphone, ClipboardCheck } from 'lucide-react';
+import { ListChecks, Mail, Star, Megaphone, ClipboardCheck, Users } from 'lucide-react';
 import StatusIcon from './StatusIcon';
 import SortIcon from './SortIcon';
 import { isPublished } from '@/lib/dashboard';
@@ -275,6 +275,14 @@ export default function CourseBrowser({ courses }) {
                     aria-label="Ver mensagens"
                   >
                     <Mail size={18} strokeWidth={1.8} />
+                  </Link>
+                  <Link
+                    href={`/courses/${course.id}/alunos`}
+                    className="btn btn-secondary btn-icon"
+                    title="Ver alunos"
+                    aria-label="Ver alunos"
+                  >
+                    <Users size={18} strokeWidth={1.8} />
                   </Link>
                 </td>
               </tr>

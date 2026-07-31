@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { SYSTEM_PROMPT, buildUserMessage, buildQuizOutputSchema } from './shared';
 import { REPLY_SYSTEM_PROMPT, buildReplyUserMessage } from './replyPrompt';
+import { IMPROVE_SYSTEM_PROMPT, buildImproveUserMessage } from './improvePrompt';
 
 export const id = 'claude';
 export const label = 'Anthropic Claude';
@@ -69,6 +70,26 @@ export async function suggestReply({ apiKey, model, context }) {
       max_tokens: 1024,
       system: REPLY_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: buildReplyUserMessage(context) }],
+    },
+    { headers: authHeaders(apiKey) },
+  );
+
+  const textBlock = (response.data?.content || []).find((block) => block.type === 'text');
+  if (!textBlock) {
+    throw new Error('A resposta da Anthropic não contém conteúdo utilizável.');
+  }
+
+  return textBlock.text;
+}
+
+export async function improveMessage({ apiKey, model, text }) {
+  const response = await axios.post(
+    `${BASE_URL}/messages`,
+    {
+      model: model || defaultModel,
+      max_tokens: 1024,
+      system: IMPROVE_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: buildImproveUserMessage(text) }],
     },
     { headers: authHeaders(apiKey) },
   );

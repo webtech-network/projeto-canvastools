@@ -611,6 +611,10 @@ a {
   background: var(--warn-bg);
   color: var(--warn);
 }
+.alert-success {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
 .alert-toggle {
   display: inline-flex;
   align-items: center;
@@ -902,6 +906,71 @@ a {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--paper-raised);
+  color: var(--ink);
+}
+
+.compose-message-toggle {
+  margin: 0 0 1.25rem;
+}
+
+.compose-message {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  margin: 0 0 1.5rem;
+  background: var(--paper-raised);
+}
+.compose-message-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+.compose-message-header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+.compose-message-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.9rem 0;
+}
+.compose-message-field span {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.compose-message-field input,
+.compose-message-field textarea {
+  font: inherit;
+  font-size: 0.94rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  resize: vertical;
+}
+.compose-message-field input:focus,
+.compose-message-field textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.compose-message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.75rem 0;
+}
+.compose-message-actions select {
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
   color: var(--ink);
 }
 
