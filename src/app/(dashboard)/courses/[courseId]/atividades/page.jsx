@@ -4,6 +4,7 @@ import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listAssignments } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
 import StatusIcon from '@/components/StatusIcon';
+import ContextBanner from '@/components/ContextBanner';
 
 function formatDueDate(iso) {
   if (!iso) return '—';
@@ -30,13 +31,19 @@ export default async function AtividadesPage({ params }) {
     },
   });
 
-  const [course, assignments] = await Promise.all([getCourse(client, courseId), listAssignments(client, courseId)]);
+  // Sequenced, not Promise.all — firing both requests concurrently on a
+  // near-expired access token means both 401 at once and each independently
+  // races to refresh via onUnauthorized, causing a hard crash (observed live
+  // on this page; already fixed the same way on the quiz-import page).
+  const course = await getCourse(client, courseId);
+  const assignments = await listAssignments(client, courseId);
 
   return (
     <main className="page">
       <div className="page-header-row">
         <div>
-          <h1>Atividades — {course.name}</h1>
+          <h1>Atividades</h1>
+          <ContextBanner items={[{ label: 'Curso', value: course.name }]} />
           <p className="lede">
             Avaliações pendentes de correção por atividade. Quizzes clássicos podem receber questões importadas.
           </p>
@@ -62,9 +69,7 @@ export default async function AtividadesPage({ params }) {
                 <ClipboardCheck size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
                 <span className="sr-only">Correções pendentes</span>
               </th>
-              <th>
-                <span className="sr-only">Ações</span>
-              </th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>

@@ -37,7 +37,6 @@ function csvEscape(value) {
 const CSV_HEADERS = [
   'Nome',
   'E-mail/Login',
-  'Seção',
   'Status da matrícula',
   'Última atividade',
   'Tempo de atividade',
@@ -52,7 +51,6 @@ function rowsToCsv(rows) {
       [
         row.name,
         row.contact,
-        row.section,
         ENROLLMENT_STATE_LABELS[row.enrollmentState] || '—',
         formatDate(row.lastActivityAt),
         formatActivityTime(row.totalActivityTime),
@@ -134,7 +132,6 @@ export default function StudentReport({ rows }) {
             <tr>
               <th>Nome</th>
               <th>E-mail/Login</th>
-              <th>Seção</th>
               <th>Status</th>
               <th>Última atividade</th>
               <th>Tempo de atividade</th>
@@ -149,7 +146,6 @@ export default function StudentReport({ rows }) {
                 <td title={row.contactIsLogin ? 'E-mail não disponível — exibindo login do Canvas' : undefined}>
                   {row.contact}
                 </td>
-                <td>{row.section}</td>
                 <td>{ENROLLMENT_STATE_LABELS[row.enrollmentState] || '—'}</td>
                 <td>{formatDate(row.lastActivityAt)}</td>
                 <td>{formatActivityTime(row.totalActivityTime)}</td>

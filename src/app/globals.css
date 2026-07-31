@@ -306,7 +306,7 @@ a {
   border: 1px solid var(--line);
   border-bottom: none;
   border-radius: var(--radius) var(--radius) 0 0;
-  background: var(--paper);
+  background: var(--paper-raised);
   color: var(--ink-soft);
   font: inherit;
   font-weight: 600;
@@ -319,14 +319,14 @@ a {
   color: var(--ink);
 }
 .tab-folder-btn.active {
-  background: var(--paper-raised);
+  background: var(--paper);
   color: var(--ink);
   transform: translateY(0);
 }
 .tab-folder-panel {
   border: 1px solid var(--line);
   border-radius: 0 var(--radius) var(--radius) var(--radius);
-  background: var(--paper-raised);
+  background: var(--paper);
   padding: 1.25rem;
 }
 .tab-folder-description {
@@ -756,6 +756,19 @@ a {
 /* Explains the icon-only column headers (courses table, atividades table) —
    sits right under the table since the icons themselves have no visible
    text label, only a title/sr-only hint on hover/screen reader. */
+.cache-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 0.85rem;
+  border-top: 1px dashed var(--line);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
 .icon-legend {
   list-style: none;
   display: flex;
@@ -911,6 +924,34 @@ a {
 
 .compose-message-toggle {
   margin: 0 0 1.25rem;
+}
+
+.context-banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.85rem 1.25rem;
+  margin: 0 0 1.25rem;
+  background: var(--paper-raised);
+}
+.context-banner-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.context-banner-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+.context-banner-value {
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .compose-message {

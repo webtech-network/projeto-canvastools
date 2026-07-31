@@ -16,12 +16,9 @@ function primaryEnrollment(student) {
 
 /**
  * Flattens Canvas's nested user+enrollment shape into one row per student for
- * the report table. `sections` is the array from listCourseSections, used to
- * resolve an enrollment's course_section_id into a name.
+ * the report table.
  */
-export function buildStudentRows(students, sections = []) {
-  const sectionNameById = Object.fromEntries(sections.map((s) => [s.id, s.name]));
-
+export function buildStudentRows(students) {
   return students.map((student) => {
     const enrollment = primaryEnrollment(student);
     const email = student.email || null;
@@ -31,7 +28,6 @@ export function buildStudentRows(students, sections = []) {
       sortableName: student.sortable_name || student.name,
       contact: email || student.login_id || '—',
       contactIsLogin: !email && Boolean(student.login_id),
-      section: enrollment?.course_section_id ? sectionNameById[enrollment.course_section_id] || '—' : '—',
       enrollmentState: enrollment?.enrollment_state || null,
       lastActivityAt: enrollment?.last_activity_at || null,
       totalActivityTime: enrollment?.total_activity_time ?? null,

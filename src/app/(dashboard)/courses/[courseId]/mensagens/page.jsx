@@ -4,6 +4,7 @@ import { refreshAccessToken } from '@/lib/canvasOAuth';
 import { listProviders } from '@/lib/aiProviders';
 import ComposeMessage from '@/components/ComposeMessage';
 import MessageList from '@/components/MessageList';
+import ContextBanner from '@/components/ContextBanner';
 
 export default async function CourseMensagensPage({ params }) {
   const { courseId } = await params;
@@ -40,7 +41,8 @@ export default async function CourseMensagensPage({ params }) {
 
   return (
     <main className="page">
-      <h1>Mensagens — {course.name}</h1>
+      <h1>Mensagens</h1>
+      <ContextBanner items={[{ label: 'Curso', value: course.name }]} />
       <p className="lede">Mensagens da caixa de entrada do Canvas associadas a este curso.</p>
 
       <ComposeMessage courseId={courseId} providers={configuredProviders} />

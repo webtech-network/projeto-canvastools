@@ -210,16 +210,6 @@ export async function listCourseStudents(client, courseId, { include = [] } = {}
 }
 
 /**
- * Lists a course's sections. An enrollment (see listCourseStudents's
- * include:['enrollments']) only carries course_section_id, not the
- * section's name — this is the lookup needed to turn that id into something
- * displayable in the student report.
- */
-export async function listCourseSections(client, courseId) {
-  return fetchAllPages(client, `/courses/${courseId}/sections`, { per_page: 100 });
-}
-
-/**
  * Creates a Canvas conversation. `group_conversation` is always false —
  * this app only ever sends individual, private copies to each recipient
  * (never a shared thread where recipients see each other) — Canvas requires

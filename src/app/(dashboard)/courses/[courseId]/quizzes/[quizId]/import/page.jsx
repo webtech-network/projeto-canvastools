@@ -3,6 +3,7 @@ import { createClient, getCourse, getQuiz } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
 import { listProviders } from '@/lib/aiProviders';
 import QuizImportPanel from '@/components/QuizImportPanel';
+import ContextBanner from '@/components/ContextBanner';
 
 export default async function ImportPage({ params }) {
   const { courseId, quizId } = await params;
@@ -31,9 +32,12 @@ export default async function ImportPage({ params }) {
   return (
     <main className="page">
       <h1>Importar questões</h1>
-      <p className="lede">
-        Destino: <strong>{course.name}</strong> — {quiz.title}
-      </p>
+      <ContextBanner
+        items={[
+          { label: 'Curso', value: course.name },
+          { label: 'Atividade', value: quiz.title },
+        ]}
+      />
       <QuizImportPanel courseId={courseId} quizId={quizId} providers={configuredProviders} />
     </main>
   );

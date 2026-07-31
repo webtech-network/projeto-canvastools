@@ -1,11 +1,23 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ListChecks, Mail, Star, Megaphone, ClipboardCheck, Users } from 'lucide-react';
+import { ListChecks, Mail, Star, Megaphone, ClipboardCheck, Users, RefreshCw } from 'lucide-react';
 import StatusIcon from './StatusIcon';
 import SortIcon from './SortIcon';
 import { isPublished } from '@/lib/dashboard';
+import { readCache, writeCache } from '@/lib/dashboardCache';
+
+const CACHE_KEY = 'courses:list';
+
+function formatDateTime(timestamp) {
+  if (!timestamp) return null;
+  try {
+    return new Date(timestamp).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'medium' });
+  } catch {
+    return null;
+  }
+}
 
 function toStatus(workflowState) {
   if (workflowState === 'available') return 'published';
@@ -29,19 +41,83 @@ const STATUS_FILTERS = [
   { key: 'all', label: 'Todos' },
 ];
 
-export default function CourseBrowser({ courses }) {
-  const [courseList, setCourseList] = useState(courses);
+export default function CourseBrowser() {
+  const [courseList, setCourseList] = useState([]);
   const [query, setQuery] = useState('');
   // Starts on "Favoritos" by default (per product decision), but falls back to
   // "Todos" when the account has no favorited/starred courses in Canvas, so
-  // the first screen is never an empty dead end.
-  const [onlyFavorites, setOnlyFavorites] = useState(() => courses.some((c) => c.is_favorite));
+  // the first screen is never an empty dead end. Data now arrives
+  // asynchronously (cache first, then a fresh fetch), so this default is
+  // resolved once — via applyDefaultFavoriteFilter below — the first time
+  // either one lands, instead of synchronously from a prop like before.
+  const [onlyFavorites, setOnlyFavorites] = useState(true);
   // Defaults to "Publicados" — unpublished courses aren't usually what a
   // professor is looking for on first load; "Todos" is still one click away.
   const [statusFilter, setStatusFilter] = useState('published');
   const [sort, setSort] = useState({ key: null, direction: 'asc' });
   const [pendingFavoriteId, setPendingFavoriteId] = useState(null);
   const [favoriteError, setFavoriteError] = useState(null);
+
+  // Stale-while-revalidate: paints instantly from IndexedDB (marked `stale`),
+  // then always fires a fresh fetch and updates the UI + cache when it
+  // resolves. First-ever visit (no cache at all) shows a loading state
+  // instead of an empty table.
+  const [loading, setLoading] = useState(true);
+  const [hasCache, setHasCache] = useState(false);
+  const [stale, setStale] = useState(false);
+  const [fetchedAt, setFetchedAt] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+
+  const appliedDefaultFilterRef = useRef(false);
+  const userToggledFavoritesRef = useRef(false);
+
+  function applyDefaultFavoriteFilter(list) {
+    if (appliedDefaultFilterRef.current || userToggledFavoritesRef.current) return;
+    appliedDefaultFilterRef.current = true;
+    if (!list.some((c) => c.is_favorite)) setOnlyFavorites(false);
+  }
+
+  const fetchFresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/canvas/courses');
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Falha ao carregar os cursos.');
+      setCourseList(data.courses);
+      setFetchedAt(Date.now());
+      setHasCache(true);
+      setStale(false);
+      setLoadError(null);
+      applyDefaultFavoriteFilter(data.courses);
+      await writeCache(CACHE_KEY, data.courses);
+    } catch (err) {
+      setLoadError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFromCache() {
+      const cached = await readCache(CACHE_KEY);
+      if (cancelled || !cached) return;
+      setCourseList(cached.data);
+      setFetchedAt(cached.fetchedAt);
+      setHasCache(true);
+      setStale(true);
+      setLoading(false);
+      applyDefaultFavoriteFilter(cached.data);
+    }
+
+    loadFromCache();
+    fetchFresh();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchFresh]);
 
   const favoritesCount = useMemo(() => courseList.filter((c) => c.is_favorite).length, [courseList]);
   const publishedCount = useMemo(() => courseList.filter(isPublished).length, [courseList]);
@@ -71,6 +147,15 @@ export default function CourseBrowser({ courses }) {
         method: nextFavorite ? 'POST' : 'DELETE',
       });
       if (!response.ok) throw new Error();
+      // Keep the cache in sync with the optimistic update so the next
+      // stale-while-revalidate paint (e.g. after a fresh page load) doesn't
+      // briefly flash the pre-toggle favorite state before the fresh fetch
+      // overwrites it.
+      setCourseList((prev) => {
+        const updated = prev.map((c) => (c.id === course.id ? { ...c, is_favorite: nextFavorite } : c));
+        writeCache(CACHE_KEY, updated);
+        return updated;
+      });
     } catch {
       setCourseList((prev) => prev.map((c) => (c.id === course.id ? { ...c, is_favorite: course.is_favorite } : c)));
       setFavoriteError(`Não foi possível ${nextFavorite ? 'favoritar' : 'desfavoritar'} "${course.name}". Tente novamente.`);
@@ -104,6 +189,35 @@ export default function CourseBrowser({ courses }) {
     return sort.direction === 'asc' ? 'ascending' : 'descending';
   }
 
+  function handleSetOnlyFavorites(value) {
+    userToggledFavoritesRef.current = true;
+    setOnlyFavorites(value);
+  }
+
+  // Nothing to show yet at all (no cache, first fetch still in flight) —
+  // the filter controls below would be meaningless with an empty list.
+  if (loading && !hasCache) {
+    return (
+      <div className="course-browser">
+        <p className="lede">Carregando cursos…</p>
+      </div>
+    );
+  }
+
+  if (!loading && courseList.length === 0) {
+    return (
+      <div className="course-browser">
+        {loadError ? (
+          <p className="alert alert-error" role="alert">
+            {loadError}
+          </p>
+        ) : (
+          <p className="lede">Nenhum curso encontrado para esta conta.</p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="course-browser">
       <div className="browser-controls">
@@ -119,7 +233,7 @@ export default function CourseBrowser({ courses }) {
           <button
             type="button"
             className={`segmented-btn${onlyFavorites ? ' active' : ''}`}
-            onClick={() => setOnlyFavorites(true)}
+            onClick={() => handleSetOnlyFavorites(true)}
           >
             <Star size={14} strokeWidth={2} fill="currentColor" aria-hidden="true" />
             Favoritos ({favoritesCount})
@@ -127,7 +241,7 @@ export default function CourseBrowser({ courses }) {
           <button
             type="button"
             className={`segmented-btn${!onlyFavorites ? ' active' : ''}`}
-            onClick={() => setOnlyFavorites(false)}
+            onClick={() => handleSetOnlyFavorites(false)}
           >
             Todos ({courseList.length})
           </button>
@@ -305,6 +419,24 @@ export default function CourseBrowser({ courses }) {
           </li>
         </ul>
         </>
+      )}
+
+      <div className="cache-footer">
+        <span className="cache-footer-info">
+          {fetchedAt
+            ? `Carregado em ${formatDateTime(fetchedAt)}${stale ? ' — dados salvos, atualizando em segundo plano…' : ''}`
+            : 'Carregando…'}
+        </span>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={fetchFresh} disabled={loading}>
+          <RefreshCw size={14} strokeWidth={2} aria-hidden="true" />
+          {loading ? 'Atualizando…' : 'Recarregar'}
+        </button>
+      </div>
+
+      {loadError && (
+        <p className="alert alert-error" role="alert">
+          {loadError}
+        </p>
       )}
     </div>
   );
