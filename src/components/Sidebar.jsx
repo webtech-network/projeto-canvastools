@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { GraduationCap, Sparkles, Mail } from 'lucide-react';
+import { GraduationCap, Sparkles, Mail, BookOpen } from 'lucide-react';
 import logo from '@/assets/images/logo.png';
 import SidebarMenu from './SidebarMenu';
 
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: '/courses', label: 'Cursos', Icon: GraduationCap },
   { href: '/questoes', label: 'Questões', Icon: Sparkles },
   { href: '/mensagens', label: 'Mensagens', Icon: Mail },
+  { href: '/tutorial', label: 'Tutorial', Icon: BookOpen },
 ];
 
 export default function Sidebar() {

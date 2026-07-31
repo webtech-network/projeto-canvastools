@@ -19,6 +19,21 @@ function normalizeBaseUrl(baseUrl) {
   return baseUrl.replace(/\/$/, '').replace(/\/api\/v1$/, '');
 }
 
+// An unhandled axios error carries the raw Bearer token twice: in
+// `error.config.headers.Authorization`, and — via the Node http adapter —
+// in `error.request._header`, the literal raw HTTP request line/headers as
+// text. Both end up verbatim in Next.js's dev error overlay/console (and
+// would in any other unredacted logger) if a Canvas call throws uncaught.
+// Every rejection from this client goes through here first so a real access
+// token never has a path to a log file.
+function sanitizeAxiosError(error) {
+  if (error?.config?.headers?.Authorization) {
+    error.config.headers.Authorization = '[redacted]';
+  }
+  delete error?.request; // carries the raw request line/headers as text — not worth trying to scrub in place
+  return error;
+}
+
 /**
  * Creates an axios instance for the Canvas API. Deliberately agnostic to how
  * the token was obtained (personal access token for the CLI, OAuth access
@@ -53,10 +68,10 @@ export function createClient({ baseUrl, token, onUnauthorized }) {
           currentToken = newToken;
           return instance(original);
         } catch {
-          return Promise.reject(error);
+          return Promise.reject(sanitizeAxiosError(error));
         }
       }
-      return Promise.reject(error);
+      return Promise.reject(sanitizeAxiosError(error));
     },
   );
 

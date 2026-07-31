@@ -54,5 +54,6 @@ export const config = {
     '/perfil/:path*',
     '/mensagens/:path*',
     '/api/dashboard/:path*',
+    '/tutorial/:path*',
   ],
 };
