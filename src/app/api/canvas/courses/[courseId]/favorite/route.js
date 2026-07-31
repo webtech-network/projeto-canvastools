@@ -1,18 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSession, isSessionValid } from '@/lib/session';
-import { createClient, addCourseFavorite, removeCourseFavorite } from '@/lib/canvasClient';
-import { refreshAccessToken } from '@/lib/canvasOAuth';
-
-function buildClient(session) {
-  return createClient({
-    baseUrl: session.baseUrl,
-    token: session.accessToken,
-    onUnauthorized: async () => {
-      const refreshed = await refreshAccessToken(session.refreshToken);
-      return refreshed.access_token;
-    },
-  });
-}
+import { addCourseFavorite, removeCourseFavorite } from '@/lib/canvasClient';
+import { buildClient } from '@/lib/canvasSession';
 
 export async function POST(request, { params }) {
   const session = await getSession();

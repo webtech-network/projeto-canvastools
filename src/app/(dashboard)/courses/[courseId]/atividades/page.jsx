@@ -1,17 +1,17 @@
 import Link from 'next/link';
+import { ClipboardCheck, FileQuestion } from 'lucide-react';
 import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listAssignments } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
 import StatusIcon from '@/components/StatusIcon';
 
-function ImportIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 16V4" />
-      <path d="M7 9l5-5 5 5" />
-      <path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
-    </svg>
-  );
+function formatDueDate(iso) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  } catch {
+    return '—';
+  }
 }
 
 export default async function AtividadesPage({ params }) {
@@ -34,10 +34,17 @@ export default async function AtividadesPage({ params }) {
 
   return (
     <main className="page">
-      <h1>Atividades — {course.name}</h1>
-      <p className="lede">
-        Avaliações pendentes de correção por atividade. Quizzes clássicos podem receber questões importadas.
-      </p>
+      <div className="page-header-row">
+        <div>
+          <h1>Atividades — {course.name}</h1>
+          <p className="lede">
+            Avaliações pendentes de correção por atividade. Quizzes clássicos podem receber questões importadas.
+          </p>
+        </div>
+        <Link href="/questoes" className="btn btn-secondary">
+          Gerar questões com IA
+        </Link>
+      </div>
 
       {assignments.length === 0 ? (
         <p>Nenhuma atividade encontrada neste curso.</p>
@@ -49,7 +56,11 @@ export default async function AtividadesPage({ params }) {
                 <span className="sr-only">Status</span>
               </th>
               <th>Atividade</th>
-              <th>Pendências</th>
+              <th>Data de entrega</th>
+              <th title="Correções pendentes">
+                <ClipboardCheck size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
+                <span className="sr-only">Correções pendentes</span>
+              </th>
               <th>
                 <span className="sr-only">Ações</span>
               </th>
@@ -71,6 +82,7 @@ export default async function AtividadesPage({ params }) {
                     {assignment.name}
                   </a>
                 </td>
+                <td className="pending-cell">{formatDueDate(assignment.due_at)}</td>
                 <td className="pending-cell">
                   <span className={`pending-badge${assignment.needs_grading_count ? ' has-pending' : ''}`}>
                     {assignment.needs_grading_count ?? 0}
@@ -87,7 +99,7 @@ export default async function AtividadesPage({ params }) {
                       title="Importar questões"
                       aria-label="Importar questões"
                     >
-                      <ImportIcon />
+                      <FileQuestion size={18} strokeWidth={1.8} />
                     </Link>
                   )}
                 </td>

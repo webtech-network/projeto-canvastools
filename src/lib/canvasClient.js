@@ -93,15 +93,16 @@ export async function getCourse(client, courseId) {
  * is enrolled as teacher, since this is an instructor-facing import tool;
  * pass enrollmentType: null to list every enrollment type instead (useful
  * for a TA-only account). Always requests include[]=favorites (for the
- * "is_favorite" filter in the UI) and include[]=needs_grading_count (Canvas's
+ * "is_favorite" filter in the UI), include[]=needs_grading_count (Canvas's
  * own server-computed pending-grading total per course, shown in the courses
- * table) — both are valid on this general /courses endpoint, not just the
- * favorites-only one.
+ * table), and include[]=total_students (Canvas's own server-computed
+ * enrollment count, used by the dashboard's student-count tile) — all valid
+ * on this general /courses endpoint, not just the favorites-only one.
  */
 export async function listCourses(client, { enrollmentType = 'teacher', enrollmentState = 'active' } = {}) {
   return fetchAllPages(client, '/courses', {
     per_page: 100,
-    'include[]': ['favorites', 'needs_grading_count'],
+    'include[]': ['favorites', 'needs_grading_count', 'total_students'],
     ...(enrollmentState ? { enrollment_state: enrollmentState } : {}),
     ...(enrollmentType ? { enrollment_type: enrollmentType } : {}),
   });
@@ -155,6 +156,13 @@ export async function listConversations(client, { filter, scope } = {}) {
  */
 export async function getConversation(client, conversationId) {
   const response = await client.get(`/conversations/${conversationId}`);
+  return response.data;
+}
+
+export async function archiveConversation(client, conversationId) {
+  const response = await client.put(`/conversations/${conversationId}`, {
+    conversation: { workflow_state: 'archived' },
+  });
   return response.data;
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import MessageList from './MessageList';
 import { groupConversationsByCourse } from '@/lib/messageGrouping';
 
@@ -82,7 +83,7 @@ export default function MessageBrowser({ courses, conversations, currentUserId, 
                 aria-expanded={!collapsed}
               >
                 <span className={`group-chevron${collapsed ? '' : ' expanded'}`} aria-hidden="true">
-                  ▸
+                  <ChevronRight size={16} strokeWidth={2} />
                 </span>
                 <span className="group-title">{title}</span>
                 <span className={`pending-badge${group.conversations.length ? ' has-pending' : ''}`}>

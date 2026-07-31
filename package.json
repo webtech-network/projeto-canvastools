@@ -15,8 +15,11 @@
   "dependencies": {
     "ajv": "^8.20.0",
     "axios": "^1.6.8",
+    "date-fns": "^4.4.0",
     "dotenv": "^16.4.5",
+    "idb": "^8.0.3",
     "iron-session": "^8.0.4",
+    "lucide-react": "^1.28.0",
     "next": "^16.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

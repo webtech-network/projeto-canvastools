@@ -38,7 +38,7 @@ export default async function CourseMensagensPage({ params }) {
   }
 
   return (
-    <main className="page mensagens-page">
+    <main className="page">
       <h1>Mensagens — {course.name}</h1>
       <p className="lede">Mensagens da caixa de entrada do Canvas associadas a este curso.</p>
 

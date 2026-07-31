@@ -1,6 +1,7 @@
 import { getSession, isSessionValid } from '@/lib/session';
 import { listProviders } from '@/lib/aiProviders';
 import ApiKeyManager from '@/components/ApiKeyManager';
+import ShortcutsManager from '@/components/ShortcutsManager';
 
 export default async function PerfilPage() {
   const session = await getSession();
@@ -44,10 +45,19 @@ export default async function PerfilPage() {
       </section>
 
       <section className="profile-section">
+        <h2>Atalhos pessoais</h2>
+        <p className="lede">
+          Atalhos exibidos no painel inicial. Salvos só neste navegador — leve-os para outro navegador exportando e
+          importando o arquivo.
+        </p>
+        <ShortcutsManager />
+      </section>
+
+      <section className="profile-section">
         <h2>Preferências</h2>
         <p className="lede">
-          Por enquanto, a única preferência configurável é a chave de API acima. Outras opções (idioma, provedor de
-          IA padrão, notificações) devem chegar aqui conforme forem implementadas.
+          Além dos atalhos acima, outras opções (idioma, provedor de IA padrão, notificações) devem chegar aqui
+          conforme forem implementadas.
         </p>
       </section>
     </main>

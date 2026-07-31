@@ -53,5 +53,6 @@ export const config = {
     '/api/ai/:path*',
     '/perfil/:path*',
     '/mensagens/:path*',
+    '/api/dashboard/:path*',
   ],
 };

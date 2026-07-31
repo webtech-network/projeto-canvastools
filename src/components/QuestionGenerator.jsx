@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { X, ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
+import QuizReviewImport from './QuizReviewImport';
 
 const NIVEL_OPTIONS = [
   { value: 'baixo', label: 'Baixo' },
@@ -29,7 +31,7 @@ function stripHtml(html) {
   return doc.body.textContent || '';
 }
 
-export default function QuestionGenerator({ providers }) {
+export default function QuestionGenerator({ providers, courseId, quizId }) {
   const [providerId, setProviderId] = useState(providers[0]?.id || '');
   const [specs, setSpecs] = useState([emptySpec()]);
   const [generating, setGenerating] = useState(false);
@@ -37,6 +39,13 @@ export default function QuestionGenerator({ providers }) {
   const [quiz, setQuiz] = useState(null);
   const [warnings, setWarnings] = useState([]);
   const [warningsOpen, setWarningsOpen] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  // Bumped on every successful generation so <QuizReviewImport> remounts
+  // (via its key) instead of keeping stale selection/results from a
+  // previous batch of generated questions.
+  const [generationId, setGenerationId] = useState(0);
+
+  const canReviewInline = Boolean(courseId && quizId);
 
   function updateSpec(index, field, value) {
     setSpecs((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
@@ -55,6 +64,7 @@ export default function QuestionGenerator({ providers }) {
     setGenerateError(null);
     setQuiz(null);
     setWarnings([]);
+    setReviewing(false);
 
     try {
       const response = await fetch(`/api/ai/${providerId}/generate-questions`, {
@@ -68,6 +78,7 @@ export default function QuestionGenerator({ providers }) {
       } else {
         setQuiz(data.quiz);
         setWarnings(data.warnings || []);
+        setGenerationId((n) => n + 1);
       }
     } catch (err) {
       setGenerateError(err.message);
@@ -155,7 +166,7 @@ export default function QuestionGenerator({ providers }) {
                   onClick={() => removeSpec(i)}
                   aria-label="Remover questão"
                 >
-                  ✕
+                  <X size={14} strokeWidth={2} />
                 </button>
               </div>
             ))}
@@ -178,45 +189,79 @@ export default function QuestionGenerator({ providers }) {
 
       {quiz && (
         <div className="quiz-preview">
-          <div className="alert alert-warning">
-            course_id/quiz_id vêm como <code>0</code> (placeholders) — o curso/quiz real é definido no fluxo de
-            importação, ao enviar este arquivo.
-          </div>
-
-          {warnings.length > 0 && (
-            <div className="alert alert-warning">
-              <button type="button" className="alert-toggle" onClick={() => setWarningsOpen((v) => !v)}>
-                {warningsOpen ? '▾' : '▸'} {warnings.length} aviso(s) de formatação (não impedem o uso)
+          {reviewing ? (
+            <>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setReviewing(false)}>
+                <ArrowLeft size={14} strokeWidth={2} />
+                Voltar
               </button>
-              {warningsOpen && (
-                <ul>
-                  {warnings.map((message, i) => (
-                    <li key={i}>{message}</li>
-                  ))}
-                </ul>
+              <QuizReviewImport key={generationId} courseId={courseId} quizId={quizId} quiz={quiz} warnings={warnings} />
+            </>
+          ) : (
+            <>
+              <div className="alert alert-warning">
+                {canReviewInline ? (
+                  <>
+                    Ao importar diretamente, o curso/quiz de destino é aplicado automaticamente. Se preferir salvar o
+                    arquivo para usar depois em outra atividade, os campos course_id/quiz_id ficarão como{' '}
+                    <code>0</code> (placeholders) até o envio manual.
+                  </>
+                ) : (
+                  <>
+                    course_id/quiz_id vêm como <code>0</code> (placeholders) — o curso/quiz real é definido no fluxo
+                    de importação, ao enviar este arquivo.
+                  </>
+                )}
+              </div>
+
+              {warnings.length > 0 && (
+                <div className="alert alert-warning">
+                  <button type="button" className="alert-toggle" onClick={() => setWarningsOpen((v) => !v)}>
+                    {warningsOpen ? (
+                      <ChevronDown size={14} strokeWidth={2} />
+                    ) : (
+                      <ChevronRight size={14} strokeWidth={2} />
+                    )}
+                    {warnings.length} aviso(s) de formatação (não impedem o uso)
+                  </button>
+                  {warningsOpen && (
+                    <ul>
+                      {warnings.map((message, i) => (
+                        <li key={i}>{message}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               )}
-            </div>
+
+              {quiz.questions.map((q, i) => (
+                <article key={i} className="page question-preview">
+                  <h3>{q.question_name}</h3>
+                  <p>{stripHtml(q.question_text)}</p>
+                  <ul>
+                    {(q.answers || []).map((a, j) => (
+                      <li key={j}>
+                        {a.is_correct ? <strong>[Correta] </strong> : null}
+                        {a.answer_text}
+                        {a.answer_comment && <div className="lede">{stripHtml(a.answer_comment)}</div>}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+
+              <div className="generate-actions">
+                <button type="button" className="btn btn-primary" onClick={handleSaveFile}>
+                  Salvar arquivo
+                </button>
+                {canReviewInline && (
+                  <button type="button" className="btn btn-secondary" onClick={() => setReviewing(true)}>
+                    Revisar e importar
+                  </button>
+                )}
+              </div>
+            </>
           )}
-
-          {quiz.questions.map((q, i) => (
-            <article key={i} className="page question-preview">
-              <h3>{q.question_name}</h3>
-              <p>{stripHtml(q.question_text)}</p>
-              <ul>
-                {(q.answers || []).map((a, j) => (
-                  <li key={j}>
-                    {a.is_correct ? <strong>[Correta] </strong> : null}
-                    {a.answer_text}
-                    {a.answer_comment && <div className="lede">{stripHtml(a.answer_comment)}</div>}
-                  </li>
-                ))}
-              </ul>
-            </article>
-          ))}
-
-          <button type="button" className="btn btn-primary" onClick={handleSaveFile}>
-            Salvar arquivo
-          </button>
         </div>
       )}
     </div>

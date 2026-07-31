@@ -2,35 +2,15 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ListChecks, Mail, Star, Megaphone, ClipboardCheck } from 'lucide-react';
 import StatusIcon from './StatusIcon';
 import SortIcon from './SortIcon';
+import { isPublished } from '@/lib/dashboard';
 
 function toStatus(workflowState) {
   if (workflowState === 'available') return 'published';
   if (workflowState === 'completed') return 'completed';
   return 'unpublished';
-}
-
-function ActivitiesIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <circle cx="4.5" cy="6" r="1.1" fill="currentColor" stroke="none" />
-      <circle cx="4.5" cy="12" r="1.1" fill="currentColor" stroke="none" />
-      <circle cx="4.5" cy="18" r="1.1" fill="currentColor" stroke="none" />
-      <line x1="8.5" y1="6" x2="20" y2="6" />
-      <line x1="8.5" y1="12" x2="20" y2="12" />
-      <line x1="8.5" y1="18" x2="20" y2="18" />
-    </svg>
-  );
-}
-
-function MessagesIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 5h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
-      <path d="M3.5 6.5l8.5 6 8.5-6" />
-    </svg>
-  );
 }
 
 const STATUS_ORDER = { published: 0, unpublished: 1, completed: 2 };
@@ -42,13 +22,6 @@ const SORTERS = {
   status: (course) => STATUS_ORDER[toStatus(course.workflow_state)] ?? 99,
   messages: (course) => course.message_count ?? -1,
 };
-
-// A 'completed' course was published before being concluded, so it belongs
-// in the "Publicados" bucket, not "Não publicados" — only Canvas's own
-// 'unpublished' state means the course was never published.
-function isPublished(course) {
-  return course.workflow_state !== 'unpublished';
-}
 
 const STATUS_FILTERS = [
   { key: 'all', label: 'Qualquer status' },
@@ -153,7 +126,8 @@ export default function CourseBrowser({ courses }) {
             className={`segmented-btn${onlyFavorites ? ' active' : ''}`}
             onClick={() => setOnlyFavorites(true)}
           >
-            ★ Favoritos ({favoritesCount})
+            <Star size={14} strokeWidth={2} fill="currentColor" aria-hidden="true" />
+            Favoritos ({favoritesCount})
           </button>
         </div>
         <div className="segmented" role="group" aria-label="Filtrar por status de publicação">
@@ -200,21 +174,37 @@ export default function CourseBrowser({ courses }) {
                 </button>
               </th>
               <th aria-sort={sortAria('pending')}>
-                <button type="button" className="th-sort-btn" onClick={() => toggleSort('pending')}>
-                  Pendências
+                <button
+                  type="button"
+                  className="th-sort-btn"
+                  onClick={() => toggleSort('pending')}
+                  title="Correções pendentes"
+                >
+                  <ClipboardCheck size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
+                  <span className="sr-only">Correções pendentes</span>
                   <SortIcon direction={sort.key === 'pending' ? sort.direction : null} />
                 </button>
               </th>
               <th aria-sort={sortAria('status')}>
-                <button type="button" className="th-sort-btn" onClick={() => toggleSort('status')}>
-                  <span className="col-emoji" aria-hidden="true">📢</span>
+                <button
+                  type="button"
+                  className="th-sort-btn"
+                  onClick={() => toggleSort('status')}
+                  title="Status de publicação"
+                >
+                  <Megaphone size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
                   <span className="sr-only">Status de publicação</span>
                   <SortIcon direction={sort.key === 'status' ? sort.direction : null} />
                 </button>
               </th>
               <th aria-sort={sortAria('messages')}>
-                <button type="button" className="th-sort-btn" onClick={() => toggleSort('messages')}>
-                  <span className="col-emoji" aria-hidden="true">✉️</span>
+                <button
+                  type="button"
+                  className="th-sort-btn"
+                  onClick={() => toggleSort('messages')}
+                  title="Mensagens"
+                >
+                  <Mail size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
                   <span className="sr-only">Mensagens</span>
                   <SortIcon direction={sort.key === 'messages' ? sort.direction : null} />
                 </button>
@@ -235,7 +225,7 @@ export default function CourseBrowser({ courses }) {
                     aria-label={course.is_favorite ? 'Remover dos favoritos' : 'Marcar como favorito'}
                     aria-pressed={course.is_favorite}
                   >
-                    ★
+                    <Star size={16} strokeWidth={1.8} fill={course.is_favorite ? 'currentColor' : 'none'} />
                   </button>
                 </td>
                 <td className="course-name-cell">
@@ -273,7 +263,7 @@ export default function CourseBrowser({ courses }) {
                     title="Ver atividades"
                     aria-label="Ver atividades"
                   >
-                    <ActivitiesIcon />
+                    <ListChecks size={18} strokeWidth={1.8} />
                   </Link>
                   <Link
                     href={`/courses/${course.id}/mensagens`}
@@ -281,7 +271,7 @@ export default function CourseBrowser({ courses }) {
                     title="Ver mensagens"
                     aria-label="Ver mensagens"
                   >
-                    <MessagesIcon />
+                    <Mail size={18} strokeWidth={1.8} />
                   </Link>
                 </td>
               </tr>

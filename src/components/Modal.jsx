@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { X } from 'lucide-react';
 
 export default function Modal({ title, onClose, children }) {
   useEffect(() => {
@@ -17,7 +18,7 @@ export default function Modal({ title, onClose, children }) {
         <div className="modal-header">
           <h2>{title}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Fechar">
-            ✕
+            <X size={18} strokeWidth={1.8} />
           </button>
         </div>
         <div className="modal-body">{children}</div>

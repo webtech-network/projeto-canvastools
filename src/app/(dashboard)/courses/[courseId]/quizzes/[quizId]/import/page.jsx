@@ -1,7 +1,8 @@
 import { getSession, isSessionValid } from '@/lib/session';
-import { createClient, getQuiz } from '@/lib/canvasClient';
+import { createClient, getCourse, getQuiz } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
-import ImportQuestions from '@/components/ImportQuestions';
+import { listProviders } from '@/lib/aiProviders';
+import QuizImportPanel from '@/components/QuizImportPanel';
 
 export default async function ImportPage({ params }) {
   const { courseId, quizId } = await params;
@@ -19,15 +20,21 @@ export default async function ImportPage({ params }) {
     },
   });
 
+  // Sequential, not Promise.all: firing both requests concurrently on a stale
+  // access token means both 401 at once and each independently races to
+  // refresh via onUnauthorized — two simultaneous refresh-token exchanges
+  // against Canvas, which isn't safe (observed causing a hard failure here).
+  const course = await getCourse(client, courseId);
   const quiz = await getQuiz(client, courseId, quizId);
+  const configuredProviders = listProviders().filter((provider) => Boolean(session.aiApiKeys?.[provider.id]));
 
   return (
     <main className="page">
       <h1>Importar questões</h1>
       <p className="lede">
-        Destino: <strong>{quiz.title}</strong>
+        Destino: <strong>{course.name}</strong> — {quiz.title}
       </p>
-      <ImportQuestions courseId={courseId} quizId={quizId} />
+      <QuizImportPanel courseId={courseId} quizId={quizId} providers={configuredProviders} />
     </main>
   );
 }

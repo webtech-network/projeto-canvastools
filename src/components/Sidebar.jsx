@@ -3,40 +3,14 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { GraduationCap, Sparkles, Mail } from 'lucide-react';
 import logo from '@/assets/images/logo.png';
 import SidebarMenu from './SidebarMenu';
 
-function CoursesIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
-    </svg>
-  );
-}
-
-function QuestoesIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4L12 3z" />
-      <path d="M19 14l.7 1.8L21.5 16.5l-1.8.7L19 19l-.7-1.8-1.8-.7 1.8-.7L19 14z" />
-    </svg>
-  );
-}
-
-function MensagensIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M4 5h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z" />
-      <path d="M3.5 6.5l8.5 6 8.5-6" />
-    </svg>
-  );
-}
-
 const NAV_ITEMS = [
-  { href: '/courses', label: 'Cursos', Icon: CoursesIcon },
-  { href: '/questoes', label: 'Questões', Icon: QuestoesIcon },
-  { href: '/mensagens', label: 'Mensagens', Icon: MensagensIcon },
+  { href: '/courses', label: 'Cursos', Icon: GraduationCap },
+  { href: '/questoes', label: 'Questões', Icon: Sparkles },
+  { href: '/mensagens', label: 'Mensagens', Icon: Mail },
 ];
 
 export default function Sidebar() {
@@ -57,7 +31,7 @@ export default function Sidebar() {
               title={label}
               className={`nav-icon-btn${active ? ' active' : ''}`}
             >
-              <Icon />
+              <Icon size={20} strokeWidth={1.8} />
               <span className="nav-icon-label">{label}</span>
             </Link>
           );

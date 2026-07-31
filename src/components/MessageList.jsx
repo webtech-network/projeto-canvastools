@@ -2,6 +2,7 @@
 
 import { Fragment, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { ChevronRight, Paperclip } from 'lucide-react';
 import SortIcon from './SortIcon';
 import Modal from './Modal';
 
@@ -98,18 +99,26 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
   const [suggesting, setSuggesting] = useState(null); // conversation id currently loading, or null
   const [suggestError, setSuggestError] = useState(null);
   const [suggestion, setSuggestion] = useState(null); // { text } | null
+  const [archivedIds, setArchivedIds] = useState(() => new Set());
+  const [archiving, setArchiving] = useState(null); // conversation id currently archiving, or null
+  const [archiveError, setArchiveError] = useState(null);
+
+  const visible = useMemo(
+    () => conversations.filter((c) => !archivedIds.has(c.id)),
+    [conversations, archivedIds],
+  );
 
   const sorted = useMemo(() => {
     const getValue = SORTERS[sort.key];
     const sign = sort.direction === 'asc' ? 1 : -1;
-    return [...conversations].sort((a, b) => {
+    return [...visible].sort((a, b) => {
       const va = getValue(a, currentUserId);
       const vb = getValue(b, currentUserId);
       if (va < vb) return -1 * sign;
       if (va > vb) return 1 * sign;
       return 0;
     });
-  }, [conversations, currentUserId, sort]);
+  }, [visible, currentUserId, sort]);
 
   function toggleSort(key) {
     setSort((prev) => {
@@ -130,7 +139,7 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Falha ao carregar a conversa completa.');
       const messages = [...(data.conversation.messages || [])].sort(
-        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
       setThreads((prev) => ({
         ...prev,
@@ -180,7 +189,22 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
     }
   }
 
-  if (conversations.length === 0) {
+  async function handleArchive(conversation) {
+    setArchiving(conversation.id);
+    setArchiveError(null);
+    try {
+      const response = await fetch(`/api/canvas/conversations/${conversation.id}`, { method: 'PUT' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Falha ao arquivar a mensagem.');
+      setArchivedIds((prev) => new Set(prev).add(conversation.id));
+    } catch (err) {
+      setArchiveError(err.message);
+    } finally {
+      setArchiving(null);
+    }
+  }
+
+  if (visible.length === 0) {
     return <p className="lede">Nenhuma mensagem encontrada.</p>;
   }
 
@@ -235,7 +259,7 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                       aria-label={expanded ? 'Recolher mensagem' : 'Expandir mensagem'}
                     >
                       <span className={`group-chevron${expanded ? ' expanded' : ''}`} aria-hidden="true">
-                        ▸
+                        <ChevronRight size={16} strokeWidth={2} />
                       </span>
                     </button>
                   </td>
@@ -271,6 +295,14 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                           >
                             Abrir no Canvas
                           </Link>
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            disabled={archiving === conversation.id}
+                            onClick={() => handleArchive(conversation)}
+                          >
+                            {archiving === conversation.id ? 'Arquivando…' : 'Arquivar'}
+                          </button>
 
                           {providers.length > 0 && (
                             <>
@@ -325,7 +357,10 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                                   </div>
                                   <p className="thread-message-text">{message.body}</p>
                                   {attachments && (
-                                    <span className="thread-attachment-flag">📎 {attachments}</span>
+                                    <span className="thread-attachment-flag">
+                                      <Paperclip size={12} strokeWidth={2} />
+                                      {attachments}
+                                    </span>
                                   )}
                                 </li>
                               );
@@ -341,6 +376,12 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
           })}
         </tbody>
       </table>
+
+      {archiveError && (
+        <p className="alert alert-error" role="alert">
+          {archiveError}
+        </p>
+      )}
 
       {suggestError && (
         <p className="alert alert-error" role="alert">

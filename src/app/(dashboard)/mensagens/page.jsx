@@ -46,7 +46,7 @@ export default async function MensagensPage() {
   }
 
   return (
-    <main className="page mensagens-page">
+    <main className="page">
       <h1>Mensagens</h1>
       <p className="lede">
         Caixa de entrada do Canvas para seus cursos favoritos, agrupada por curso. Marque cursos como favoritos no

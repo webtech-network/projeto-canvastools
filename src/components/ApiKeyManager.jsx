@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { CircleCheck } from 'lucide-react';
 
 // Shared between the Profile page (where keys are managed, one instance per
 // registered provider — see src/lib/aiProviders) and QuestionGenerator
@@ -84,7 +85,9 @@ export default function ApiKeyManager({ provider, hasApiKey }) {
         </div>
       ) : (
         <div className="ai-key-status">
-          <span>Chave configurada ✓</span>
+          <span>
+            Chave configurada <CircleCheck size={14} strokeWidth={2} className="inline-icon" />
+          </span>
           <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowKeyForm(true)}>
             Trocar chave
           </button>

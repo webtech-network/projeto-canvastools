@@ -48,7 +48,7 @@ export default async function CoursesPage() {
   }));
 
   return (
-    <main className="page courses-page">
+    <main className="page">
       <h1>Painel de Cursos</h1>
       <p className="lede">Cursos ativos em que você está matriculado como professor.</p>
 

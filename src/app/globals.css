@@ -225,16 +225,7 @@ a {
 .dashboard-content {
   flex: 1;
   padding: 1.75rem 2rem 3rem;
-  max-width: 960px;
-  margin: 0 auto;
   width: 100%;
-}
-/* The courses and messages panels want the full available width for their
-   tables (more columns/actions than other dashboard pages) — scoped via
-   :has() so only these pages' content area drops the shared 960px cap. */
-.dashboard-content:has(.courses-page),
-.dashboard-content:has(.mensagens-page) {
-  max-width: none;
 }
 
 .topbar-user {
@@ -289,6 +280,61 @@ a {
 .page p.lede {
   color: var(--ink-soft);
   margin-top: -0.3em;
+}
+
+.page-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Folder-style tabs (QuizImportPanel) — deliberately more visually distinct
+   than the compact .segmented toggle used elsewhere: tabs sit above the
+   panel, the active tab visually merges with it (shared background, no
+   bottom border), inactive tabs read as recessed/less prominent. */
+.tab-folder {
+  display: flex;
+  gap: 0.3rem;
+}
+.tab-folder-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid var(--line);
+  border-bottom: none;
+  border-radius: var(--radius) var(--radius) 0 0;
+  background: var(--paper);
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transform: translateY(1px);
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.tab-folder-btn:hover {
+  color: var(--ink);
+}
+.tab-folder-btn.active {
+  background: var(--paper-raised);
+  color: var(--ink);
+  transform: translateY(0);
+}
+.tab-folder-panel {
+  border: 1px solid var(--line);
+  border-radius: 0 var(--radius) var(--radius) var(--radius);
+  background: var(--paper-raised);
+  padding: 1.25rem;
+}
+.tab-folder-description {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin: 0 0 1.1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed var(--line);
 }
 
 .btn {
@@ -454,11 +500,12 @@ a {
 }
 
 .fav-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   padding: 0;
-  font-size: 1.05rem;
-  line-height: 1;
   color: var(--line);
   cursor: pointer;
   transition: color 0.12s ease, transform 0.12s ease;
@@ -511,6 +558,9 @@ a {
   flex-shrink: 0;
 }
 .segmented-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   border: none;
   background: transparent;
   color: var(--ink-soft);
@@ -562,6 +612,9 @@ a {
   color: var(--warn);
 }
 .alert-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   background: none;
   border: none;
   padding: 0;
@@ -712,6 +765,13 @@ a {
   justify-content: center;
 }
 
+/* Generic utility for a lucide icon sitting inline within a text run (as
+   opposed to inside a flex container, which handles its own alignment). */
+.inline-icon {
+  vertical-align: -2px;
+  margin-left: 0.2rem;
+}
+
 .unread-dot {
   display: inline-block;
   width: 0.55rem;
@@ -732,9 +792,8 @@ a {
   margin-top: 0.5rem;
 }
 
-.col-emoji {
-  font-size: 1rem;
-  line-height: 1;
+.col-icon {
+  flex: none;
 }
 
 .message-group {
@@ -851,7 +910,9 @@ a {
   color: var(--ink);
 }
 .thread-attachment-flag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   margin-top: 0.2rem;
   font-size: 0.78rem;
   color: var(--ink-soft);
@@ -914,6 +975,9 @@ a {
   gap: 0.4rem;
 }
 .import-results li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.55rem 0.85rem;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -1097,4 +1161,239 @@ a {
 }
 .question-preview li {
   margin: 0.4rem 0;
+}
+
+/* Dashboard panel (/, DashboardPanel.jsx and friends) */
+
+.dashboard-panel {
+  margin: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.stat-tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+}
+.stat-tile {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  transition: opacity 0.15s ease;
+}
+.stat-tile.is-stale {
+  opacity: 0.6;
+}
+.stat-tile-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.stat-tile-value {
+  font-family: var(--font-display), serif;
+  font-size: 1.9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.stat-tile-sub {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 1.25rem;
+}
+@media (max-width: 860px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.1rem 1.25rem;
+}
+.dashboard-card h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1.02rem;
+}
+.dashboard-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.dashboard-card-header h3 {
+  margin: 0;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.calendar-weekdays {
+  margin-bottom: 0.3rem;
+}
+.calendar-weekday {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+}
+.calendar-cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 0.85rem;
+  cursor: pointer;
+  position: relative;
+}
+.calendar-cell:hover {
+  background: var(--line);
+}
+.calendar-cell-blank {
+  background: none;
+  cursor: default;
+}
+.calendar-cell.has-items::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--accent);
+}
+.calendar-cell.is-today {
+  box-shadow: inset 0 0 0 2px var(--accent-strong);
+}
+.calendar-cell.is-selected {
+  background: var(--accent);
+  color: #fff9f2;
+}
+.calendar-day-items {
+  margin-top: 0.9rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+}
+
+.deadline-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.deadline-tag.overdue {
+  background: var(--err-bg);
+  color: var(--err);
+}
+.deadline-tag.upcoming {
+  background: var(--ok-bg);
+  color: var(--ok);
+}
+
+.shortcuts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.6rem;
+}
+
+.shortcuts-manager {
+  margin-top: 1rem;
+}
+.shortcuts-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+.shortcuts-form input {
+  flex: 1 1 200px;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+.shortcuts-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.shortcuts-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.9rem;
+}
+.shortcuts-list-actions {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+.shortcuts-io {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+
+.cover-details {
+  margin-top: 0.5rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+.cover-details summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.cover-details summary:hover {
+  color: var(--ink);
+}
+.cover-details[open] summary {
+  margin-bottom: 0.75rem;
 }
