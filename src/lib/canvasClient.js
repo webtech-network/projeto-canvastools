@@ -135,6 +135,51 @@ export async function listAssignments(client, courseId) {
   return fetchAllPages(client, `/courses/${courseId}/assignments`, { per_page: 100 });
 }
 
+/**
+ * Fetches one assignment's full detail. Used by the rubric-grading page
+ * instead of trusting whatever `listAssignments` already returned — Canvas's
+ * docs confirm `rubric` (a flat array of criteria) is included on the
+ * Assignment object whenever a rubric is associated, but that's only
+ * documented for this single-assignment show action, not the list one, so
+ * we fetch fresh here rather than assume the list response carries it too.
+ */
+export async function getAssignment(client, courseId, assignmentId) {
+  const response = await client.get(`/courses/${courseId}/assignments/${assignmentId}`);
+  return response.data;
+}
+
+/**
+ * Lists an assignment's submissions — one per enrolled student, including
+ * those who haven't submitted anything yet (Canvas creates a placeholder
+ * "unsubmitted" record per student). Group assignments aren't specially
+ * handled here (out of scope for the rubric-grading feature this backs —
+ * see RubricGrader.jsx). `include[]=user` brings each submission's student
+ * name; `include[]=rubric_assessment` brings any prior grading, keyed by
+ * criterion id, so a grading screen can pre-fill already-graded rows.
+ */
+export async function listSubmissions(client, courseId, assignmentId, { include = [] } = {}) {
+  return fetchAllPages(client, `/courses/${courseId}/assignments/${assignmentId}/submissions`, {
+    per_page: 100,
+    ...(include.length ? { 'include[]': include } : {}),
+  });
+}
+
+/**
+ * Grades one student's submission. `payload` is expected to already be in
+ * Canvas's nested shape — `{ rubric_assessment: { [criterionId]: { points,
+ * rating_id, comments } }, submission: { posted_grade }, comment:
+ * { text_comment } }` (see src/lib/rubricGrading.js's buildGradePayload) —
+ * sent as a plain JSON body; Canvas parses nested JSON the same way it
+ * parses the bracket-notation form params its own docs show. `posted_grade`
+ * is sent explicitly (the summed rubric points) rather than relying on
+ * Canvas auto-computing it from the rubric, so behavior doesn't depend on
+ * the assignment's own "use rubric for grading" setting.
+ */
+export async function gradeSubmissionWithRubric(client, courseId, assignmentId, userId, payload) {
+  const response = await client.put(`/courses/${courseId}/assignments/${assignmentId}/submissions/${userId}`, payload);
+  return response.data;
+}
+
 export async function getQuiz(client, courseId, quizId) {
   const response = await client.get(`/courses/${courseId}/quizzes/${quizId}`);
   return response.data;

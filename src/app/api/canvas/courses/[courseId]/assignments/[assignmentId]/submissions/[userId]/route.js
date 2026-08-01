@@ -1,0 +1,32 @@
+import { NextResponse } from 'next/server';
+import { getSession, isSessionValid } from '@/lib/session';
+import { gradeSubmissionWithRubric } from '@/lib/canvasClient';
+import { buildClient } from '@/lib/canvasSession';
+
+// Body is already Canvas-shaped (`{ rubric_assessment, submission, comment? }`)
+// — built client-side by RubricGrader.jsx via src/lib/rubricGrading.js's
+// buildGradePayload, which needs the full rubric (criteria descriptions,
+// point totals) to compose the human-readable comment summary; the rubric
+// doesn't change between requests in a grading session, so it's cheaper to
+// build the final payload once client-side than to resend the rubric on
+// every submission and re-derive it here.
+export async function PUT(request, { params }) {
+  const session = await getSession();
+  if (!isSessionValid(session)) {
+    return NextResponse.json({ error: 'Sessão inválida. Faça login novamente.' }, { status: 401 });
+  }
+
+  const { courseId, assignmentId, userId } = await params;
+  const payload = await request.json().catch(() => null);
+  if (!payload || typeof payload !== 'object' || !payload.rubric_assessment || !payload.submission) {
+    return NextResponse.json({ error: 'Payload de avaliação inválido.' }, { status: 400 });
+  }
+
+  try {
+    const submission = await gradeSubmissionWithRubric(buildClient(session), courseId, assignmentId, userId, payload);
+    return NextResponse.json({ submission });
+  } catch (err) {
+    const message = err.response?.data?.errors?.[0]?.message || err.message || 'Falha ao enviar a nota ao Canvas.';
+    return NextResponse.json({ error: message }, { status: 502 });
+  }
+}

@@ -1,19 +1,9 @@
 import Link from 'next/link';
-import { ClipboardCheck, FileQuestion, CircleCheckBig, CircleDashed, Archive } from 'lucide-react';
 import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listAssignments } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
-import StatusIcon from '@/components/StatusIcon';
 import ContextBanner from '@/components/ContextBanner';
-
-function formatDueDate(iso) {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
-  } catch {
-    return '—';
-  }
-}
+import AssignmentsTable from '@/components/AssignmentsTable';
 
 export default async function AtividadesPage({ params }) {
   const { courseId } = await params;
@@ -53,83 +43,7 @@ export default async function AtividadesPage({ params }) {
         </Link>
       </div>
 
-      {assignments.length === 0 ? (
-        <p>Nenhuma atividade encontrada neste curso.</p>
-      ) : (
-        <>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>
-                <span className="sr-only">Status</span>
-              </th>
-              <th>Atividade</th>
-              <th>Data de entrega</th>
-              <th title="Correções pendentes">
-                <ClipboardCheck size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
-                <span className="sr-only">Correções pendentes</span>
-              </th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {assignments.map((assignment) => (
-              <tr key={assignment.id}>
-                <td className="status-cell">
-                  <StatusIcon status={assignment.published ? 'published' : 'unpublished'} />
-                </td>
-                <td className="course-name-cell">
-                  <a
-                    href={assignment.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Abrir atividade no Canvas"
-                  >
-                    {assignment.name}
-                  </a>
-                </td>
-                <td className="pending-cell">{formatDueDate(assignment.due_at)}</td>
-                <td className="pending-cell">
-                  <span className={`pending-badge${assignment.needs_grading_count ? ' has-pending' : ''}`}>
-                    {assignment.needs_grading_count ?? 0}
-                  </span>
-                </td>
-                <td className="actions-cell">
-                  {/* Only classic quizzes (assignment.quiz_id) can receive imported
-                      questions — New Quizzes (is_quiz_assignment) and regular
-                      assignments intentionally get no action here. */}
-                  {assignment.quiz_id && (
-                    <Link
-                      href={`/courses/${courseId}/quizzes/${assignment.quiz_id}/import`}
-                      className="btn btn-primary btn-icon"
-                      title="Importar questões"
-                      aria-label="Importar questões"
-                    >
-                      <FileQuestion size={18} strokeWidth={1.8} />
-                    </Link>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <ul className="icon-legend">
-          <li>
-            <CircleCheckBig size={14} strokeWidth={1.8} aria-hidden="true" style={{ color: 'var(--ok)' }} /> Publicado
-          </li>
-          <li>
-            <CircleDashed size={14} strokeWidth={1.8} aria-hidden="true" /> Não publicado
-          </li>
-          <li>
-            <Archive size={14} strokeWidth={1.8} aria-hidden="true" /> Encerrado
-          </li>
-          <li>
-            <ClipboardCheck size={14} strokeWidth={1.8} aria-hidden="true" /> Correções pendentes
-          </li>
-        </ul>
-        </>
-      )}
+      <AssignmentsTable courseId={courseId} assignments={assignments} />
     </main>
   );
 }

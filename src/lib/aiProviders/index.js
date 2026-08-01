@@ -8,9 +8,14 @@ import * as claude from './claude';
  *   label: string              — display name
  *   defaultModel: string       — used when no model override is supplied
  *   validateApiKey(apiKey): Promise<{ valid: boolean, error?: string }>
- *   generateQuestions({ apiKey, model, specs }): Promise<quiz>  — quiz.schema.json shape
- *   suggestReply({ apiKey, model, context }): Promise<string>  — plain-text reply suggestion
- *   improveMessage({ apiKey, model, text }): Promise<string>   — plain-text revised draft
+ *   generateQuestions({ apiKey, model, specs, systemPrompt? }): Promise<quiz>  — quiz.schema.json shape
+ *   suggestReply({ apiKey, model, context, systemPrompt? }): Promise<string>  — plain-text reply suggestion
+ *   improveMessage({ apiKey, model, text, systemPrompt? }): Promise<string>   — plain-text revised draft
+ *
+ * `systemPrompt` on all three defaults to that capability's own constant
+ * (SYSTEM_PROMPT / REPLY_SYSTEM_PROMPT / IMPROVE_SYSTEM_PROMPT) when omitted
+ * — routes pass a resolved override here when the user has a custom prompt
+ * saved (see src/lib/promptResolution.js + src/lib/customPrompts.js).
  *
  * To add a new provider: write a module implementing this contract (see
  * openai.js for the simplest reference) and add it to PROVIDERS below —

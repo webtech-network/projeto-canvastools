@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSession, isSessionValid } from '@/lib/session';
 import { getProvider } from '@/lib/aiProviders';
+import { REPLY_SYSTEM_PROMPT } from '@/lib/aiProviders/replyPrompt';
+import { resolvePrompt } from '@/lib/promptResolution';
 
 export async function POST(request, { params }) {
   const session = await getSession();
@@ -22,16 +24,19 @@ export async function POST(request, { params }) {
   }
 
   const body = await request.json().catch(() => null);
-  const { subject, sender, message } = body || {};
+  const { subject, sender, message, customPromptText, customPromptMode } = body || {};
   if (!message || typeof message !== 'string' || !message.trim()) {
     return NextResponse.json({ error: 'Mensagem original é obrigatória.' }, { status: 400 });
   }
+
+  const systemPrompt = resolvePrompt(REPLY_SYSTEM_PROMPT, customPromptText, customPromptMode);
 
   try {
     const reply = await provider.suggestReply({
       apiKey,
       model: process.env[`${providerId.toUpperCase()}_MODEL`],
       context: { subject, sender, message },
+      systemPrompt,
     });
     return NextResponse.json({ reply });
   } catch (err) {

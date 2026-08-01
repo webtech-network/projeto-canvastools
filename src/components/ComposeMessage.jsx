@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { getCustomPrompt } from '@/lib/customPrompts';
 
 // Unlike MessageList's "Sugerir resposta com IA" (which opens a Modal with a
 // brand-new piece of text for a different box), this improves the
@@ -23,10 +24,11 @@ export default function ComposeMessage({ courseId, providers = [] }) {
     setImproving(true);
     setImproveError(null);
     try {
+      const custom = await getCustomPrompt('improveMessage');
       const response = await fetch(`/api/ai/${providerId}/improve-message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: body }),
+        body: JSON.stringify({ text: body, customPromptText: custom?.text, customPromptMode: custom?.mode }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Falha ao melhorar a mensagem.');

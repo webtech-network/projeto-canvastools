@@ -30,13 +30,13 @@ export async function validateApiKey(apiKey) {
   }
 }
 
-export async function generateQuestions({ apiKey, model, specs }) {
+export async function generateQuestions({ apiKey, model, specs, systemPrompt = SYSTEM_PROMPT }) {
   const prompt = `${buildUserMessage(specs)}\n\nResponda apenas com um único objeto JSON que siga rigorosamente este JSON Schema, sem markdown e sem texto fora do JSON:\n${QUIZ_SCHEMA_TEXT}`;
 
   const response = await axios.post(
     `${BASE_URL}/models/${model || defaultModel}:generateContent`,
     {
-      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      system_instruction: { parts: [{ text: systemPrompt }] },
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: { responseMimeType: 'application/json' },
     },
@@ -51,11 +51,11 @@ export async function generateQuestions({ apiKey, model, specs }) {
   return JSON.parse(text);
 }
 
-export async function suggestReply({ apiKey, model, context }) {
+export async function suggestReply({ apiKey, model, context, systemPrompt = REPLY_SYSTEM_PROMPT }) {
   const response = await axios.post(
     `${BASE_URL}/models/${model || defaultModel}:generateContent`,
     {
-      system_instruction: { parts: [{ text: REPLY_SYSTEM_PROMPT }] },
+      system_instruction: { parts: [{ text: systemPrompt }] },
       contents: [{ role: 'user', parts: [{ text: buildReplyUserMessage(context) }] }],
     },
     { params: { key: apiKey } },
@@ -69,11 +69,11 @@ export async function suggestReply({ apiKey, model, context }) {
   return text;
 }
 
-export async function improveMessage({ apiKey, model, text }) {
+export async function improveMessage({ apiKey, model, text, systemPrompt = IMPROVE_SYSTEM_PROMPT }) {
   const response = await axios.post(
     `${BASE_URL}/models/${model || defaultModel}:generateContent`,
     {
-      system_instruction: { parts: [{ text: IMPROVE_SYSTEM_PROMPT }] },
+      system_instruction: { parts: [{ text: systemPrompt }] },
       contents: [{ role: 'user', parts: [{ text: buildImproveUserMessage(text) }] }],
     },
     { params: { key: apiKey } },

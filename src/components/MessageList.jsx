@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronRight, Paperclip } from 'lucide-react';
 import SortIcon from './SortIcon';
 import Modal from './Modal';
+import { getCustomPrompt } from '@/lib/customPrompts';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -167,6 +168,7 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
     setSuggesting(conversation.id);
     setSuggestError(null);
     try {
+      const custom = await getCustomPrompt('suggestReply');
       const response = await fetch(`/api/ai/${providerId}/suggest-reply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -174,6 +176,8 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
           subject: conversation.subject,
           sender: senderName(conversation, currentUserId),
           message: conversation.last_message,
+          customPromptText: custom?.text,
+          customPromptMode: custom?.mode,
         }),
       });
       const data = await response.json();

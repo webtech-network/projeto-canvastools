@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/quiz-canvas-padrao.schema.json",
+  "title": "Schema para Questões Avaliativas em Formato Padrão",
+  "description": "Valida arquivos JSON de questões avaliativas no formato padronizado com course_id, quiz_id e lista de questions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "course_id",
+    "quiz_id",
+    "questions"
+  ],
+  "properties": {
+    "course_id": {
+      "description": "Identificador do curso. Pode ser nulo quando ainda não definido.",
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "quiz_id": {
+      "description": "Identificador do quiz/atividade. Pode ser nulo quando ainda não definido.",
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "questions": {
+      "description": "Lista de questões avaliativas.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/question"
+      }
+    }
+  },
+  "$defs": {
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question_name",
+        "question_text",
+        "points_possible",
+        "answers",
+        "question_model"
+      ],
+      "properties": {
+        "question_name": {
+          "description": "Nome/título da questão.",
+          "type": "string",
+          "minLength": 1
+        },
+        "question_text": {
+          "description": "Enunciado da questão, preferencialmente em HTML.",
+          "type": "string",
+          "minLength": 1
+        },
+        "points_possible": {
+          "description": "Pontuação da questão.",
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "answers": {
+          "description": "Lista de alternativas da questão.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/$defs/answer"
+          },
+          "allOf": [
+            {
+              "contains": {
+                "type": "object",
+                "required": [
+                  "is_correct"
+                ],
+                "properties": {
+                  "is_correct": {
+                    "const": true
+                  }
+                }
+              },
+              "minContains": 1,
+              "maxContains": 1
+            }
+          ]
+        },
+        "question_model": {
+          "description": "Modelo pedagógico da questão.",
+          "type": "string",
+          "enum": [
+            "AR",
+            "AR (Asserção-Razão)",
+            "RU",
+            "RU (Resposta Única)",
+            "CM",
+            "CM (Complementação Múltipla)",
+            "INT",
+            "INT (Interpretação)"
+          ]
+        }
+      }
+    },
+    "answer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "answer_text",
+        "is_correct",
+        "answer_comment"
+      ],
+      "properties": {
+        "answer_text": {
+          "description": "Texto da alternativa.",
+          "type": "string",
+          "minLength": 1
+        },
+        "is_correct": {
+          "description": "Indica se a alternativa é correta.",
+          "type": "boolean"
+        },
+        "answer_comment": {
+          "description": "Comentário explicativo da alternativa, preferencialmente em HTML.",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

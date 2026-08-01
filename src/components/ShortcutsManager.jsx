@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ArrowUp, ArrowDown } from 'lucide-react';
-import { saveShortcut, deleteShortcut, reorderShortcuts, exportShortcutsFile, importShortcutsFromFile, useShortcuts } from '@/lib/shortcuts';
+import { saveShortcut, deleteShortcut, reorderShortcuts, useShortcuts } from '@/lib/shortcuts';
 
 function emptyForm() {
   return { id: null, label: '', url: '' };
@@ -11,16 +11,23 @@ function emptyForm() {
 // Full CRUD editor for the personal shortcuts shown on the dashboard
 // (DashboardShortcuts.jsx) — everything here reads/writes IndexedDB
 // directly via src/lib/shortcuts.js, no server round-trip, since shortcuts
-// are a pure per-browser preference.
-export default function ShortcutsManager() {
+// are a pure per-browser preference. `onDirtyChange` (optional) reports
+// whether the add/edit form has unsaved text, for ProfileTabs' leave-page
+// warning.
+export default function ShortcutsManager({ onDirtyChange }) {
   const { shortcuts, loading, refresh } = useShortcuts();
   const [form, setForm] = useState(emptyForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  const [importing, setImporting] = useState(false);
-  const [fileName, setFileName] = useState('');
 
   const editing = Boolean(form.id);
+  const isDirty = form.label.trim().length > 0 || form.url.trim().length > 0;
+  // Deliberately depends only on `isDirty` — see ApiKeyManager.jsx's own
+  // effect for why `onDirtyChange` itself isn't in the dependency array.
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    return () => onDirtyChange?.(false);
+  }, [isDirty]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -57,29 +64,6 @@ export default function ShortcutsManager() {
     [next[index], next[swapWith]] = [next[swapWith], next[index]];
     await reorderShortcuts(next.map((s) => s.id));
     await refresh();
-  }
-
-  async function handleImportFile(e) {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file) return;
-    if (
-      shortcuts.length > 0 &&
-      !window.confirm('Importar vai substituir todos os atalhos atuais por este arquivo. Continuar?')
-    ) {
-      return;
-    }
-    setImporting(true);
-    setError(null);
-    setFileName(file.name);
-    try {
-      await importShortcutsFromFile(file);
-      await refresh();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setImporting(false);
-    }
   }
 
   return (
@@ -154,33 +138,9 @@ export default function ShortcutsManager() {
         </ul>
       )}
 
-      <div className="shortcuts-io">
-        <button
-          type="button"
-          className="btn btn-secondary btn-sm"
-          onClick={exportShortcutsFile}
-          disabled={shortcuts.length === 0}
-        >
-          Exportar atalhos
-        </button>
-        <div className="file-drop">
-          <label className="btn btn-secondary btn-sm" htmlFor="shortcuts-file">
-            {importing ? 'Importando…' : fileName ? `Arquivo: ${fileName}` : 'Importar atalhos (.json)'}
-          </label>
-          <input
-            id="shortcuts-file"
-            type="file"
-            accept=".json,application/json"
-            onChange={handleImportFile}
-            hidden
-            disabled={importing}
-          />
-        </div>
-      </div>
-
       <p className="lede">
-        Os atalhos ficam salvos só neste navegador (IndexedDB) — use exportar/importar para levá-los a outro
-        navegador ou computador.
+        Os atalhos ficam salvos só neste navegador (IndexedDB) — use "Exportar/Importar configurações" no topo da
+        página para levá-los a outro navegador ou computador.
       </p>
     </div>
   );

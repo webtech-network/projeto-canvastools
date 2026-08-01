@@ -351,9 +351,9 @@ export default function CourseBrowser() {
                   </a>
                 </td>
                 <td className="pending-cell">
-                  <span className={`pending-badge${course.needs_grading_count ? ' has-pending' : ''}`}>
-                    {course.needs_grading_count ?? 0}
-                  </span>
+                  {course.needs_grading_count ? (
+                    <span className="pending-badge has-pending">{course.needs_grading_count}</span>
+                  ) : null}
                 </td>
                 <td className="status-cell">
                   <StatusIcon status={toStatus(course.workflow_state)} />
@@ -367,10 +367,8 @@ export default function CourseBrowser() {
                     <span className="pending-badge" title="Não foi possível carregar as mensagens">
                       —
                     </span>
-                  ) : (
-                    <span className={`pending-badge${course.message_count ? ' has-pending' : ''}`}>
-                      {course.message_count}
-                    </span>
+                  ) : course.message_count === 0 ? null : (
+                    <span className="pending-badge has-pending">{course.message_count}</span>
                   )}
                 </td>
                 <td className="actions-cell">

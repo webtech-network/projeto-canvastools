@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getSession, isSessionValid } from '@/lib/session';
 import { getProvider } from '@/lib/aiProviders';
+import { IMPROVE_SYSTEM_PROMPT } from '@/lib/aiProviders/improvePrompt';
+import { resolvePrompt } from '@/lib/promptResolution';
 
 export async function POST(request, { params }) {
   const session = await getSession();
@@ -22,16 +24,19 @@ export async function POST(request, { params }) {
   }
 
   const body = await request.json().catch(() => null);
-  const { text } = body || {};
+  const { text, customPromptText, customPromptMode } = body || {};
   if (!text || typeof text !== 'string' || !text.trim()) {
     return NextResponse.json({ error: 'Texto da mensagem é obrigatório.' }, { status: 400 });
   }
+
+  const systemPrompt = resolvePrompt(IMPROVE_SYSTEM_PROMPT, customPromptText, customPromptMode);
 
   try {
     const improved = await provider.improveMessage({
       apiKey,
       model: process.env[`${providerId.toUpperCase()}_MODEL`],
       text,
+      systemPrompt,
     });
     return NextResponse.json({ improved });
   } catch (err) {

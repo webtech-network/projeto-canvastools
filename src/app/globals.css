@@ -731,6 +731,15 @@ a {
   text-decoration: underline;
   color: var(--accent);
 }
+.external-link-icon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 0.4rem;
+  color: var(--ink-soft);
+}
+.external-link-icon:hover {
+  color: var(--accent);
+}
 /* Deliberately NOT display:flex — a flex <td> doesn't shrink-to-fit like a
    normal table cell, so on narrow viewports it gets pushed onto its own row
    instead of wrapping naturally alongside a long-wrapping neighbor cell
@@ -1015,6 +1024,149 @@ a {
   color: var(--ink);
 }
 
+.settings-export-import {
+  margin: 0 0 1.5rem;
+}
+.settings-export-import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.settings-export-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  margin-top: 0.75rem;
+  background: var(--paper-raised);
+}
+.settings-export-panel input[type='password'] {
+  width: 100%;
+  max-width: 320px;
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.settings-export-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.rubric-grader-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+.rubric-grader-table-wrap {
+  overflow-x: auto;
+  margin: 1.25rem 0;
+}
+.rubric-grader-table {
+  margin: 0;
+}
+.rubric-grader-table select,
+.rubric-grader-table textarea {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+}
+.rubric-grader-table select {
+  max-width: 220px;
+}
+.rubric-grader-table textarea {
+  resize: vertical;
+  min-width: 180px;
+  white-space: normal;
+}
+.rubric-grader-total {
+  font-weight: 700;
+  text-align: center;
+}
+.rubric-grader-actions {
+  text-align: left;
+  white-space: normal;
+  vertical-align: top;
+}
+.rubric-grader-actions .btn {
+  margin: 0 0.3rem 0.3rem 0;
+}
+.rubric-grader-actions .alert {
+  white-space: normal;
+  margin: 0.3rem 0 0;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.7rem;
+}
+.rubric-grader-table tr.is-dirty td {
+  background: var(--warn-bg);
+}
+
+.prompt-customizer-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  margin: 0 0 1.25rem;
+  background: var(--paper-raised);
+}
+.prompt-customizer-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.prompt-customizer-item-header h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+.prompt-customizer-item textarea {
+  width: 100%;
+  font: inherit;
+  font-size: 0.92rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  resize: vertical;
+  margin: 0.6rem 0;
+}
+.prompt-customizer-item textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.prompt-text-preview {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+  margin: 0.5rem 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.prompt-customizer-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
 .thread-list {
   list-style: none;
   margin: 0.9rem 0 0;
@@ -1127,15 +1279,6 @@ a {
   color: var(--err);
 }
 
-.profile-section {
-  margin-bottom: 2rem;
-}
-.profile-section:last-child {
-  margin-bottom: 0;
-}
-.profile-section h2 {
-  margin-bottom: 0.35rem;
-}
 .profile-info {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -1509,14 +1652,6 @@ a {
   gap: 0.3rem;
   flex-shrink: 0;
 }
-.shortcuts-io {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-  margin: 1rem 0;
-}
-
 .cover-details {
   margin-top: 0.5rem;
   border-top: 1px solid var(--line);

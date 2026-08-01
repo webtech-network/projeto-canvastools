@@ -1,19 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CircleCheck } from 'lucide-react';
 
 // Shared between the Profile page (where keys are managed, one instance per
 // registered provider — see src/lib/aiProviders) and QuestionGenerator
 // (which only reads which providers have a key configured) — both read/write
 // the same session.aiApiKeys[provider.id] via this same form, so there is a
-// single source of truth per provider.
-export default function ApiKeyManager({ provider, hasApiKey }) {
+// single source of truth per provider. `onDirtyChange` (optional) reports
+// whether there's typed-but-unsaved key text, so a page embedding several of
+// these (ProfileTabs) can warn before the professor navigates away.
+export default function ApiKeyManager({ provider, hasApiKey, onDirtyChange }) {
   const [keyConfigured, setKeyConfigured] = useState(hasApiKey);
   const [showKeyForm, setShowKeyForm] = useState(!hasApiKey);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  const isDirty = showKeyForm && apiKeyInput.trim().length > 0;
+  // Deliberately depends only on `isDirty`, not `onDirtyChange` itself —
+  // ProfileTabs passes a fresh inline callback each render, and including it
+  // here would re-run this effect (and its parent setState) every render.
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+    return () => onDirtyChange?.(false);
+  }, [isDirty]);
 
   async function handleSaveKey() {
     if (!apiKeyInput.trim()) return;

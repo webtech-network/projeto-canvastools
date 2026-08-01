@@ -23,13 +23,13 @@ export async function validateApiKey(apiKey) {
   }
 }
 
-export async function generateQuestions({ apiKey, model, specs }) {
+export async function generateQuestions({ apiKey, model, specs, systemPrompt = SYSTEM_PROMPT }) {
   const response = await axios.post(
     'https://api.openai.com/v1/responses',
     {
       model: model || defaultModel,
       input: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: buildUserMessage(specs) },
       ],
       text: {
@@ -62,13 +62,13 @@ export async function generateQuestions({ apiKey, model, specs }) {
   return JSON.parse(content.text);
 }
 
-export async function suggestReply({ apiKey, model, context }) {
+export async function suggestReply({ apiKey, model, context, systemPrompt = REPLY_SYSTEM_PROMPT }) {
   const response = await axios.post(
     'https://api.openai.com/v1/responses',
     {
       model: model || defaultModel,
       input: [
-        { role: 'system', content: REPLY_SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: buildReplyUserMessage(context) },
       ],
     },
@@ -93,13 +93,13 @@ export async function suggestReply({ apiKey, model, context }) {
   return content.text;
 }
 
-export async function improveMessage({ apiKey, model, text }) {
+export async function improveMessage({ apiKey, model, text, systemPrompt = IMPROVE_SYSTEM_PROMPT }) {
   const response = await axios.post(
     'https://api.openai.com/v1/responses',
     {
       model: model || defaultModel,
       input: [
-        { role: 'system', content: IMPROVE_SYSTEM_PROMPT },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: buildImproveUserMessage(text) },
       ],
     },

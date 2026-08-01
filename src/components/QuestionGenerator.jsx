@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { X, ArrowLeft, ChevronDown, ChevronRight } from 'lucide-react';
 import QuizReviewImport from './QuizReviewImport';
+import { getCustomPrompt } from '@/lib/customPrompts';
 
 const NIVEL_OPTIONS = [
   { value: 'baixo', label: 'Baixo' },
@@ -67,10 +68,11 @@ export default function QuestionGenerator({ providers, courseId, quizId }) {
     setReviewing(false);
 
     try {
+      const custom = await getCustomPrompt('generateQuestions');
       const response = await fetch(`/api/ai/${providerId}/generate-questions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ specs }),
+        body: JSON.stringify({ specs, customPromptText: custom?.text, customPromptMode: custom?.mode }),
       });
       const data = await response.json();
       if (!response.ok) {

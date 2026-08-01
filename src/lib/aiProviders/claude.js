@@ -31,7 +31,7 @@ export async function validateApiKey(apiKey) {
   }
 }
 
-export async function generateQuestions({ apiKey, model, specs }) {
+export async function generateQuestions({ apiKey, model, specs, systemPrompt = SYSTEM_PROMPT }) {
   // Structured output via forced tool use: Claude must call `emit_quiz`, and
   // Anthropic parses its input against input_schema for us — no JSON.parse
   // of free text needed, unlike the OpenAI/Gemini adapters.
@@ -40,7 +40,7 @@ export async function generateQuestions({ apiKey, model, specs }) {
     {
       model: model || defaultModel,
       max_tokens: 8192,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [{ role: 'user', content: buildUserMessage(specs) }],
       tools: [
         {
@@ -62,13 +62,13 @@ export async function generateQuestions({ apiKey, model, specs }) {
   return toolUse.input;
 }
 
-export async function suggestReply({ apiKey, model, context }) {
+export async function suggestReply({ apiKey, model, context, systemPrompt = REPLY_SYSTEM_PROMPT }) {
   const response = await axios.post(
     `${BASE_URL}/messages`,
     {
       model: model || defaultModel,
       max_tokens: 1024,
-      system: REPLY_SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [{ role: 'user', content: buildReplyUserMessage(context) }],
     },
     { headers: authHeaders(apiKey) },
@@ -82,13 +82,13 @@ export async function suggestReply({ apiKey, model, context }) {
   return textBlock.text;
 }
 
-export async function improveMessage({ apiKey, model, text }) {
+export async function improveMessage({ apiKey, model, text, systemPrompt = IMPROVE_SYSTEM_PROMPT }) {
   const response = await axios.post(
     `${BASE_URL}/messages`,
     {
       model: model || defaultModel,
       max_tokens: 1024,
-      system: IMPROVE_SYSTEM_PROMPT,
+      system: systemPrompt,
       messages: [{ role: 'user', content: buildImproveUserMessage(text) }],
     },
     { headers: authHeaders(apiKey) },

@@ -63,8 +63,26 @@ export async function exportShortcutsFile() {
 
 // Replace, not merge — imported ids come from a different browser's
 // crypto.randomUUID() sequence, so merging risks silent id collisions.
-// Callers are expected to confirm with the user before calling this, since
+// Callers (importShortcutsFromFile below, and settingsExport.js's combined
+// import) are expected to confirm with the user before calling this, since
 // it destroys the current shortcut list.
+export async function replaceAllShortcuts(shortcutsArray) {
+  const existing = await listShortcuts();
+  await Promise.all(existing.map((s) => dbDelete(STORE_SHORTCUTS, s.id)));
+  await Promise.all(
+    shortcutsArray.map((s, index) =>
+      dbPut(STORE_SHORTCUTS, {
+        id: typeof s.id === 'string' && s.id ? s.id : crypto.randomUUID(),
+        label: s.label || '',
+        url: s.url || '',
+        order: Number.isInteger(s.order) ? s.order : index,
+        createdAt: Date.now(),
+      }),
+    ),
+  );
+  return shortcutsArray.length;
+}
+
 export async function importShortcutsFromFile(file) {
   const text = await file.text();
   let payload;
@@ -76,21 +94,7 @@ export async function importShortcutsFromFile(file) {
   if (payload?.kind !== EXPORT_KIND || !Array.isArray(payload.shortcuts)) {
     throw new Error('Arquivo inválido: não é um export de atalhos do CanvasTools.');
   }
-
-  const existing = await listShortcuts();
-  await Promise.all(existing.map((s) => dbDelete(STORE_SHORTCUTS, s.id)));
-  await Promise.all(
-    payload.shortcuts.map((s, index) =>
-      dbPut(STORE_SHORTCUTS, {
-        id: typeof s.id === 'string' && s.id ? s.id : crypto.randomUUID(),
-        label: s.label || '',
-        url: s.url || '',
-        order: Number.isInteger(s.order) ? s.order : index,
-        createdAt: Date.now(),
-      }),
-    ),
-  );
-  return payload.shortcuts.length;
+  return replaceAllShortcuts(payload.shortcuts);
 }
 
 // Client-component hook: local state mirroring the IndexedDB store, with a

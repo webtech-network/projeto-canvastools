@@ -3,6 +3,8 @@ import { getSession, isSessionValid } from '@/lib/session';
 import { getProvider } from '@/lib/aiProviders';
 import { validateStructural, createSchemaValidator } from '@/lib/quizValidation';
 import quizSchema from '@/lib/quiz.schema.json';
+import { SYSTEM_PROMPT } from '@/lib/aiProviders/shared';
+import { resolvePrompt } from '@/lib/promptResolution';
 
 const NIVEIS = ['baixo', 'intermediario', 'alto'];
 const TIPOS = ['RU', 'CM', 'AR'];
@@ -48,16 +50,23 @@ export async function POST(request, { params }) {
   }
 
   const body = await request.json().catch(() => null);
-  const { specs } = body || {};
+  const { specs, customPromptText, customPromptMode } = body || {};
 
   const specsError = validateSpecs(specs);
   if (specsError) {
     return NextResponse.json({ error: specsError }, { status: 400 });
   }
 
+  const systemPrompt = resolvePrompt(SYSTEM_PROMPT, customPromptText, customPromptMode);
+
   let quiz;
   try {
-    quiz = await provider.generateQuestions({ apiKey, model: process.env[`${providerId.toUpperCase()}_MODEL`], specs });
+    quiz = await provider.generateQuestions({
+      apiKey,
+      model: process.env[`${providerId.toUpperCase()}_MODEL`],
+      specs,
+      systemPrompt,
+    });
   } catch (err) {
     const message = err.response?.data?.error?.message || err.message || 'Falha ao gerar questões.';
     return NextResponse.json({ error: message }, { status: 502 });
