@@ -227,6 +227,16 @@ export async function archiveConversation(client, conversationId) {
 }
 
 /**
+ * Replies to an existing conversation by adding a new message to its thread.
+ * `recipients` is deliberately omitted — Canvas defaults it to every current
+ * participant of the conversation, which is exactly "reply to this thread".
+ */
+export async function replyToConversation(client, conversationId, body) {
+  const response = await client.post(`/conversations/${conversationId}/add_message`, { body });
+  return response.data;
+}
+
+/**
  * Lists the course's active students (Canvas's short enrollment_type form —
  * 'student', not 'StudentEnrollment'). Used both to build an explicit
  * recipient list for sending a message to "the students" of a course

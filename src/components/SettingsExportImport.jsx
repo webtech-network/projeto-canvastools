@@ -6,10 +6,11 @@ import { exportSettingsFile, importSettingsFromFile } from '@/lib/settingsExport
 
 // Lives outside the /perfil tabs (a fixed header control, per request) since
 // it spans multiple domains — shortcuts, custom AI prompts, and optionally
-// AI API keys — rather than belonging to any single tab.
+// AI API keys + the GitHub connection — rather than belonging to any single
+// tab.
 export default function SettingsExportImport() {
   const [exportOpen, setExportOpen] = useState(false);
-  const [includeKeys, setIncludeKeys] = useState(false);
+  const [includeSecrets, setIncludeSecrets] = useState(false);
   const [exportPassword, setExportPassword] = useState('');
   const [exportPasswordConfirm, setExportPasswordConfirm] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -26,7 +27,7 @@ export default function SettingsExportImport() {
   async function handleExport() {
     setExportError(null);
     setExportMessage(null);
-    if (includeKeys) {
+    if (includeSecrets) {
       if (!exportPassword || exportPassword.length < 8) {
         setExportError('A senha deve ter ao menos 8 caracteres.');
         return;
@@ -38,7 +39,7 @@ export default function SettingsExportImport() {
     }
     setExporting(true);
     try {
-      await exportSettingsFile({ includeKeys, password: includeKeys ? exportPassword : undefined });
+      await exportSettingsFile({ includeSecrets, password: includeSecrets ? exportPassword : undefined });
       setExportMessage('Arquivo exportado.');
       setExportPassword('');
       setExportPasswordConfirm('');
@@ -70,7 +71,7 @@ export default function SettingsExportImport() {
     if (!importFile) return;
     if (
       !window.confirm(
-        'Importar vai substituir os atalhos e os prompts personalizados atuais (e as chaves de API, se estiverem no arquivo). Continuar?',
+        'Importar vai substituir os atalhos, os prompts personalizados e os modelos de IA escolhidos atuais (e as chaves de API e a conexão com o GitHub, se estiverem no arquivo). Continuar?',
       )
     ) {
       return;
@@ -83,6 +84,8 @@ export default function SettingsExportImport() {
       setImportMessage(
         `Importado: ${results.shortcuts} atalho(s), ${results.customPrompts} prompt(s) personalizado(s)${
           results.apiKeys ? `, ${results.apiKeys} chave(s) de API` : ''
+        }${results.aiModels ? `, ${results.aiModels} modelo(s) de IA` : ''}${
+          results.github ? ', conexão com o GitHub' : ''
         }.`,
       );
       setImportFile(null);
@@ -119,11 +122,11 @@ export default function SettingsExportImport() {
       {exportOpen && (
         <div className="settings-export-panel">
           <label className="settings-export-checkbox">
-            <input type="checkbox" checked={includeKeys} onChange={(e) => setIncludeKeys(e.target.checked)} />
-            Incluir chaves de API de IA (o arquivo será cifrado com senha)
+            <input type="checkbox" checked={includeSecrets} onChange={(e) => setIncludeSecrets(e.target.checked)} />
+            Incluir credenciais (chaves de API de IA e conexão com GitHub) — o arquivo será cifrado com senha
           </label>
 
-          {includeKeys && (
+          {includeSecrets && (
             <>
               <input
                 type="password"

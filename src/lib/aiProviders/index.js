@@ -8,6 +8,7 @@ import * as claude from './claude';
  *   label: string              — display name
  *   defaultModel: string       — used when no model override is supplied
  *   validateApiKey(apiKey): Promise<{ valid: boolean, error?: string }>
+ *   listModels(apiKey): Promise<Array<{ id: string, label: string }>>  — models the user can pick from in /perfil
  *   generateQuestions({ apiKey, model, specs, systemPrompt? }): Promise<quiz>  — quiz.schema.json shape
  *   suggestReply({ apiKey, model, context, systemPrompt? }): Promise<string>  — plain-text reply suggestion
  *   improveMessage({ apiKey, model, text, systemPrompt? }): Promise<string>   — plain-text revised draft

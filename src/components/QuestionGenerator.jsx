@@ -41,6 +41,7 @@ export default function QuestionGenerator({ providers, courseId, quizId }) {
   const [warnings, setWarnings] = useState([]);
   const [warningsOpen, setWarningsOpen] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const [skillInfoOpen, setSkillInfoOpen] = useState(false);
   // Bumped on every successful generation so <QuizReviewImport> remounts
   // (via its key) instead of keeping stale selection/results from a
   // previous batch of generated questions.
@@ -105,6 +106,51 @@ export default function QuestionGenerator({ providers, courseId, quizId }) {
 
   return (
     <div className="question-generator">
+      <div className="skill-download-card">
+        <button
+          type="button"
+          className="alert-toggle skill-download-toggle"
+          aria-expanded={skillInfoOpen}
+          onClick={() => setSkillInfoOpen((v) => !v)}
+        >
+          {skillInfoOpen ? <ChevronDown size={14} strokeWidth={2} /> : <ChevronRight size={14} strokeWidth={2} />}
+          Gerar com a skill no Claude Desktop (alternativa sem chave de API)
+        </button>
+        {skillInfoOpen && (
+          <>
+            <p className="lede">
+              Prefere usar sua própria conta do Claude Desktop em vez de cadastrar uma chave de API aqui? Baixe a
+              mesma skill de geração de questões usada por este projeto, instale-a no Claude Desktop e gere o JSON
+              de questões por lá — depois é só importar o arquivo normalmente.
+            </p>
+            <ol className="skill-download-steps">
+              <li>
+                Baixe o arquivo <code>enade-it-questions.skill</code> no botão abaixo.
+              </li>
+              <li>
+                No Claude Desktop, importe o arquivo baixado como uma nova Skill (em Configurações, na seção de
+                Skills / Capacidades — o nome exato pode variar conforme a versão do Claude Desktop).
+              </li>
+              <li>
+                Inicie uma conversa e peça a geração das questões, informando tema, nível
+                (baixo/intermediário/alto) e tipo (RU, CM ou AR) desejados para cada questão.
+              </li>
+              <li>
+                Salve o JSON retornado pelo Claude e importe-o em &quot;Enviar arquivo&quot;, na tela de importação
+                da atividade de destino.
+              </li>
+            </ol>
+            <a
+              href="/api/skills/enade-it-questions"
+              download="enade-it-questions.skill"
+              className="btn btn-secondary btn-sm"
+            >
+              Baixar skill (enade-it-questions.skill)
+            </a>
+          </>
+        )}
+      </div>
+
       {providers.length === 0 ? (
         <div className="alert alert-warning">
           Configure ao menos uma chave de API de IA em <Link href="/perfil">seu perfil</Link> para gerar questões.

@@ -1,11 +1,12 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'canvastools';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export const STORE_SHORTCUTS = 'shortcuts';
 export const STORE_CACHE = 'cache';
 export const STORE_PROMPTS = 'prompts';
+export const STORE_GITHUB = 'github';
 
 let dbPromise = null;
 
@@ -26,6 +27,9 @@ function getDb() {
         }
         if (!db.objectStoreNames.contains(STORE_PROMPTS)) {
           db.createObjectStore(STORE_PROMPTS, { keyPath: 'capability' });
+        }
+        if (!db.objectStoreNames.contains(STORE_GITHUB)) {
+          db.createObjectStore(STORE_GITHUB, { keyPath: 'id' });
         }
       },
     });

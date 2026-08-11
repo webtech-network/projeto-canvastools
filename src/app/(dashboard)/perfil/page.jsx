@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { getSession, isSessionValid } from '@/lib/session';
 import { listProviders } from '@/lib/aiProviders';
 import ProfileTabs from '@/components/ProfileTabs';
@@ -12,6 +13,7 @@ export default async function PerfilPage() {
   const providers = listProviders().map((provider) => ({
     ...provider,
     hasApiKey: Boolean(session.aiApiKeys?.[provider.id]),
+    currentModel: session.aiModels?.[provider.id] || null,
   }));
 
   return (
@@ -21,7 +23,12 @@ export default async function PerfilPage() {
         <SettingsExportImport />
       </div>
 
-      <ProfileTabs userName={session.user?.name} baseUrl={session.baseUrl} providers={providers} />
+      {/* ProfileTabs reads the initial tab from useSearchParams() (the
+          GitHub OAuth callback redirects to ?tab=github) — Next.js requires
+          any useSearchParams() consumer to sit inside a Suspense boundary. */}
+      <Suspense fallback={null}>
+        <ProfileTabs userName={session.user?.name} baseUrl={session.baseUrl} providers={providers} />
+      </Suspense>
     </main>
   );
 }

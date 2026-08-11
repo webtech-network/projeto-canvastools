@@ -1,5 +1,6 @@
 import { listShortcuts, replaceAllShortcuts } from './shortcuts';
 import { getAllCustomPrompts, saveCustomPrompt } from './customPrompts';
+import { getGithubConnection, saveGithubConnection } from './githubConnection';
 import { encryptJson, decryptJson } from './settingsCrypto';
 
 const EXPORT_KIND = 'settings-export';
@@ -12,22 +13,44 @@ async function fetchConfiguredKeys() {
   return data.keys;
 }
 
-// `includeKeys` requires `password` — the whole bundle (not just the keys
-// portion) gets encrypted in that case, so the file is either fully plain
-// JSON (shortcuts + custom prompts only) or fully ciphertext, never a mix.
-export async function exportSettingsFile({ includeKeys, password }) {
+// Not gated behind `includeSecrets` — a model preference (e.g. "gpt-4o") is
+// just a string, not a credential, so it's safe to carry in the plain
+// (unencrypted) export too. See src/app/api/ai/models/route.js's own
+// comment for the same reasoning server-side.
+async function fetchConfiguredModels() {
+  const response = await fetch('/api/ai/models');
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Falha ao buscar os modelos configurados para exportação.');
+  return data.models;
+}
+
+// `includeSecrets` requires `password` — the whole bundle (not just the
+// sensitive portion) gets encrypted in that case, so the file is either
+// fully plain JSON (shortcuts + custom prompts only) or fully ciphertext,
+// never a mix. "Secrets" here covers both AI API keys and the GitHub
+// connection's access token — both live client-side already (session for
+// AI keys is server-only by default, exposed only via this deliberate
+// export path; the GitHub token lives in IndexedDB already, see
+// githubConnection.js) and both are meaningless/dangerous to leave in a
+// plaintext file.
+export async function exportSettingsFile({ includeSecrets, password }) {
   const shortcuts = await listShortcuts();
   const customPrompts = await getAllCustomPrompts();
+
+  const aiModels = await fetchConfiguredModels();
 
   const payload = {
     shortcuts: shortcuts.map(({ id, label, url, order }) => ({ id, label, url, order })),
     customPrompts: customPrompts.map(({ capability, text, mode }) => ({ capability, text, mode })),
+    ...(aiModels && Object.keys(aiModels).length ? { aiModels } : {}),
   };
 
   let fileBody;
-  if (includeKeys) {
+  if (includeSecrets) {
     if (!password) throw new Error('Defina uma senha para cifrar o arquivo.');
     payload.apiKeys = await fetchConfiguredKeys();
+    const github = await getGithubConnection();
+    if (github) payload.github = github;
     const encrypted = await encryptJson(payload, password);
     fileBody = {
       app: 'canvastools',
@@ -59,7 +82,8 @@ export async function exportSettingsFile({ includeKeys, password }) {
 
 // Replace, not merge (same reasoning as shortcuts.js's own import) — callers
 // are expected to confirm with the user before calling this, since it
-// overwrites shortcuts, custom prompts, and (if present) AI API keys.
+// overwrites shortcuts, custom prompts, and (if present) AI API keys and the
+// GitHub connection.
 export async function importSettingsFromFile(file, { password } = {}) {
   const text = await file.text();
   let fileBody;
@@ -80,7 +104,7 @@ export async function importSettingsFromFile(file, { password } = {}) {
     payload = fileBody.payload || {};
   }
 
-  const results = { shortcuts: 0, customPrompts: 0, apiKeys: 0 };
+  const results = { shortcuts: 0, customPrompts: 0, apiKeys: 0, github: 0, aiModels: 0 };
 
   if (Array.isArray(payload.shortcuts)) {
     results.shortcuts = await replaceAllShortcuts(payload.shortcuts);
@@ -103,6 +127,23 @@ export async function importSettingsFromFile(file, { password } = {}) {
         body: JSON.stringify({ apiKey }),
       });
       if (response.ok) results.apiKeys += 1;
+    }
+  }
+
+  if (payload.github && payload.github.accessToken) {
+    await saveGithubConnection(payload.github);
+    results.github = 1;
+  }
+
+  if (payload.aiModels && typeof payload.aiModels === 'object') {
+    for (const [providerId, model] of Object.entries(payload.aiModels)) {
+      if (!model) continue;
+      const response = await fetch(`/api/ai/${providerId}/model`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model }),
+      });
+      if (response.ok) results.aiModels += 1;
     }
   }
 

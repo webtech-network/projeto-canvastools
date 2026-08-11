@@ -10,6 +10,10 @@ function resolveProvider(providerId) {
   }
 }
 
+// Mirrors key/route.js's shape, but for the per-provider model *preference*
+// (session.aiModels), not the key itself — a separate session field so a
+// professor can pick a non-default model without that ever being confused
+// with credential storage.
 export async function POST(request, { params }) {
   const session = await getSession();
   if (!isSessionValid(session)) {
@@ -17,29 +21,23 @@ export async function POST(request, { params }) {
   }
 
   const { provider: providerId } = await params;
-  const provider = resolveProvider(providerId);
-  if (!provider) {
+  if (!resolveProvider(providerId)) {
     return NextResponse.json({ error: 'Provedor de IA desconhecido.' }, { status: 404 });
   }
 
   const body = await request.json().catch(() => null);
-  const { apiKey } = body || {};
-
-  if (!apiKey || typeof apiKey !== 'string') {
-    return NextResponse.json({ error: 'Chave de API é obrigatória.' }, { status: 400 });
+  const { model } = body || {};
+  if (!model || typeof model !== 'string') {
+    return NextResponse.json({ error: 'Modelo é obrigatório.' }, { status: 400 });
   }
 
-  const result = await provider.validateApiKey(apiKey);
-  if (!result.valid) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
-  }
-
-  session.aiApiKeys = { ...session.aiApiKeys, [providerId]: apiKey };
+  session.aiModels = { ...session.aiModels, [providerId]: model };
   await session.save();
 
   return NextResponse.json({ ok: true });
 }
 
+// Resets the provider back to its default model (removes the override).
 export async function DELETE(request, { params }) {
   const session = await getSession();
   if (!isSessionValid(session)) {
@@ -51,23 +49,9 @@ export async function DELETE(request, { params }) {
     return NextResponse.json({ error: 'Provedor de IA desconhecido.' }, { status: 404 });
   }
 
-  let changed = false;
-
-  if (session.aiApiKeys && providerId in session.aiApiKeys) {
-    const { [providerId]: _removed, ...rest } = session.aiApiKeys;
-    session.aiApiKeys = rest;
-    changed = true;
-  }
-
-  // A model preference with no key behind it is meaningless — clear it too
-  // so a later reconfigured key doesn't silently inherit a stale choice.
   if (session.aiModels && providerId in session.aiModels) {
-    const { [providerId]: _removedModel, ...restModels } = session.aiModels;
-    session.aiModels = restModels;
-    changed = true;
-  }
-
-  if (changed) {
+    const { [providerId]: _removed, ...rest } = session.aiModels;
+    session.aiModels = rest;
     await session.save();
   }
 

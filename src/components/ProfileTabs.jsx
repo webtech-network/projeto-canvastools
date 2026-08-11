@@ -1,27 +1,38 @@
 'use client';
 
 import { useState } from 'react';
-import { User, KeyRound, Bookmark, Wand2, Settings } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { User, KeyRound, Bookmark, Wand2, Settings, GitBranch } from 'lucide-react';
 import ApiKeyManager from './ApiKeyManager';
 import ShortcutsManager from './ShortcutsManager';
 import PromptCustomizer from './PromptCustomizer';
+import GithubConnection from './GithubConnection';
 import { useUnsavedChangesGuard } from '@/lib/useUnsavedChangesGuard';
 
 const TABS = [
   { key: 'conta', label: 'Conta', Icon: User },
   { key: 'ia', label: 'Motores de IA', Icon: KeyRound },
+  { key: 'github', label: 'GitHub', Icon: GitBranch },
   { key: 'atalhos', label: 'Atalhos', Icon: Bookmark },
   { key: 'prompts', label: 'Prompts de IA', Icon: Wand2 },
   { key: 'preferencias', label: 'Preferências', Icon: Settings },
 ];
 
+const TAB_KEYS = TABS.map((t) => t.key);
+
 // Reuses the same folder-style tab CSS (.tab-folder/.tab-folder-btn/
 // .tab-folder-panel) as QuizImportPanel.jsx — same client-only, local
-// useState pattern, no URL sync. `providers` here is listProviders()'s
-// output already merged with a `hasApiKey` boolean per entry (computed
-// server-side in perfil/page.jsx from the session, never the key itself).
+// useState pattern, mostly no URL sync, EXCEPT the initial tab: the GitHub
+// OAuth callback (github/oauth2/callback) redirects back to
+// /perfil?tab=github so the professor lands on the right tab instead of
+// "Conta" — read once at mount, not kept in sync afterward. `providers` here
+// is listProviders()'s output already merged with a `hasApiKey` boolean per
+// entry (computed server-side in perfil/page.jsx from the session, never the
+// key itself).
 export default function ProfileTabs({ userName, baseUrl, providers }) {
-  const [tab, setTab] = useState('conta');
+  const searchParams = useSearchParams();
+  const initialTab = TAB_KEYS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'conta';
+  const [tab, setTab] = useState(initialTab);
   // Combines the dirty signal from every settings form on this page (API
   // keys, shortcuts, custom prompts) — each reports in via its own
   // onDirtyChange prop, unregistering on unmount (e.g. switching tabs), so
@@ -78,12 +89,15 @@ export default function ProfileTabs({ userName, baseUrl, providers }) {
                   key={provider.id}
                   provider={provider}
                   hasApiKey={provider.hasApiKey}
+                  currentModel={provider.currentModel}
                   onDirtyChange={(isDirty) => setDirty(`apikey-${provider.id}`, isDirty)}
                 />
               ))}
             </div>
           </>
         )}
+
+        {tab === 'github' && <GithubConnection />}
 
         {tab === 'atalhos' && (
           <>

@@ -63,7 +63,7 @@ export async function POST(request, { params }) {
   try {
     quiz = await provider.generateQuestions({
       apiKey,
-      model: process.env[`${providerId.toUpperCase()}_MODEL`],
+      model: session.aiModels?.[providerId] || process.env[`${providerId.toUpperCase()}_MODEL`],
       specs,
       systemPrompt,
     });

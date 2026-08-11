@@ -90,16 +90,17 @@ const SORTERS = {
 // (/mensagens) — course context doesn't need its own column here since both
 // callers already scope the list to a single course before rendering it.
 // `providers` (from src/lib/aiProviders, filtered to ones the user has a key
-// for) powers the "Sugerir resposta com IA" action on each expanded row.
+// for) powers the "Responder com IA" action on each expanded row.
 export default function MessageList({ conversations, currentUserId, baseUrl, providers = [] }) {
   const [sort, setSort] = useState({ key: 'date', direction: 'desc' });
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   // conversation id -> { status: 'loading'|'loaded'|'error', messages, error }
   const [threads, setThreads] = useState({});
   const [providerId, setProviderId] = useState(providers[0]?.id || '');
-  const [suggesting, setSuggesting] = useState(null); // conversation id currently loading, or null
-  const [suggestError, setSuggestError] = useState(null);
-  const [suggestion, setSuggestion] = useState(null); // { text } | null
+  // AI-assisted reply modal state, or null when closed. `status` walks
+  // 'draft' (collecting the professor's prior info) -> 'generating' ->
+  // 'ready' (editable suggestion, ready to send or regenerate).
+  const [assist, setAssist] = useState(null);
   const [archivedIds, setArchivedIds] = useState(() => new Set());
   const [archiving, setArchiving] = useState(null); // conversation id currently archiving, or null
   const [archiveError, setArchiveError] = useState(null);
@@ -164,9 +165,24 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
     }
   }
 
-  async function handleSuggestReply(conversation) {
-    setSuggesting(conversation.id);
-    setSuggestError(null);
+  function openAssist(conversation) {
+    setAssist({
+      conversation,
+      guidance: '',
+      status: 'draft',
+      text: '',
+      generateError: null,
+      sending: false,
+      sendError: null,
+      sent: false,
+    });
+  }
+
+  async function handleGenerateSuggestion() {
+    const conversation = assist?.conversation;
+    if (!conversation) return;
+    const guidance = assist.guidance;
+    setAssist((prev) => (prev ? { ...prev, status: 'generating', generateError: null } : prev));
     try {
       const custom = await getCustomPrompt('suggestReply');
       const response = await fetch(`/api/ai/${providerId}/suggest-reply`, {
@@ -176,20 +192,42 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
           subject: conversation.subject,
           sender: senderName(conversation, currentUserId),
           message: conversation.last_message,
+          guidance,
           customPromptText: custom?.text,
           customPromptMode: custom?.mode,
         }),
       });
       const data = await response.json();
       if (!response.ok) {
-        setSuggestError(data.error || 'Falha ao gerar sugestão de resposta.');
+        setAssist((prev) =>
+          prev ? { ...prev, status: 'draft', generateError: data.error || 'Falha ao gerar sugestão de resposta.' } : prev,
+        );
       } else {
-        setSuggestion({ text: data.reply });
+        setAssist((prev) => (prev ? { ...prev, status: 'ready', text: data.reply, sent: false, sendError: null } : prev));
       }
     } catch (err) {
-      setSuggestError(err.message);
-    } finally {
-      setSuggesting(null);
+      setAssist((prev) => (prev ? { ...prev, status: 'draft', generateError: err.message } : prev));
+    }
+  }
+
+  async function handleSendReply() {
+    const conversation = assist?.conversation;
+    if (!conversation || !assist.text.trim()) return;
+    if (!window.confirm('Enviar esta resposta pelo Canvas para esta conversa?')) return;
+
+    setAssist((prev) => (prev ? { ...prev, sending: true, sendError: null } : prev));
+    try {
+      const response = await fetch(`/api/canvas/conversations/${conversation.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: assist.text }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Falha ao enviar a resposta pelo Canvas.');
+      setAssist((prev) => (prev ? { ...prev, sending: false, sent: true } : prev));
+      loadThread(conversation.id);
+    } catch (err) {
+      setAssist((prev) => (prev ? { ...prev, sending: false, sendError: err.message } : prev));
     }
   }
 
@@ -323,21 +361,16 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                                   ))}
                                 </select>
                               )}
-                              <button
-                                type="button"
-                                className="btn btn-primary btn-sm"
-                                disabled={suggesting === conversation.id}
-                                onClick={() => handleSuggestReply(conversation)}
-                              >
-                                {suggesting === conversation.id ? 'Gerando…' : 'Sugerir resposta com IA'}
+                              <button type="button" className="btn btn-primary btn-sm" onClick={() => openAssist(conversation)}>
+                                Responder com IA
                               </button>
                             </>
                           )}
                         </div>
                         {providers.length === 0 && (
                           <p className="lede">
-                            Configure uma chave de API de IA em <Link href="/perfil">seu perfil</Link> para sugerir
-                            respostas.
+                            Configure uma chave de API de IA em <Link href="/perfil">seu perfil</Link> para responder
+                            com IA.
                           </p>
                         )}
 
@@ -387,22 +420,88 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
         </p>
       )}
 
-      {suggestError && (
-        <p className="alert alert-error" role="alert">
-          {suggestError}
-        </p>
-      )}
+      {assist && (
+        <Modal title="Resposta assistida por IA" onClose={() => setAssist(null)}>
+          {assist.status !== 'ready' ? (
+            <>
+              <p className="lede">
+                Descreva, se quiser, informações que a IA não teria como saber apenas pela mensagem recebida (uma
+                decisão a comunicar, um prazo, um dado específico) para orientar a sugestão de resposta.
+              </p>
+              <label className="compose-message-field">
+                <span>Informações adicionais para a IA (opcional)</span>
+                <textarea
+                  rows={4}
+                  value={assist.guidance}
+                  onChange={(e) => setAssist((prev) => (prev ? { ...prev, guidance: e.target.value } : prev))}
+                  placeholder="Ex.: o prazo de entrega foi prorrogado para sexta-feira…"
+                />
+              </label>
+              {assist.generateError && (
+                <p className="alert alert-error" role="alert">
+                  {assist.generateError}
+                </p>
+              )}
+              <div className="compose-message-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={assist.status === 'generating'}
+                  onClick={handleGenerateSuggestion}
+                >
+                  {assist.status === 'generating' ? 'Gerando…' : 'Gerar sugestão'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <label className="compose-message-field">
+                <span>Sugestão de resposta (edite como quiser antes de enviar)</span>
+                <textarea
+                  rows={8}
+                  value={assist.text}
+                  onChange={(e) => setAssist((prev) => (prev ? { ...prev, text: e.target.value, sent: false } : prev))}
+                />
+              </label>
 
-      {suggestion && (
-        <Modal title="Sugestão de resposta" onClose={() => setSuggestion(null)}>
-          <p className="message-detail-text">{suggestion.text}</p>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => navigator.clipboard.writeText(suggestion.text)}
-          >
-            Copiar resposta
-          </button>
+              {assist.sendError && (
+                <p className="alert alert-error" role="alert">
+                  {assist.sendError}
+                </p>
+              )}
+
+              {assist.sent && (
+                <p className="alert alert-success" role="status">
+                  Resposta enviada pelo Canvas.
+                </p>
+              )}
+
+              <div className="compose-message-actions">
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => navigator.clipboard.writeText(assist.text)}
+                >
+                  Copiar resposta
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => setAssist((prev) => (prev ? { ...prev, status: 'draft', generateError: null } : prev))}
+                >
+                  Ajustar informações e gerar novamente
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={assist.sending || !assist.text.trim()}
+                  onClick={handleSendReply}
+                >
+                  {assist.sending ? 'Enviando…' : 'Enviar resposta pelo Canvas'}
+                </button>
+              </div>
+            </>
+          )}
         </Modal>
       )}
     </>

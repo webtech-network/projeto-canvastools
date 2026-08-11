@@ -30,6 +30,18 @@ export async function validateApiKey(apiKey) {
   }
 }
 
+// `name` comes back as "models/gemini-2.0-flash" — stripped to the bare id
+// this app's own generateContent URLs already expect elsewhere (see
+// defaultModel above). Filtered to models that actually support
+// generateContent (the API this app calls) — the list also includes
+// embedding-only and other non-chat models with no such support.
+export async function listModels(apiKey) {
+  const response = await axios.get(`${BASE_URL}/models`, { params: { key: apiKey, pageSize: 100 } });
+  return (response.data?.models || [])
+    .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
+    .map((m) => ({ id: m.name.replace(/^models\//, ''), label: m.displayName || m.name }));
+}
+
 export async function generateQuestions({ apiKey, model, specs, systemPrompt = SYSTEM_PROMPT }) {
   const prompt = `${buildUserMessage(specs)}\n\nResponda apenas com um único objeto JSON que siga rigorosamente este JSON Schema, sem markdown e sem texto fora do JSON:\n${QUIZ_SCHEMA_TEXT}`;
 

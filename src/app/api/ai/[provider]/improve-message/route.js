@@ -34,7 +34,7 @@ export async function POST(request, { params }) {
   try {
     const improved = await provider.improveMessage({
       apiKey,
-      model: process.env[`${providerId.toUpperCase()}_MODEL`],
+      model: session.aiModels?.[providerId] || process.env[`${providerId.toUpperCase()}_MODEL`],
       text,
       systemPrompt,
     });

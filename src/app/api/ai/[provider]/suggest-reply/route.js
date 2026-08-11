@@ -24,7 +24,7 @@ export async function POST(request, { params }) {
   }
 
   const body = await request.json().catch(() => null);
-  const { subject, sender, message, customPromptText, customPromptMode } = body || {};
+  const { subject, sender, message, guidance, customPromptText, customPromptMode } = body || {};
   if (!message || typeof message !== 'string' || !message.trim()) {
     return NextResponse.json({ error: 'Mensagem original é obrigatória.' }, { status: 400 });
   }
@@ -34,8 +34,8 @@ export async function POST(request, { params }) {
   try {
     const reply = await provider.suggestReply({
       apiKey,
-      model: process.env[`${providerId.toUpperCase()}_MODEL`],
-      context: { subject, sender, message },
+      model: session.aiModels?.[providerId] || process.env[`${providerId.toUpperCase()}_MODEL`],
+      context: { subject, sender, message, guidance },
       systemPrompt,
     });
     return NextResponse.json({ reply });

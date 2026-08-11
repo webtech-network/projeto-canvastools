@@ -31,6 +31,17 @@ export async function validateApiKey(apiKey) {
   }
 }
 
+// Unlike OpenAI's /v1/models, this endpoint only ever lists Claude chat
+// models (no embeddings/whisper/etc. mixed in) — no filtering needed.
+// "More recently released models are listed first" per Anthropic's own docs.
+export async function listModels(apiKey) {
+  const response = await axios.get(`${BASE_URL}/models`, {
+    headers: authHeaders(apiKey),
+    params: { limit: 100 },
+  });
+  return (response.data?.data || []).map((m) => ({ id: m.id, label: m.display_name || m.id }));
+}
+
 export async function generateQuestions({ apiKey, model, specs, systemPrompt = SYSTEM_PROMPT }) {
   // Structured output via forced tool use: Claude must call `emit_quiz`, and
   // Anthropic parses its input against input_schema for us — no JSON.parse

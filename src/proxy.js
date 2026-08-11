@@ -55,5 +55,7 @@ export const config = {
     '/mensagens/:path*',
     '/api/dashboard/:path*',
     '/tutorial/:path*',
+    '/api/github/:path*',
+    '/github/:path*',
   ],
 };

@@ -23,6 +23,24 @@ export async function validateApiKey(apiKey) {
   }
 }
 
+// GET /v1/models returns every model OpenAI has (chat, embeddings, whisper,
+// tts, dall-e, moderation, ...) with no capability/type field to filter by —
+// unlike Anthropic's and Gemini's equivalents. Filtering down to
+// chat/Responses-API-capable models is therefore a heuristic on the id
+// string, not something the API tells us directly.
+const NON_CHAT_MODEL_PATTERN =
+  /whisper|tts|dall-e|embedding|moderation|davinci|babbage|curie|(^|-)ada(-|$)|audio|realtime|transcribe|image|computer-use|search-preview/i;
+
+export async function listModels(apiKey) {
+  const response = await axios.get('https://api.openai.com/v1/models', {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  return (response.data?.data || [])
+    .filter((m) => !NON_CHAT_MODEL_PATTERN.test(m.id))
+    .sort((a, b) => (b.created || 0) - (a.created || 0))
+    .map((m) => ({ id: m.id, label: m.id }));
+}
+
 export async function generateQuestions({ apiKey, model, specs, systemPrompt = SYSTEM_PROMPT }) {
   const response = await axios.post(
     'https://api.openai.com/v1/responses',
