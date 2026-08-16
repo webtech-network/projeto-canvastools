@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { exchangeCodeForToken, getAppBaseUrl } from '@/lib/canvasOAuth';
 import { getSession } from '@/lib/session';
+import { createClient, getSelf } from '@/lib/canvasClient';
 
 export async function GET(request) {
   const url = new URL(request.url);
@@ -23,6 +24,23 @@ export async function GET(request) {
     session.refreshToken = token.refresh_token;
     session.accessTokenExpiresAt = Date.now() + token.expires_in * 1000;
     session.user = token.user;
+
+    // The OAuth token response's own `user` field (just set above) never
+    // carries an avatar — fetched once here, at login, and cached in the
+    // session so the topbar's avatar menu doesn't need an extra Canvas call
+    // on every page render. Best-effort: a failure here still leaves a
+    // perfectly usable session (session.user), just without a picture — the
+    // avatar menu falls back to a generic icon.
+    try {
+      const client = createClient({ baseUrl: session.baseUrl, token: session.accessToken });
+      const profile = await getSelf(client);
+      if (profile?.avatar_url) {
+        session.user = { ...session.user, avatar_url: profile.avatar_url };
+      }
+    } catch (err) {
+      console.error('Falha ao buscar o avatar do Canvas:', err.message);
+    }
+
     await session.save();
   } catch (err) {
     console.error('Falha no login OAuth do Canvas:', err.message);

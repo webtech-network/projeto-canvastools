@@ -100,6 +100,73 @@ Lets a professor connect their profile to a GitHub account, as groundwork for la
 - `ProfileTabs.jsx` reads its initial active tab from `useSearchParams().get('tab')` (new — previously always opened on "Conta") specifically so the post-OAuth redirect lands on the GitHub tab; this requires `perfil/page.jsx` to wrap `<ProfileTabs>` in a `<Suspense>` boundary (Next.js's requirement for any `useSearchParams()` consumer).
 - Trade-off worth knowing: the GitHub access token sits in **plaintext** in IndexedDB at rest (same as shortcuts/custom prompts — not the AI-keys default), since it's the store the user explicitly asked for. It only gets encrypted at the moment of a deliberate, password-protected export (see above). Future features that actually call GitHub's API should follow the same pattern already used for AI custom prompts: read the token client-side from IndexedDB, send it to one of this app's own API routes per-request, and have that route call GitHub server-side — never call GitHub's API directly from the browser.
 
+### Google Drive preferences sync (`src/lib/googleOAuth.js`, `googleConnection.js`, `googleDriveClient.js`, `googleDriveSync.js`, `GoogleConnection.jsx`)
+
+Lets a professor connect a Google account and back up/restore a subset of their settings — shortcuts,
+custom AI prompts, and per-provider AI model choices — via a private `user-preferences.json` file in
+the Drive `appDataFolder` (a hidden space Google reserves for app-internal data; it never shows up in
+the user's normal Drive UI). This was built from a detailed external functional spec the user provided,
+but **deliberately diverges from it in two ways**, both by explicit user decision, not oversight:
+
+1. **What counts as "preferences".** The spec's own `UserPreferences` example (theme/sidebarCollapsed/
+   pageSize/defaultCourseId) doesn't correspond to anything that exists in this app. What actually
+   persists in IndexedDB today is shortcuts (`shortcuts.js`), custom AI prompts (`customPrompts.js`),
+   and AI model choices (`session.aiModels`, exposed via `GET /api/ai/models`) — exactly the same
+   non-secret bundle `settingsExport.js` already assembles for the manual local export/import. Rather
+   than invent a second, parallel preferences format, `settingsExport.js` was split into
+   `buildSettingsPayload({ includeSecrets, password })` / `applySettingsPayload(fileBody, { password })`
+   (pure functions, no Blob/File side effects) so both the local download/upload flow and the Drive
+   sync flow share the exact same envelope (`{ app, kind, version, exportedAt, encrypted, payload |
+   salt/iv/ciphertext }`) and the same PBKDF2→AES-GCM encryption (`settingsCrypto.js`). `exportSettingsFile`/
+   `importSettingsFromFile` are now thin wrappers around those two functions; their own behavior is
+   unchanged. Because the envelope is shared, `pushToGoogleDrive`/`pullFromGoogleDrive` can optionally
+   include the same secrets (AI API keys, GitHub connection) as the local export, gated behind the same
+   "incluir credenciais" + password UX already used in `SettingsExportImport.jsx` — the Google integration
+   doesn't hardcode a stricter no-secrets rule than the local export already enforces.
+
+2. **OAuth model.** The original spec asked for the Google Identity Services **Token Model**: an
+   access token obtained entirely client-side via a GIS popup, never touching the server, no
+   `client_secret`, no callback route — explicitly to avoid a refresh-token dance. The user asked
+   instead to mirror this app's existing **GitHub OAuth connection** structure (see above): a
+   real server-side authorization-code exchange with `client_id`/`client_secret`
+   (`src/lib/googleOAuth.js`, same shape as `githubOAuth.js`), a dedicated callback route outside
+   `/api/` (`src/app/google/oauth2/callback/route.js`), a one-time session handoff
+   (`session.googlePendingConnection`, redeemed once via `GET /api/google/pending-connection`), and
+   a durable connection record in IndexedDB (`STORE_GOOGLE`, via `googleConnection.js`) rather than
+   the session — all identical in shape to the GitHub integration. The one structural difference:
+   **Google's access token expires (~1h), GitHub's classic OAuth token doesn't.** Refreshing needs
+   the `client_secret`, which can't reach the browser, so there's a route with no GitHub equivalent —
+   `POST /api/google/refresh` — a stateless pass-through that takes the refresh token the browser
+   already has, calls `refreshAccessToken()` (mirrors `canvasOAuth.js`'s own refresh, including the
+   "Google never returns a new refresh_token on refresh" behavior) server-side, and returns a fresh
+   access token without persisting anything. `googleConnection.js`'s `getValidAccessToken()` is the
+   single choke point that checks `expiresAt` (same 5-minute safety margin as `proxy.js`'s Canvas
+   refresh) and calls that route before any Drive API request. `getAuthorizeUrl()` sets
+   `access_type=offline&prompt=consent` specifically to guarantee a `refresh_token` comes back (Google
+   only issues one by default on a user's very first consent). Like the GitHub token, Google's access
+   + refresh tokens sit in plaintext in IndexedDB at rest — same accepted trade-off documented above
+   for GitHub, not a new risk.
+
+`src/lib/googleDriveClient.js` is a thin `fetch`-only wrapper over Drive API v3 (`files.list` scoped to
+`spaces=appDataFolder`, multipart `files.create`, media `files.update`/`alt=media` download) — no new
+npm dependency, same philosophy as `settingsCrypto.js`'s use of raw Web Crypto. `googleDriveSync.js`'s
+`pushToGoogleDrive`/`pullFromGoogleDrive` are two **explicit, separate** actions in `GoogleConnection.jsx`
+("Enviar para o Google Drive" / "Baixar do Google Drive"), not one ambiguous "sync now" button — there is
+no conflict detection yet (no `revision`/`deviceId`/hash machinery), so an implicit sync direction would
+risk a silent overwrite either way. `GoogleConnection.jsx` itself mirrors `GithubConnection.jsx`'s
+connect/disconnect/status UI, with the push/pull section reusing `SettingsExportImport.jsx`'s
+checkbox+password pattern locally rather than sharing a component.
+
+**Deliberately deferred to a later round** (this is the "connect + manual sync" slice only):
+automatic debounced sync after each preference change, conflict detection/resolution UI
+(`revision`/`deviceId`/`lastSyncHash`), and validating the remote file's Canvas identity against the
+current session before applying it (only matters once multiple devices/auto-sync are in play). None of
+these are missing by accident — treat them as a known, intentional gap, not a bug to silently "complete."
+
+`src/proxy.js`'s matcher includes `/google/:path*` and `/api/google/:path*` alongside the equivalent
+GitHub entries — same reasoning: a user must already have a valid Canvas session before linking or
+syncing Google, and the callback route itself needs the proxy's session-gating too.
+
 ## Two separate Canvas auth models — do not conflate them
 
 (A third, independent auth flavor — the GitHub OAuth connection — is documented above under "GitHub OAuth connection"; it deliberately does *not* follow either pattern below, since its token is meant to live client-side.)

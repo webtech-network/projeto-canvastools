@@ -33,7 +33,11 @@ async function fetchConfiguredModels() {
 // export path; the GitHub token lives in IndexedDB already, see
 // githubConnection.js) and both are meaningless/dangerous to leave in a
 // plaintext file.
-export async function exportSettingsFile({ includeSecrets, password }) {
+//
+// Extracted from exportSettingsFile() (kept as a thin wrapper below) so
+// googleDriveSync.js can build the exact same envelope without going
+// through a Blob/download side effect.
+export async function buildSettingsPayload({ includeSecrets, password }) {
   const shortcuts = await listShortcuts();
   const customPrompts = await getAllCustomPrompts();
 
@@ -45,14 +49,13 @@ export async function exportSettingsFile({ includeSecrets, password }) {
     ...(aiModels && Object.keys(aiModels).length ? { aiModels } : {}),
   };
 
-  let fileBody;
   if (includeSecrets) {
     if (!password) throw new Error('Defina uma senha para cifrar o arquivo.');
     payload.apiKeys = await fetchConfiguredKeys();
     const github = await getGithubConnection();
     if (github) payload.github = github;
     const encrypted = await encryptJson(payload, password);
-    fileBody = {
+    return {
       app: 'canvastools',
       kind: EXPORT_KIND,
       version: EXPORT_VERSION,
@@ -60,16 +63,20 @@ export async function exportSettingsFile({ includeSecrets, password }) {
       encrypted: true,
       ...encrypted,
     };
-  } else {
-    fileBody = {
-      app: 'canvastools',
-      kind: EXPORT_KIND,
-      version: EXPORT_VERSION,
-      exportedAt: new Date().toISOString(),
-      encrypted: false,
-      payload,
-    };
   }
+
+  return {
+    app: 'canvastools',
+    kind: EXPORT_KIND,
+    version: EXPORT_VERSION,
+    exportedAt: new Date().toISOString(),
+    encrypted: false,
+    payload,
+  };
+}
+
+export async function exportSettingsFile({ includeSecrets, password }) {
+  const fileBody = await buildSettingsPayload({ includeSecrets, password });
 
   const blob = new Blob([JSON.stringify(fileBody, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -84,14 +91,11 @@ export async function exportSettingsFile({ includeSecrets, password }) {
 // are expected to confirm with the user before calling this, since it
 // overwrites shortcuts, custom prompts, and (if present) AI API keys and the
 // GitHub connection.
-export async function importSettingsFromFile(file, { password } = {}) {
-  const text = await file.text();
-  let fileBody;
-  try {
-    fileBody = JSON.parse(text);
-  } catch {
-    throw new Error('Arquivo inválido: não é um JSON válido.');
-  }
+//
+// Extracted from importSettingsFromFile() (kept as a thin wrapper below) so
+// googleDriveSync.js can apply a fileBody fetched from Drive without going
+// through a File/FileReader side effect.
+export async function applySettingsPayload(fileBody, { password } = {}) {
   if (fileBody?.kind !== EXPORT_KIND) {
     throw new Error('Arquivo inválido: não é um export de configurações do CanvasTools.');
   }
@@ -148,4 +152,15 @@ export async function importSettingsFromFile(file, { password } = {}) {
   }
 
   return results;
+}
+
+export async function importSettingsFromFile(file, { password } = {}) {
+  const text = await file.text();
+  let fileBody;
+  try {
+    fileBody = JSON.parse(text);
+  } catch {
+    throw new Error('Arquivo inválido: não é um JSON válido.');
+  }
+  return applySettingsPayload(fileBody, { password });
 }

@@ -1,12 +1,13 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'canvastools';
-const DB_VERSION = 3;
+const DB_VERSION = 4;
 
 export const STORE_SHORTCUTS = 'shortcuts';
 export const STORE_CACHE = 'cache';
 export const STORE_PROMPTS = 'prompts';
 export const STORE_GITHUB = 'github';
+export const STORE_GOOGLE = 'google';
 
 let dbPromise = null;
 
@@ -30,6 +31,9 @@ function getDb() {
         }
         if (!db.objectStoreNames.contains(STORE_GITHUB)) {
           db.createObjectStore(STORE_GITHUB, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(STORE_GOOGLE)) {
+          db.createObjectStore(STORE_GOOGLE, { keyPath: 'id' });
         }
       },
     });

@@ -25,9 +25,9 @@ export default function RecentDeadlines({ items, loading }) {
             return (
               <li key={item.id}>
                 <a href={item.htmlUrl} target="_blank" rel="noopener noreferrer" className="card-link">
-                  <span>
-                    <span className="card-title">{item.name}</span>
+                  <span className="card-link-text">
                     <span className="card-meta">{item.courseName}</span>
+                    <span className="card-title">{item.name}</span>
                   </span>
                   <span className={`deadline-tag${overdue ? ' overdue' : ' upcoming'}`}>{formatDate(item.dueAt)}</span>
                 </a>

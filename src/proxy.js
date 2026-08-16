@@ -55,7 +55,10 @@ export const config = {
     '/mensagens/:path*',
     '/api/dashboard/:path*',
     '/tutorial/:path*',
+    '/sobre/:path*',
     '/api/github/:path*',
     '/github/:path*',
+    '/api/google/:path*',
+    '/google/:path*',
   ],
 };

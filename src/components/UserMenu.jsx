@@ -1,0 +1,71 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { CircleUserRound } from 'lucide-react';
+
+// Replaces the old "username link to /perfil" + standalone "Sair" button
+// pair in Topbar.jsx with a single avatar-triggered dropdown, mirroring
+// SidebarMenu.jsx's own click-outside/Escape-to-close popover pattern.
+// `avatarUrl` comes from session.user?.avatar_url — fetched once at Canvas
+// OAuth login time (see src/app/oauth2/callback/route.js), not on every
+// render, so a missing value here just means the professor logged in before
+// that field existed, or Canvas didn't return one — either way this falls
+// back to a generic icon rather than an extra Canvas API call per page.
+export default function UserMenu({ userName, avatarUrl }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleClickOutside(e) {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    function handleKeyDown(e) {
+      if (e.key === 'Escape') setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="user-menu" ref={containerRef}>
+      <button
+        type="button"
+        className="user-menu-trigger"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        title={userName}
+      >
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- external Canvas-hosted avatar, not a local asset
+          <img src={avatarUrl} alt="" className="user-menu-avatar" width={32} height={32} />
+        ) : (
+          <CircleUserRound size={32} strokeWidth={1.4} className="user-menu-avatar user-menu-avatar-fallback" />
+        )}
+        <span className="user-name">{userName}</span>
+      </button>
+
+      {open && (
+        <div className="user-menu-popover" role="menu">
+          <Link href="/perfil" className="user-menu-item" role="menuitem" onClick={() => setOpen(false)}>
+            Configurações
+          </Link>
+          <form action="/api/auth/logout" method="POST">
+            <button type="submit" className="user-menu-item" role="menuitem">
+              Sair
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}

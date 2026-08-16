@@ -139,8 +139,8 @@ export default function ShortcutsManager({ onDirtyChange }) {
       )}
 
       <p className="lede">
-        Os atalhos ficam salvos só neste navegador (IndexedDB) — use "Exportar/Importar configurações" no topo da
-        página para levá-los a outro navegador ou computador.
+        Os atalhos ficam salvos só neste navegador (IndexedDB) — use "Salvar/Carregar Configurações do CanvasTools"
+        no topo da página para levá-los a outro navegador ou computador.
       </p>
     </div>
   );

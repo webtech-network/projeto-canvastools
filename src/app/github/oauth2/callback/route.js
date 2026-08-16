@@ -15,7 +15,7 @@ export async function GET(request) {
   const baseUrl = getAppBaseUrl();
 
   if (!code || !state || !cookieState || state !== cookieState) {
-    const response = NextResponse.redirect(new URL('/perfil?tab=github&github=erro', baseUrl));
+    const response = NextResponse.redirect(new URL('/perfil?tab=plataformas&github=erro', baseUrl));
     response.cookies.delete('github_oauth_state');
     return response;
   }
@@ -35,12 +35,12 @@ export async function GET(request) {
     await session.save();
   } catch (err) {
     console.error('Falha no login OAuth do GitHub:', err.message);
-    const response = NextResponse.redirect(new URL('/perfil?tab=github&github=erro', baseUrl));
+    const response = NextResponse.redirect(new URL('/perfil?tab=plataformas&github=erro', baseUrl));
     response.cookies.delete('github_oauth_state');
     return response;
   }
 
-  const response = NextResponse.redirect(new URL('/perfil?tab=github&github=connected', baseUrl));
+  const response = NextResponse.redirect(new URL('/perfil?tab=plataformas&github=connected', baseUrl));
   response.cookies.delete('github_oauth_state');
   return response;
 }

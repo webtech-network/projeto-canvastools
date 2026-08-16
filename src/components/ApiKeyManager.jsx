@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CircleCheck, ChevronDown, ChevronRight } from 'lucide-react';
+import { CircleCheck, ChevronDown, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 
 // Shared between the Profile page (where keys are managed, one instance per
 // registered provider — see src/lib/aiProviders) and QuestionGenerator
@@ -159,11 +159,24 @@ export default function ApiKeyManager({ provider, hasApiKey, currentModel, onDir
             <span>
               Chave configurada <CircleCheck size={14} strokeWidth={2} className="inline-icon" />
             </span>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowKeyForm(true)}>
-              Trocar chave
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon btn-sm"
+              title="Trocar chave"
+              aria-label="Trocar chave"
+              onClick={() => setShowKeyForm(true)}
+            >
+              <Pencil size={16} strokeWidth={1.8} />
             </button>
-            <button type="button" className="btn btn-ghost btn-sm" disabled={saving} onClick={handleRemoveKey}>
-              Remover
+            <button
+              type="button"
+              className="btn btn-ghost btn-icon btn-sm"
+              title="Remover chave"
+              aria-label="Remover chave"
+              disabled={saving}
+              onClick={handleRemoveKey}
+            >
+              <Trash2 size={16} strokeWidth={1.8} />
             </button>
           </div>
 

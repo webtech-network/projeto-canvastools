@@ -1,11 +1,11 @@
 :root {
   --ink: #1c2333;
   --ink-soft: #4a5268;
-  --paper: #faf6ef;
+  --paper: #eef3f9;
   --paper-raised: #ffffff;
-  --line: #e4dcc9;
-  --accent: #b5602f;
-  --accent-strong: #8f451e;
+  --line: #d7e3ef;
+  --accent: #f55e27;
+  --accent-strong: #c44b1f;
   --ok: #2f6b4f;
   --ok-bg: #e8f3ec;
   --err: #9c3b32;
@@ -15,33 +15,75 @@
   --radius: 10px;
   --shadow: 0 1px 2px rgba(28, 35, 51, 0.06), 0 8px 24px -12px rgba(28, 35, 51, 0.18);
 
+  /* CanvasTools brand blue — primary buttons (and the sidebar in light
+     theme). Fixed across both themes (not redefined in the dark blocks
+     below), since it's the identity color, not a surface that should adapt
+     to theme. */
+  --brand: #173a60;
+  --brand-strong: #102943;
+  --brand-fg: var(--brand);
+  --brand-bg-strong: #d3e4f7;
+
   /* The sidebar stays permanently dark regardless of light/dark theme — the
-     CanvasTools logo is a light/white mark and needs a dark backdrop. */
-  --sidebar-bg: #12141c;
+     CanvasTools logo is a light/white mark and needs a dark backdrop — but
+     *which* dark varies: brand blue in light theme, the same charcoal as
+     --paper-raised in dark theme (see the dark blocks below), so it reads
+     as part of the same dark UI as the topbar instead of clashing with it. */
+  --sidebar-bg: var(--brand);
   --sidebar-fg: #f3efe4;
   --sidebar-fg-soft: rgba(243, 239, 228, 0.55);
-  --sidebar-border: #262a3a;
+  --sidebar-border: #0f2743;
   --sidebar-width: 84px;
   --sidebar-width-narrow: 60px;
 }
 
+/* Theme: three states. No `data-theme` attribute (the default) follows the
+   OS preference below; ThemeToggle.jsx (Preferências, /perfil) stamps
+   data-theme="light"/"dark" on <html> to override it explicitly either way,
+   applied before first paint by the inline script in layout.jsx so there's
+   no flash of the wrong theme. Both selectors below must list the exact
+   same tokens — kept in sync by hand, there being no CSS preprocessor here. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     --ink: #ece6d9;
     --ink-soft: #b7ae9a;
     --paper: #16181f;
     --paper-raised: #1e212b;
     --line: #333748;
-    --accent: #e08a52;
-    --accent-strong: #f0a06c;
+    --accent: #ff8a5c;
+    --accent-strong: #ffab84;
     --ok: #7fcea8;
     --ok-bg: #16261f;
     --err: #e8988f;
     --err-bg: #2c1a1a;
     --warn: #e3c073;
     --warn-bg: #2b2413;
+    --brand-fg: #8fb7e6;
+    --brand-bg-strong: rgba(90, 140, 200, 0.25);
+    --sidebar-bg: #1e212b;
+    --sidebar-border: #333748;
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px -14px rgba(0, 0, 0, 0.6);
   }
+}
+:root[data-theme='dark'] {
+  --ink: #ece6d9;
+  --ink-soft: #b7ae9a;
+  --paper: #16181f;
+  --paper-raised: #1e212b;
+  --line: #333748;
+  --accent: #ff8a5c;
+  --accent-strong: #ffab84;
+  --ok: #7fcea8;
+  --ok-bg: #16261f;
+  --err: #e8988f;
+  --err-bg: #2c1a1a;
+  --warn: #e3c073;
+  --warn-bg: #2b2413;
+  --brand-fg: #8fb7e6;
+  --brand-bg-strong: rgba(90, 140, 200, 0.25);
+  --sidebar-bg: #1e212b;
+  --sidebar-border: #333748;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 28px -14px rgba(0, 0, 0, 0.6);
 }
 
 * {
@@ -117,13 +159,38 @@ a {
   border-right: 1px solid var(--sidebar-border);
   z-index: 20;
 }
-.sidebar-logo {
+.sidebar-collapse-toggle {
   display: flex;
+  align-items: center;
   justify-content: center;
+  width: 100%;
+  padding: 0.5rem 0;
+  border: none;
+  border-radius: 10px;
+  background: none;
+  color: var(--sidebar-fg-soft);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
 }
-.sidebar-logo img {
-  height: 26px;
-  width: auto;
+.sidebar-collapse-toggle:hover {
+  color: var(--sidebar-fg);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Collapsed state (toggled via Sidebar.jsx) — same narrow width the mobile
+   breakpoint already uses, but manually chosen rather than viewport-driven.
+   .dashboard-main's margin-left follows via :has() on the shared
+   .dashboard-shell ancestor instead of lifting state up to the (dashboard)
+   layout. */
+.sidebar.is-collapsed {
+  width: var(--sidebar-width-narrow);
+  padding: 1.1rem 0.2rem;
+}
+.sidebar.is-collapsed .nav-icon-label {
+  display: none;
+}
+.dashboard-shell:has(.sidebar.is-collapsed) .dashboard-main {
+  margin-left: var(--sidebar-width-narrow);
 }
 .sidebar-nav {
   display: flex;
@@ -198,6 +265,11 @@ a {
   background: var(--paper);
   color: var(--accent);
 }
+.sidebar-menu-separator {
+  height: 1px;
+  margin: 0.3rem 0.4rem;
+  background: var(--line);
+}
 
 .dashboard-main {
   flex: 1;
@@ -208,18 +280,43 @@ a {
 }
 
 .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 15;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.85rem 1.75rem;
+  padding: 0.55rem 1.75rem;
   border-bottom: 1px solid var(--line);
   background: var(--paper-raised);
 }
-.topbar-title {
-  font-family: var(--font-display), serif;
-  font-weight: 600;
-  font-size: 1.05rem;
-  color: var(--ink-soft);
+.topbar-logo {
+  display: flex;
+  align-items: center;
+}
+.topbar-logo img {
+  height: 42px;
+  width: auto;
+}
+/* Light-theme logo shows by default; dark-theme swap follows the same
+   three-state pattern as the color tokens above (OS preference, overridden
+   either way by an explicit data-theme). */
+.topbar-logo-dark {
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .topbar-logo-light {
+    display: none;
+  }
+  :root:not([data-theme='light']) .topbar-logo-dark {
+    display: block;
+  }
+}
+:root[data-theme='dark'] .topbar-logo-light {
+  display: none;
+}
+:root[data-theme='dark'] .topbar-logo-dark {
+  display: block;
 }
 
 .dashboard-content {
@@ -231,22 +328,73 @@ a {
 .topbar-user {
   display: flex;
   align-items: center;
-  gap: 1rem;
 }
-.logout-form {
+
+/* Avatar-triggered dropdown replacing the old separate "username link" +
+   "Sair" button pair — see UserMenu.jsx. */
+.user-menu {
+  position: relative;
+}
+.user-menu-trigger {
   display: flex;
   align-items: center;
+  gap: 0.6rem;
+  border: none;
+  background: none;
+  padding: 0.3rem 0.5rem 0.3rem 0.3rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.user-menu-trigger:hover {
+  background: var(--paper);
+}
+.user-menu-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.user-menu-avatar-fallback {
+  color: var(--ink-soft);
 }
 .user-name {
   color: var(--ink-soft);
   font-size: 0.92rem;
   font-weight: 600;
-  text-decoration: none;
-  transition: color 0.12s ease;
 }
-.user-name:hover {
+.user-menu-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 180px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.4rem;
+  z-index: 30;
+}
+.user-menu-item {
+  display: block;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  text-decoration: none;
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.user-menu-item:hover {
+  background: var(--paper);
   color: var(--accent);
-  text-decoration: underline;
 }
 
 @media (max-width: 640px) {
@@ -332,7 +480,7 @@ a {
 .tab-folder-description {
   color: var(--ink-soft);
   font-size: 0.9rem;
-  margin: 0 0 1.1rem;
+  margin: 0.5rem 0 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 1px dashed var(--line);
 }
@@ -359,12 +507,12 @@ a {
   cursor: not-allowed;
 }
 .btn-primary {
-  background: var(--accent);
+  background: var(--brand);
   color: #fff9f2;
   box-shadow: var(--shadow);
 }
 .btn-primary:hover:not(:disabled) {
-  background: var(--accent-strong);
+  background: var(--brand-strong);
 }
 .btn-secondary {
   background: transparent;
@@ -384,25 +532,56 @@ a {
   color: var(--err);
 }
 
+/* One continuous dark panel — banner, welcome copy, login button and the
+   WebTech footer all sit together on the same black background, rather than
+   a black hero band handing off to a separate light band underneath. */
 .login-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  text-align: center;
+}
+/* Fills the space above the footer and centers its children inside it —
+   the footer (last flex child, flex-shrink: 0) always lands at the bottom
+   of the page instead of trailing right after the button, and everything
+   above it scales down fluidly (clamp()) on short/narrow viewports instead
+   of holding a fixed height. */
+.login-page-content {
+  flex: 1 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2rem;
-  padding: 8vh 1.5rem 3rem;
+  justify-content: center;
+  gap: clamp(0.6rem, 2.5vh, 1.1rem);
+  padding: clamp(1.25rem, 5vh, 2.5rem) 1.5rem;
 }
-.login-card {
-  background: var(--paper-raised);
-  border: 1px solid var(--line);
+.login-hero-banner {
+  width: 100%;
+  max-width: clamp(220px, 30vw, 380px);
+  height: auto;
   border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 2.5rem;
-  max-width: 420px;
-  text-align: center;
+  display: block;
+  margin-bottom: 0.4rem;
 }
-.login-card p {
-  color: var(--ink-soft);
-  margin-bottom: 1.75rem;
+.login-page h1 {
+  color: #fff;
+  font-size: clamp(1.4rem, 1rem + 1.5vw, 1.9rem);
+}
+.login-page p {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+  max-width: 480px;
+}
+.login-page .btn-lg {
+  margin-top: 0.4rem;
+}
+.login-page .webtech-footer {
+  flex-shrink: 0;
+  background: transparent;
+  padding: clamp(1rem, 3vh, 1.5rem) 1.5rem;
+  margin: 0 auto;
 }
 
 /* Shared dark attribution footer — used both on the pre-login screen
@@ -436,6 +615,51 @@ a {
   text-decoration: underline;
 }
 
+/* Horizontal variant (WebTechFooter variant="bar") — copy + legal links on
+   the left, logo on the right, used on the login page in place of the
+   plain centered-logo layout above. */
+.webtech-footer-bar {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  max-width: 640px;
+  text-align: left;
+}
+.webtech-footer-bar .webtech-footer-copy {
+  margin: 0;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.webtech-footer-bar .webtech-footer-logo {
+  width: 150px;
+  min-width: 150px;
+}
+@media (max-width: 560px) {
+  .webtech-footer-bar {
+    flex-direction: column;
+    text-align: center;
+  }
+  .webtech-footer-bar .webtech-footer-copy {
+    white-space: normal;
+  }
+}
+
+/* Compact modifier (WebTechFooter compact prop) — a minimal strip that just
+   fits the copyright text and a small logo, used where the bar variant's
+   default padding/logo size would be excessive (the dashboard home, not a
+   dedicated entry screen like /login). */
+.webtech-footer-compact {
+  padding: 0.5rem 1.1rem;
+  gap: 1rem;
+  max-width: none;
+  width: 100%;
+}
+.webtech-footer-compact .webtech-footer-logo {
+  width: 100px;
+  min-width: 100px;
+}
+
 /* "Capa" (home, `/`) — rendered as regular dashboard content inside the
    `.page` card, sidebar/topbar stay visible around it (see (dashboard)/page.jsx). */
 .cover-tagline {
@@ -463,6 +687,30 @@ a {
 }
 .cover-feature-group li {
   line-height: 1.5;
+}
+.cover-feature-group h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+}
+.cover-feature-icon {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+/* "Sobre o CanvasTools" (/sobre) — PUC Minas / WebTech attribution section,
+   set apart from the feature grid above it the same way .cover-details
+   separates itself on the dashboard home. */
+.about-webtech {
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+.about-webtech h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .card-list {
@@ -497,6 +745,19 @@ a {
   color: var(--ink-soft);
   font-size: 0.85rem;
   white-space: nowrap;
+}
+
+/* RecentDeadlines.jsx — course name and activity name stacked on their own
+   lines (course above, activity below) instead of running into each other
+   on one line. */
+.card-link-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+.card-link-text .card-meta {
+  white-space: normal;
 }
 
 .fav-toggle-btn {
@@ -807,8 +1068,8 @@ a {
   color: var(--ink-soft);
 }
 .pending-badge.has-pending {
-  background: var(--warn-bg);
-  color: var(--warn);
+  background: var(--brand-bg-strong);
+  color: var(--brand-fg);
 }
 
 .status-icon {
@@ -1024,26 +1285,40 @@ a {
   color: var(--ink);
 }
 
-.settings-export-import {
-  margin: 0 0 1.5rem;
-}
-.settings-export-import-actions {
+/* Compact "Salvar/Carregar" group — sits to the right of the page's own
+   <h1> (see ProfileTabs.jsx's page-header-row), not as a separate full-width
+   card. Save/load details open in a Modal (Modal.jsx) rather than an inline
+   box, so this never grows taller than a single row of controls itself. */
+.settings-save-load {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 0.6rem;
 }
-.settings-export-panel {
+.settings-save-load-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+.settings-save-load-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+.settings-save-load .alert {
+  width: 100%;
+  max-width: 360px;
+}
+
+/* Shared layout for the Save/Load modals' contents (SettingsSaveLoad.jsx). */
+.settings-save-load-form {
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
   align-items: flex-start;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 1rem 1.1rem;
-  margin-top: 0.75rem;
-  background: var(--paper-raised);
 }
-.settings-export-panel input[type='password'] {
+.settings-save-load-form input[type='password'] {
   width: 100%;
   max-width: 320px;
   font: inherit;
@@ -1302,10 +1577,31 @@ a {
   font-size: 1rem;
 }
 
+.preferences-section {
+  margin-top: 1.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+.preferences-section h3 {
+  margin-bottom: 0.3rem;
+}
+.preferences-section .tab-folder-description {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-top: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
 .ai-providers-list {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+}
+.api-key-manager {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  background: var(--paper-raised);
 }
 .api-key-manager h3 {
   margin: 0 0 0.4rem;
@@ -1592,10 +1888,15 @@ a {
   justify-content: space-between;
   margin-bottom: 0.75rem;
 }
+/* Each week is its own .calendar-grid (see DueDateCalendar.jsx), stacked as
+   separate block-level rows — `gap` alone only spaces cells apart *within*
+   a row, so a row's own margin is what keeps it from touching the next
+   week's row above/below it. */
 .calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 3px;
+  margin-bottom: 3px;
 }
 .calendar-weekdays {
   margin-bottom: 0.3rem;

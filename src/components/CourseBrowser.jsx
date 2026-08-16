@@ -382,7 +382,7 @@ export default function CourseBrowser() {
                   </Link>
                   <Link
                     href={`/courses/${course.id}/mensagens`}
-                    className="btn btn-secondary btn-icon"
+                    className="btn btn-primary btn-icon"
                     title="Ver mensagens"
                     aria-label="Ver mensagens"
                   >
@@ -390,7 +390,7 @@ export default function CourseBrowser() {
                   </Link>
                   <Link
                     href={`/courses/${course.id}/alunos`}
-                    className="btn btn-secondary btn-icon"
+                    className="btn btn-primary btn-icon"
                     title="Ver alunos"
                     aria-label="Ver alunos"
                   >

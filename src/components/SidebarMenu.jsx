@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import webtechLogoColor from '@/assets/images/logo-colorido.svg';
 
 // Anchored to the bottom of the sidebar (see .sidebar-menu's margin-top:
@@ -34,6 +35,35 @@ export default function SidebarMenu() {
     <div className="sidebar-menu" ref={containerRef}>
       {open && (
         <div className="sidebar-menu-popover" role="menu">
+          <Link href="/sobre" className="sidebar-menu-item" role="menuitem" onClick={() => setOpen(false)}>
+            Sobre o CanvasTools
+          </Link>
+
+          <div className="sidebar-menu-separator" role="separator" />
+
+          <a
+            href="https://webtech.network/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="sidebar-menu-item"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+          >
+            Termos de Uso
+          </a>
+          <a
+            href="https://webtech.network/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="sidebar-menu-item"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+          >
+            Política de Privacidade
+          </a>
+
+          <div className="sidebar-menu-separator" role="separator" />
+
           <a
             href="https://webtech.network"
             target="_blank"
@@ -42,7 +72,7 @@ export default function SidebarMenu() {
             role="menuitem"
             onClick={() => setOpen(false)}
           >
-            Conheça o projeto WebTech Network
+            Conheça o WebTech Network
           </a>
         </div>
       )}

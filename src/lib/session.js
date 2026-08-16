@@ -20,7 +20,13 @@ export function getSessionOptions() {
       httpOnly: true,
       sameSite: 'lax',
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 8, // 8h — re-login is cheap (one OAuth redirect), no need for a longer-lived cookie
+      // Canvas's own refresh token never expires (see canvasOAuth.js), and
+      // src/proxy.js re-saves this cookie — renewing maxAge — every time it
+      // refreshes the access token. So this ceiling only matters for users
+      // who go this long *without opening the app at all*; anything shorter
+      // caused daily forced re-logins even though the refresh token was fine.
+      maxAge: 60 * 60 * 24 * 30, // 30d, rolling
+
     },
   };
 }

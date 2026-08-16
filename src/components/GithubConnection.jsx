@@ -32,11 +32,11 @@ export default function GithubConnection() {
         } catch (err) {
           if (!cancelled) setError(err.message);
         } finally {
-          window.history.replaceState({}, '', window.location.pathname + '?tab=github');
+          window.history.replaceState({}, '', window.location.pathname + '?tab=plataformas');
         }
       } else if (githubParam === 'erro') {
         setError('Falha ao conectar com o GitHub. Tente novamente.');
-        window.history.replaceState({}, '', window.location.pathname + '?tab=github');
+        window.history.replaceState({}, '', window.location.pathname + '?tab=plataformas');
       }
 
       const existing = await getGithubConnection();

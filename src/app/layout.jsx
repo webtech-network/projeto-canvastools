@@ -1,6 +1,7 @@
 import { Fraunces, IBM_Plex_Sans } from 'next/font/google';
 import Script from 'next/script';
 import bannerOg from '@/assets/images/banner_og.jpeg';
+import { THEME_INIT_SCRIPT } from '@/lib/theme';
 import './globals.css';
 
 const GA_MEASUREMENT_ID = 'G-15544DM2DE';
@@ -35,8 +36,19 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${body.variable}`}>
+    // suppressHydrationWarning: the theme-init script below sets data-theme
+    // on this element before hydration, on purpose (see its own comment) —
+    // that's an expected, intentional mismatch versus the server-rendered
+    // markup (which can't know the client's localStorage preference), not a
+    // real bug for React to warn about.
+    <html lang="pt-BR" className={`${display.variable} ${body.variable}`} suppressHydrationWarning>
       <body>
+        {/* Sets data-theme on <html> from localStorage before first paint, so a
+            saved dark/light preference never flashes the wrong theme on load —
+            see src/lib/theme.js. */}
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT_SCRIPT}
+        </Script>
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} strategy="afterInteractive" />
         <Script id="google-analytics" strategy="afterInteractive">
           {`
