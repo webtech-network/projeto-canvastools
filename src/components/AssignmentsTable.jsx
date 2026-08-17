@@ -6,7 +6,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   ClipboardList,
-  FileQuestion,
+  ListPlus,
   CircleCheckBig,
   CircleDashed,
   ExternalLink,
@@ -20,6 +20,12 @@ function formatDueDate(iso) {
   } catch {
     return '—';
   }
+}
+
+function isPastDue(iso) {
+  if (!iso) return false;
+  const dueAt = new Date(iso);
+  return !Number.isNaN(dueAt.getTime()) && dueAt.getTime() < Date.now();
 }
 
 // Preview-only plain-text rendering of the assignment's HTML description —
@@ -96,6 +102,7 @@ export default function AssignmentsTable({ courseId, assignments }) {
         <p className="lede">Nenhuma atividade encontrada com esse filtro.</p>
       ) : (
         <>
+          <div className="data-table-wrap">
           <table className="data-table">
             <thead>
               <tr>
@@ -106,6 +113,7 @@ export default function AssignmentsTable({ courseId, assignments }) {
                   <span className="sr-only">Status</span>
                 </th>
                 <th>Atividade</th>
+                <th>Valor</th>
                 <th>Data de entrega</th>
                 <th title="Correções pendentes">
                   <ClipboardCheck size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
@@ -156,7 +164,12 @@ export default function AssignmentsTable({ courseId, assignments }) {
                           <ExternalLink size={14} strokeWidth={1.8} />
                         </a>
                       </td>
-                      <td className="pending-cell">{formatDueDate(assignment.due_at)}</td>
+                      <td className="pending-cell">
+                        {assignment.points_possible != null ? `${assignment.points_possible} pts` : '—'}
+                      </td>
+                      <td className={`pending-cell${isPastDue(assignment.due_at) ? ' is-past-due' : ''}`}>
+                        {formatDueDate(assignment.due_at)}
+                      </td>
                       <td className="pending-cell">
                         {assignment.needs_grading_count ? (
                           <span className="pending-badge has-pending">{assignment.needs_grading_count}</span>
@@ -168,9 +181,9 @@ export default function AssignmentsTable({ courseId, assignments }) {
                             grading page itself handles the "sem rubrica" case. */}
                         <Link
                           href={`/courses/${courseId}/assignments/${assignment.id}/grade`}
-                          className="btn btn-secondary btn-icon"
-                          title="Corrigir com rubrica"
-                          aria-label="Corrigir com rubrica"
+                          className="btn btn-primary btn-icon"
+                          title="Correção de Atividade"
+                          aria-label="Correção de Atividade"
                         >
                           <ClipboardList size={18} strokeWidth={1.8} />
                         </Link>
@@ -184,14 +197,14 @@ export default function AssignmentsTable({ courseId, assignments }) {
                             title="Importar questões"
                             aria-label="Importar questões"
                           >
-                            <FileQuestion size={18} strokeWidth={1.8} />
+                            <ListPlus size={18} strokeWidth={1.8} />
                           </Link>
                         )}
                       </td>
                     </tr>
                     {expanded && (
                       <tr className="message-detail-row">
-                        <td colSpan={6}>
+                        <td colSpan={7}>
                           <div className="message-detail">
                             {assignment.description ? (
                               <p className="message-detail-text">{descriptionToPlainText(assignment.description)}</p>
@@ -207,6 +220,7 @@ export default function AssignmentsTable({ courseId, assignments }) {
               })}
             </tbody>
           </table>
+          </div>
 
           <ul className="icon-legend">
             <li>

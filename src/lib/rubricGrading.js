@@ -65,6 +65,16 @@ export function buildGradePayload(rubric, selections, totalPoints, comment) {
   };
 }
 
+// Fallback for an assignment with no rubric associated in Canvas —
+// RubricGrader.jsx then shows a single "Nota" input per row instead of one
+// <select> per criterion, so there's no rubric breakdown to attach.
+export function buildSimpleGradePayload(grade, comment) {
+  return {
+    submission: { posted_grade: grade },
+    ...(comment?.trim() ? { comment: { text_comment: comment.trim() } } : {}),
+  };
+}
+
 const WORKFLOW_STATE_LABELS = {
   graded: 'Avaliada',
   submitted: 'Entregue',

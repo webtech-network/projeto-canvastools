@@ -72,6 +72,7 @@ export default function QuizReviewImport({ courseId, quizId, quiz, warnings }) {
         </div>
       )}
 
+      <div className="data-table-wrap">
       <table className="data-table">
         <thead>
           <tr>
@@ -98,6 +99,7 @@ export default function QuizReviewImport({ courseId, quizId, quiz, warnings }) {
           ))}
         </tbody>
       </table>
+      </div>
 
       <button
         type="button"

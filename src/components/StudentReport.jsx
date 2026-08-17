@@ -127,6 +127,7 @@ export default function StudentReport({ rows }) {
       {filtered.length === 0 ? (
         <p className="lede">Nenhum aluno encontrado com essa pesquisa.</p>
       ) : (
+        <div className="data-table-wrap">
         <table className="data-table">
           <thead>
             <tr>
@@ -155,6 +156,7 @@ export default function StudentReport({ rows }) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </>
   );

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listAssignments } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
+import { isRealGroupAssignment, correctedGroupNeedsGradingCount } from '@/lib/groupGrading';
 import ContextBanner from '@/components/ContextBanner';
 import AssignmentsTable from '@/components/AssignmentsTable';
 
@@ -26,7 +27,26 @@ export default async function AtividadesPage({ params }) {
   // races to refresh via onUnauthorized, causing a hard crash (observed live
   // on this page; already fixed the same way on the quiz-import page).
   const course = await getCourse(client, courseId);
-  const assignments = await listAssignments(client, courseId);
+  const rawAssignments = await listAssignments(client, courseId);
+
+  // Same sequencing reasoning as above applies to each of these extra calls
+  // too — a for loop, not Promise.all. Best-effort: if a particular
+  // assignment's submissions can't be fetched (e.g. a permissions quirk),
+  // fall back to Canvas's own (overcounted) needs_grading_count rather than
+  // failing the whole page.
+  const assignments = [];
+  for (const assignment of rawAssignments) {
+    if (!isRealGroupAssignment(assignment) || !assignment.needs_grading_count) {
+      assignments.push(assignment);
+      continue;
+    }
+    try {
+      const needs_grading_count = await correctedGroupNeedsGradingCount(client, courseId, assignment);
+      assignments.push({ ...assignment, needs_grading_count });
+    } catch {
+      assignments.push(assignment);
+    }
+  }
 
   return (
     <main className="page">

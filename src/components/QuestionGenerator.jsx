@@ -170,6 +170,7 @@ export default function QuestionGenerator({ providers, courseId, quizId }) {
             </div>
           )}
 
+          <div className="spec-table-wrap">
           <div className="spec-list-header">
             <span>Num. de Questões</span>
             <span>Tema</span>
@@ -218,6 +219,7 @@ export default function QuestionGenerator({ providers, courseId, quizId }) {
                 </button>
               </div>
             ))}
+          </div>
           </div>
 
           <button type="button" className="btn btn-secondary btn-sm" onClick={addSpec}>

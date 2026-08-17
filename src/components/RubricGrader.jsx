@@ -5,19 +5,49 @@ import {
   extractExistingSelections,
   computeTotalPoints,
   buildGradePayload,
+  buildSimpleGradePayload,
   summarizeSubmissionStatus,
 } from '@/lib/rubricGrading';
 import { useUnsavedChangesGuard } from '@/lib/useUnsavedChangesGuard';
 
-function buildInitialRows(submissions) {
-  return submissions
-    .filter((s) => s.user_id)
+// For a group assignment (see grade/page.jsx's own comment on
+// `isGroupAssignment`), Canvas still returns one submission per *student* —
+// grading one member's via the PUT route this component posts to is what
+// propagates the same grade to the rest of their group, not anything this
+// app does. So the row list itself has to collapse to one row per group
+// here: keep only the first submission seen for each group.id (arbitrary
+// but stable — it's just the representative whose user_id gets PUT to), and
+// label the row with the group's name instead of that student's. A
+// submission with no group (shouldn't normally happen for a real group
+// assignment, but Canvas doesn't guarantee every enrolled student is
+// grouped) falls back to showing as its own individual row.
+//
+// `grade` (a string, for controlled-input simplicity) is populated
+// unconditionally from the submission's existing score — only actually used
+// when there's no rubric (see `hasRubric` below), but harmless to always
+// carry.
+function buildInitialRows(submissions, groupAssignment) {
+  let list = submissions.filter((s) => s.user_id);
+
+  if (groupAssignment) {
+    const seenGroupIds = new Set();
+    list = list.filter((s) => {
+      const groupId = s.group?.id;
+      if (!groupId) return true;
+      if (seenGroupIds.has(groupId)) return false;
+      seenGroupIds.add(groupId);
+      return true;
+    });
+  }
+
+  return list
     .map((s) => ({
       userId: s.user_id,
-      name: s.user?.name || `Aluno ${s.user_id}`,
+      name: (groupAssignment && s.group?.name) || s.user?.name || `Aluno ${s.user_id}`,
       status: summarizeSubmissionStatus(s),
       hasSubmission: s.workflow_state !== 'unsubmitted',
       selections: extractExistingSelections(s),
+      grade: s.score != null ? String(s.score) : '',
     }))
     .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
 }
@@ -30,12 +60,17 @@ function bestRating(criterion) {
 }
 
 // The single-table "go through every student in one sitting" dynamic ported
-// from RubricTool — one row per student, one <select> per rubric criterion
-// — but grades are now submitted to Canvas as a real, structured
-// rubric_assessment (see src/lib/rubricGrading.js) instead of the ported
-// tool's text-comment-only workaround.
-export default function RubricGrader({ courseId, assignmentId, rubric, submissions }) {
-  const [rows, setRows] = useState(() => buildInitialRows(submissions));
+// from RubricTool — one row per student (or per group, see above), one
+// <select> per rubric criterion — grades submitted to Canvas as a real,
+// structured rubric_assessment (see src/lib/rubricGrading.js) instead of the
+// ported tool's text-comment-only workaround. When the assignment has no
+// rubric associated in Canvas at all (`rubric` is null/empty), this falls
+// back to a single editable "Nota" column instead of the criteria grid —
+// same row list, status, comment and actions, just a plain posted_grade
+// instead of a rubric_assessment.
+export default function RubricGrader({ courseId, assignmentId, rubric, pointsPossible, submissions, groupAssignment = false }) {
+  const hasRubric = Array.isArray(rubric) && rubric.length > 0;
+  const [rows, setRows] = useState(() => buildInitialRows(submissions, groupAssignment));
   const [comments, setComments] = useState({});
   const [rowState, setRowState] = useState({}); // { [userId]: { saving, error, saved } }
   const [hideMissing, setHideMissing] = useState(false);
@@ -46,9 +81,15 @@ export default function RubricGrader({ courseId, assignmentId, rubric, submissio
   // dirty; only user-triggered edits do.
   const [dirtyRows, setDirtyRows] = useState(() => new Set());
 
+  const entityLabel = groupAssignment ? 'grupo' : 'aluno';
+
   useUnsavedChangesGuard(dirtyRows.size > 0);
 
   const visibleRows = useMemo(() => (hideMissing ? rows.filter((r) => r.hasSubmission) : rows), [rows, hideMissing]);
+
+  function rowHasGrade(row) {
+    return hasRubric ? Object.keys(row.selections).length > 0 : row.grade !== '' && row.grade != null;
+  }
 
   function markDirty(userId) {
     setDirtyRows((prev) => new Set(prev).add(userId));
@@ -79,19 +120,42 @@ export default function RubricGrader({ courseId, assignmentId, rubric, submissio
     );
   }
 
+  function updateGrade(userId, value) {
+    markDirty(userId);
+    setRows((prev) => prev.map((r) => (r.userId === userId ? { ...r, grade: value } : r)));
+  }
+
+  function maxGradeRow(row) {
+    if (hasRubric) {
+      const selections = {};
+      for (const criterion of rubric) {
+        const rating = bestRating(criterion);
+        if (rating) selections[criterion.id] = { ratingId: rating.id, points: rating.points, comments: '' };
+      }
+      return { ...row, selections };
+    }
+    return { ...row, grade: pointsPossible != null ? String(pointsPossible) : row.grade };
+  }
+
   function setMaxGrade(userId) {
     markDirty(userId);
-    setRows((prev) =>
-      prev.map((r) => {
-        if (r.userId !== userId) return r;
-        const selections = {};
-        for (const criterion of rubric) {
-          const rating = bestRating(criterion);
-          if (rating) selections[criterion.id] = { ratingId: rating.id, points: rating.points, comments: '' };
-        }
-        return { ...r, selections };
-      }),
-    );
+    setRows((prev) => prev.map((r) => (r.userId === userId ? maxGradeRow(r) : r)));
+  }
+
+  // Bulk version of the per-row "Nota máxima" — applies full marks to every
+  // currently visible row that actually has a submission, without touching
+  // rows with nothing turned in. Still a local draft like every other
+  // action here: nothing reaches Canvas until "Enviar todas as notas".
+  function setMaxGradeForAllSubmitted() {
+    const targets = visibleRows.filter((r) => r.hasSubmission);
+    if (targets.length === 0) return;
+    const targetIds = new Set(targets.map((r) => r.userId));
+    setRows((prev) => prev.map((r) => (targetIds.has(r.userId) ? maxGradeRow(r) : r)));
+    setDirtyRows((prev) => {
+      const next = new Set(prev);
+      targetIds.forEach((id) => next.add(id));
+      return next;
+    });
   }
 
   // Clearing discards the local draft entirely — since nothing was ever
@@ -99,7 +163,7 @@ export default function RubricGrader({ courseId, assignmentId, rubric, submissio
   // clean (no yellow highlight) rather than dirty.
   function clearGrade(userId) {
     markClean(userId);
-    setRows((prev) => prev.map((r) => (r.userId === userId ? { ...r, selections: {} } : r)));
+    setRows((prev) => prev.map((r) => (r.userId === userId ? { ...r, selections: {}, grade: '' } : r)));
   }
 
   function updateComment(userId, value) {
@@ -112,8 +176,9 @@ export default function RubricGrader({ courseId, assignmentId, rubric, submissio
     if (!row) return;
     setRowState((prev) => ({ ...prev, [userId]: { saving: true, error: null, saved: false } }));
     try {
-      const total = computeTotalPoints(row.selections);
-      const payload = buildGradePayload(rubric, row.selections, total, comments[userId] || '');
+      const payload = hasRubric
+        ? buildGradePayload(rubric, row.selections, computeTotalPoints(row.selections), comments[userId] || '')
+        : buildSimpleGradePayload(Number(row.grade) || 0, comments[userId] || '');
       const response = await fetch(
         `/api/canvas/courses/${courseId}/assignments/${assignmentId}/submissions/${userId}`,
         { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) },
@@ -129,10 +194,12 @@ export default function RubricGrader({ courseId, assignmentId, rubric, submissio
   }
 
   async function sendAll() {
-    const rowsToSend = visibleRows.filter((r) => Object.keys(r.selections).length > 0);
+    const rowsToSend = visibleRows.filter(rowHasGrade);
     if (rowsToSend.length === 0) return;
     if (
-      !window.confirm(`Enviar as notas de ${rowsToSend.length} aluno(s) para o Canvas? Isso substitui a nota atual de cada um.`)
+      !window.confirm(
+        `Enviar as notas de ${rowsToSend.length} ${entityLabel}(s) para o Canvas? Isso substitui a nota atual de cada um.`,
+      )
     ) {
       return;
     }
@@ -147,16 +214,29 @@ export default function RubricGrader({ courseId, assignmentId, rubric, submissio
   }
 
   if (rows.length === 0) {
-    return <p className="lede">Nenhum aluno matriculado nesta atividade.</p>;
+    return (
+      <p className="lede">
+        {groupAssignment ? 'Nenhum grupo com entrega nesta atividade.' : 'Nenhum aluno matriculado nesta atividade.'}
+      </p>
+    );
   }
 
   return (
     <div className="rubric-grader">
+      {!hasRubric && (
+        <p className="alert alert-warning" role="alert">
+          Esta atividade não possui rubrica associada no Canvas — lançando apenas a nota final.
+        </p>
+      )}
+
       <div className="browser-controls">
         <label className="rubric-grader-filter">
           <input type="checkbox" checked={hideMissing} onChange={(e) => setHideMissing(e.target.checked)} />
           Ocultar sem entrega
         </label>
+        <button type="button" className="btn btn-secondary" onClick={setMaxGradeForAllSubmitted}>
+          Nota máxima para quem entregou
+        </button>
         <button type="button" className="btn btn-primary" disabled={bulkSending} onClick={sendAll}>
           {bulkSending ? 'Enviando…' : 'Enviar todas as notas'}
         </button>
@@ -169,20 +249,26 @@ export default function RubricGrader({ courseId, assignmentId, rubric, submissio
       )}
 
       {visibleRows.length === 0 ? (
-        <p className="lede">Nenhum aluno para exibir com esse filtro.</p>
+        <p className="lede">{`Nenhum ${entityLabel} para exibir com esse filtro.`}</p>
       ) : (
         <div className="rubric-grader-table-wrap">
           <table className="data-table rubric-grader-table">
             <thead>
               <tr>
-                <th>Aluno</th>
+                <th>{groupAssignment ? 'Grupo' : 'Aluno'}</th>
                 <th>Status</th>
-                {rubric.map((criterion) => (
-                  <th key={criterion.id}>
-                    {criterion.description} ({criterion.points} pts)
-                  </th>
-                ))}
-                <th>Nota</th>
+                {hasRubric ? (
+                  <>
+                    {rubric.map((criterion) => (
+                      <th key={criterion.id}>
+                        {criterion.description} ({criterion.points} pts)
+                      </th>
+                    ))}
+                    <th>Nota</th>
+                  </>
+                ) : (
+                  <th>{pointsPossible != null ? `Nota (${pointsPossible} pts)` : 'Nota'}</th>
+                )}
                 <th>Comentário</th>
                 <th>Ações</th>
               </tr>
@@ -190,36 +276,53 @@ export default function RubricGrader({ courseId, assignmentId, rubric, submissio
             <tbody>
               {visibleRows.map((row) => {
                 const state = rowState[row.userId] || {};
-                const total = computeTotalPoints(row.selections);
-                const hasAnySelection = Object.keys(row.selections).length > 0;
+                const total = hasRubric ? computeTotalPoints(row.selections) : row.grade;
+                const hasAnySelection = rowHasGrade(row);
                 const isDirty = dirtyRows.has(row.userId);
                 return (
                   <tr key={row.userId} className={isDirty ? 'is-dirty' : undefined}>
                     <td className="course-name-cell">{row.name}</td>
                     <td>{row.status}</td>
-                    {rubric.map((criterion) => {
-                      const sel = row.selections[criterion.id];
-                      return (
-                        <td key={criterion.id}>
-                          <select
-                            aria-label={`${criterion.description} — ${row.name}`}
-                            value={sel?.ratingId || ''}
-                            onChange={(e) => {
-                              const rating = criterion.ratings?.find((r) => r.id === e.target.value);
-                              updateSelection(row.userId, criterion.id, rating || null);
-                            }}
-                          >
-                            <option value="">—</option>
-                            {criterion.ratings?.map((rating) => (
-                              <option key={rating.id} value={rating.id}>
-                                {rating.description} ({rating.points})
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                      );
-                    })}
-                    <td className="rubric-grader-total">{total}</td>
+                    {hasRubric ? (
+                      <>
+                        {rubric.map((criterion) => {
+                          const sel = row.selections[criterion.id];
+                          return (
+                            <td key={criterion.id}>
+                              <select
+                                aria-label={`${criterion.description} — ${row.name}`}
+                                value={sel?.ratingId || ''}
+                                onChange={(e) => {
+                                  const rating = criterion.ratings?.find((r) => r.id === e.target.value);
+                                  updateSelection(row.userId, criterion.id, rating || null);
+                                }}
+                              >
+                                <option value="">—</option>
+                                {criterion.ratings?.map((rating) => (
+                                  <option key={rating.id} value={rating.id}>
+                                    {rating.description} ({rating.points})
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                          );
+                        })}
+                        <td className="rubric-grader-total">{total}</td>
+                      </>
+                    ) : (
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          max={pointsPossible ?? undefined}
+                          step="any"
+                          aria-label={`Nota — ${row.name}`}
+                          value={row.grade}
+                          onChange={(e) => updateGrade(row.userId, e.target.value)}
+                          placeholder="Nota"
+                        />
+                      </td>
+                    )}
                     <td>
                       <textarea
                         rows={2}

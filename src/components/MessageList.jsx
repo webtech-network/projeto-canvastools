@@ -252,6 +252,7 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
 
   return (
     <>
+      <div className="data-table-wrap">
       <table className="data-table">
         <thead>
           <tr>
@@ -413,6 +414,7 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
           })}
         </tbody>
       </table>
+      </div>
 
       {archiveError && (
         <p className="alert alert-error" role="alert">

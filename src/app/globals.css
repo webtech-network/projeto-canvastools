@@ -273,6 +273,12 @@ a {
 
 .dashboard-main {
   flex: 1;
+  /* Without this, a flex item's default min-width is its content's
+     min-content size — any deeply nested wide element (a table, the spec
+     grid on /questoes, ...) would refuse to let this shrink below that,
+     stretching the whole page wide on narrow viewports instead of letting
+     the offending element scroll within its own box. */
+  min-width: 0;
   margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
@@ -321,6 +327,7 @@ a {
 
 .dashboard-content {
   flex: 1;
+  min-width: 0;
   padding: 1.75rem 2rem 3rem;
   width: 100%;
 }
@@ -414,6 +421,15 @@ a {
   .topbar {
     padding: 0.75rem 1.1rem;
   }
+  /* Full name pushes the topbar wider than the viewport on phones (no
+     ellipsis/shrink on a flex row by default) — avatar alone is enough at
+     this width, same reasoning as .nav-icon-label hiding sidebar labels. */
+  .user-name {
+    display: none;
+  }
+  .topbar-logo img {
+    height: 32px;
+  }
 }
 
 /* Page content renders as a card sitting on the muted dashboard background. */
@@ -445,6 +461,11 @@ a {
 .tab-folder {
   display: flex;
   gap: 0.3rem;
+  /* More tabs than fit a phone width (e.g. ProfileTabs' 5) scroll sideways
+     within their own row instead of forcing the whole page wide — same
+     reasoning as .data-table-wrap. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .tab-folder-btn {
   display: inline-flex;
@@ -462,6 +483,8 @@ a {
   cursor: pointer;
   transform: translateY(1px);
   transition: background 0.12s ease, color 0.12s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .tab-folder-btn:hover {
   color: var(--ink);
@@ -896,6 +919,23 @@ a {
   display: inline-block;
 }
 
+/* Wraps itself in an anonymous table box when forced to display:block (see
+   the mobile rule below) — border-collapse only applies to that anonymous
+   box in that case, not this element, which is why the border/radius live
+   on a dedicated wrapper instead of relying on collapse there. */
+.data-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 1.25rem 0;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.data-table-wrap .data-table {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
 .data-table {
   width: 100%;
   border-collapse: collapse;
@@ -1021,6 +1061,12 @@ a {
   width: 1%;
   text-align: center;
   white-space: nowrap;
+}
+/* AssignmentsTable.jsx — "Data de entrega" cell for an assignment whose due
+   date has already passed. */
+.pending-cell.is-past-due {
+  color: var(--err);
+  font-weight: 600;
 }
 
 /* Explains the icon-only column headers (courses table, atividades table) —
@@ -1610,15 +1656,29 @@ a {
 
 .provider-select {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   margin: 0 0 1.25rem;
+  /* This is itself a flex item (inside .browser-controls on the Mensagens
+     course filter) — needs its own min-width: 0 or it refuses to shrink
+     below the <select>'s content width regardless of the select's own
+     flex/min-width rules below. */
+  min-width: 0;
+  max-width: 100%;
 }
 .provider-select label {
   font-weight: 600;
   font-size: 0.9rem;
 }
 .provider-select select {
+  /* A native <select> sizes to its longest <option> text by default — a
+     long course name can force it hundreds of pixels wider than the
+     viewport. min-width: 0 lets it actually shrink inside the flex row;
+     the overflow option text just gets clipped, same as any select. */
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
   font: inherit;
   font-size: 0.92rem;
   padding: 0.5rem 0.7rem;
@@ -1716,6 +1776,14 @@ a {
   grid-template-columns: 130px minmax(180px, 2fr) minmax(140px, 1fr) minmax(140px, 1fr) 28px;
   gap: 0.6rem;
   align-items: center;
+}
+/* The grid's own minimum content width (~660px, summing the columns above)
+   is wider than a phone screen — rather than fight that with a mobile-only
+   layout, this scrolls sideways within its own box instead of forcing the
+   whole page wide, same reasoning as .data-table-wrap. */
+.spec-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .spec-list-header {

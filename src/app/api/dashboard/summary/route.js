@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getSession, isSessionValid } from '@/lib/session';
 import { buildClient } from '@/lib/canvasSession';
 import { listCourses, listAssignments, listConversations } from '@/lib/canvasClient';
+import { isRealGroupAssignment, correctedGroupNeedsGradingCount } from '@/lib/groupGrading';
 import {
   filterActiveFavoriteCourses,
   sumTotalStudents,
@@ -49,8 +50,26 @@ export async function GET() {
   const pendingCount = messagesResult.status === 'fulfilled' ? messagesResult.value.length : null;
   if (messagesResult.status === 'rejected') errors.push('messages');
 
-  const assignments = assignmentsResult.status === 'fulfilled' ? assignmentsResult.value : [];
+  const rawAssignments = assignmentsResult.status === 'fulfilled' ? assignmentsResult.value : [];
   if (assignmentsResult.status === 'rejected') errors.push('assignments');
+
+  // Canvas's own needs_grading_count over-counts real group assignments (one
+  // per student instead of one per group) — see groupGrading.js. Corrected
+  // concurrently, same Promise.all style already used above for this route
+  // (unlike the sequential-only pattern used in page Server Components),
+  // and only for the (typically small) subset of assignments where it
+  // actually matters, so this stays cheap even at up to ~17 favorite courses.
+  const assignments = await Promise.all(
+    rawAssignments.map(async (assignment) => {
+      if (!isRealGroupAssignment(assignment) || !assignment.needs_grading_count) return assignment;
+      try {
+        const needs_grading_count = await correctedGroupNeedsGradingCount(client, assignment.course_id, assignment);
+        return { ...assignment, needs_grading_count };
+      } catch {
+        return assignment;
+      }
+    }),
+  );
 
   const { pendingAssignmentsCount, pendingGradingSum } = derivePendingGrading(assignments);
   const dueDateItems = deriveDueDateItems(assignments, courses);

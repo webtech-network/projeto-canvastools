@@ -275,9 +275,22 @@ export default function CourseBrowser() {
         </p>
       ) : (
         <>
+        <div className="data-table-wrap">
         <table className="data-table">
           <thead>
             <tr>
+              <th aria-sort={sortAria('status')}>
+                <button
+                  type="button"
+                  className="th-sort-btn"
+                  onClick={() => toggleSort('status')}
+                  title="Status de publicação"
+                >
+                  <Megaphone size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
+                  <span className="sr-only">Status de publicação</span>
+                  <SortIcon direction={sort.key === 'status' ? sort.direction : null} />
+                </button>
+              </th>
               <th aria-sort={sortAria('favorite')}>
                 <button type="button" className="th-sort-btn" onClick={() => toggleSort('favorite')}>
                   <span className="sr-only">Favorito</span>
@@ -302,18 +315,6 @@ export default function CourseBrowser() {
                   <SortIcon direction={sort.key === 'pending' ? sort.direction : null} />
                 </button>
               </th>
-              <th aria-sort={sortAria('status')}>
-                <button
-                  type="button"
-                  className="th-sort-btn"
-                  onClick={() => toggleSort('status')}
-                  title="Status de publicação"
-                >
-                  <Megaphone size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
-                  <span className="sr-only">Status de publicação</span>
-                  <SortIcon direction={sort.key === 'status' ? sort.direction : null} />
-                </button>
-              </th>
               <th aria-sort={sortAria('messages')}>
                 <button
                   type="button"
@@ -332,6 +333,9 @@ export default function CourseBrowser() {
           <tbody>
             {sorted.map((course) => (
               <tr key={course.id}>
+                <td className="status-cell">
+                  <StatusIcon status={toStatus(course.workflow_state)} />
+                </td>
                 <td className="fav-cell">
                   <button
                     type="button"
@@ -354,9 +358,6 @@ export default function CourseBrowser() {
                   {course.needs_grading_count ? (
                     <span className="pending-badge has-pending">{course.needs_grading_count}</span>
                   ) : null}
-                </td>
-                <td className="status-cell">
-                  <StatusIcon status={toStatus(course.workflow_state)} />
                 </td>
                 <td className="pending-cell">
                   {course.message_count === undefined ? (
@@ -401,6 +402,7 @@ export default function CourseBrowser() {
             ))}
           </tbody>
         </table>
+        </div>
 
         <ul className="icon-legend">
           <li>
