@@ -26,6 +26,9 @@ export async function GET() {
   // Scoped to favorite courses only, and in a single call: Canvas's
   // `filter[]` accepts several course contexts at once and OR's them
   // together, so one Inbox call covers every favorite course.
+  const CONVERSATIONS_ERROR =
+    'Não foi possível carregar as mensagens. Se o problema persistir, verifique se a Developer Key do Canvas usada por este app tem o escopo de Conversas (Conversations API) habilitado.';
+
   let conversations = [];
   let loadError = null;
   if (favoriteCourses.length > 0) {
@@ -34,9 +37,31 @@ export async function GET() {
         filter: favoriteCourses.map((c) => `course_${c.id}`),
       });
     } catch {
-      loadError =
-        'Não foi possível carregar as mensagens. Se o problema persistir, verifique se a Developer Key do Canvas usada por este app tem o escopo de Conversas (Conversations API) habilitado.';
+      loadError = CONVERSATIONS_ERROR;
     }
+  }
+
+  // "Direct" (no course) is defined relative to what's already fetched
+  // above, not by inspecting audience_contexts/context_code directly:
+  // audience_contexts.courses turned out to list *every* course the
+  // conversation's participants happen to share with the professor — for a
+  // teacher in many courses that's nearly always non-empty, even for a
+  // one-off account-level notice, so "empty audience_contexts.courses" was
+  // never true in practice and the bucket stayed permanently empty. The
+  // second, unscoped call below fetches the user's whole inbox; anything in
+  // it that ISN'T already one of the favorites-scoped conversations above
+  // (by id) is, by construction, not associated with any favorite course —
+  // Canvas's own filter[]=course_<id> on the first call already guarantees
+  // that (same audience_contexts matching, done Canvas-side) — so it's
+  // exactly the "not linked to a course" set groupConversationsByCourse's
+  // "other" bucket is meant to catch.
+  try {
+    const favoriteConversationIds = new Set(conversations.map((c) => c.id));
+    const all = await listConversations(client);
+    const extra = all.filter((c) => !favoriteConversationIds.has(c.id));
+    conversations = [...conversations, ...extra];
+  } catch {
+    loadError = loadError || CONVERSATIONS_ERROR;
   }
 
   return NextResponse.json({ courses: favoriteCourses, conversations, loadError });

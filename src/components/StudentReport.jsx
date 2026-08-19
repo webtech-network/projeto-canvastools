@@ -1,8 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Download } from 'lucide-react';
+import { Download, Sparkles, BarChart3 } from 'lucide-react';
 import { ENROLLMENT_STATE_LABELS } from '@/lib/studentReport';
+import { studentGradesUrl } from '@/lib/canvasLinks';
+import StudentMessageModal from './StudentMessageModal';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -83,8 +85,9 @@ function allGradesMissing(rows) {
   return rows.every((r) => r.currentScore == null && r.currentGrade == null && r.finalScore == null && r.finalGrade == null);
 }
 
-export default function StudentReport({ rows }) {
+export default function StudentReport({ rows, courseId, baseUrl, providers = [] }) {
   const [query, setQuery] = useState('');
+  const [messageStudent, setMessageStudent] = useState(null);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -138,6 +141,7 @@ export default function StudentReport({ rows }) {
               <th>Tempo de atividade</th>
               <th>Nota atual</th>
               <th>Nota final</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody>
@@ -152,11 +156,41 @@ export default function StudentReport({ rows }) {
                 <td>{formatActivityTime(row.totalActivityTime)}</td>
                 <td>{formatGrade(row.currentScore, row.currentGrade)}</td>
                 <td>{formatGrade(row.finalScore, row.finalGrade)}</td>
+                <td className="actions-cell">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-icon"
+                    title="Enviar mensagem com IA"
+                    aria-label={`Enviar mensagem com IA para ${row.name}`}
+                    onClick={() => setMessageStudent(row)}
+                  >
+                    <Sparkles size={18} strokeWidth={1.8} />
+                  </button>
+                  <a
+                    href={studentGradesUrl(baseUrl, courseId, row.id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary btn-icon"
+                    title="Ver notas no Canvas"
+                    aria-label={`Ver notas de ${row.name} no Canvas`}
+                  >
+                    <BarChart3 size={18} strokeWidth={1.8} />
+                  </a>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
         </div>
+      )}
+
+      {messageStudent && (
+        <StudentMessageModal
+          student={messageStudent}
+          courseId={courseId}
+          providers={providers}
+          onClose={() => setMessageStudent(null)}
+        />
       )}
     </>
   );

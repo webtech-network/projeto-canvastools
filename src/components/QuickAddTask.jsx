@@ -1,0 +1,41 @@
+'use client';
+
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
+import { useWorkspace } from './WorkspaceProvider';
+
+// Quick-create per spec section 6 — title only, no other field shown here.
+// Everything else is filled in later via TaskDetailModal.jsx.
+export default function QuickAddTask() {
+  const { addTask } = useWorkspace();
+  const [title, setTitle] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!title.trim() || submitting) return;
+    setSubmitting(true);
+    try {
+      await addTask(title.trim());
+      setTitle('');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form className="quick-add-task" onSubmit={handleSubmit}>
+      <input
+        type="text"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        placeholder="Nova tarefa…"
+        aria-label="Título da nova tarefa"
+      />
+      <button type="submit" className="btn btn-primary" disabled={!title.trim() || submitting}>
+        <Plus size={16} strokeWidth={1.8} />
+        Nova tarefa
+      </button>
+    </form>
+  );
+}

@@ -2,10 +2,11 @@
 
 import { Fragment, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ChevronRight, Paperclip } from 'lucide-react';
+import { ChevronRight, Paperclip, ExternalLink, Archive, Sparkles, Wand2, Send, Copy } from 'lucide-react';
 import SortIcon from './SortIcon';
 import Modal from './Modal';
 import { getCustomPrompt } from '@/lib/customPrompts';
+import { courseMessagesUrl } from '@/lib/canvasLinks';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -64,15 +65,17 @@ function attachmentFlag(message) {
 // deep-link to one specific conversation (unlike courses/quizzes, which have
 // stable REST-backed URLs) — a `conversationId` hash param was tried and
 // didn't work against a real Canvas instance. The next best, verifiable
-// thing: land on the Inbox already filtered to the message's course, using
-// the same `#filter=type=inbox,course_<id>` hash format Canvas's own UI uses
-// elsewhere to link into a course-scoped Inbox view. `audience_contexts` is
-// already on the conversation object (see src/lib/messageGrouping.js), so no
-// extra prop/data is needed here.
+// thing: land on the Inbox already filtered to the message's course.
+// `&course=course_<id>` (not the comma-joined `,course_<id>` form) is what
+// actually scopes the view by course on a real Canvas instance — same
+// format as canvasLinks.js's courseMessagesUrl, verified against
+// pucminas.instructure.com. `audience_contexts` is already on the
+// conversation object (see src/lib/messageGrouping.js), so no extra
+// prop/data is needed here.
 function conversationUrl(baseUrl, conversation) {
   const courseId = Object.keys(conversation.audience_contexts?.courses || {})[0];
-  const filter = courseId ? `type=inbox,course_${courseId}` : 'type=inbox';
-  return `${baseUrl}/conversations#filter=${filter}`;
+  if (courseId) return courseMessagesUrl(baseUrl, courseId);
+  return `${baseUrl}/conversations#filter=type=inbox`;
 }
 
 const SORTERS = {
@@ -168,9 +171,8 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
   function openAssist(conversation) {
     setAssist({
       conversation,
-      guidance: '',
-      status: 'draft',
       text: '',
+      generating: false,
       generateError: null,
       sending: false,
       sendError: null,
@@ -178,11 +180,18 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
     });
   }
 
+  // A single box doubles as both the eventual reply AND the input to the AI:
+  // whatever's typed here (nothing, a partial draft, or a full reply) is
+  // sent to suggest-reply as `guidance` — the prompt already treats guidance
+  // as material to incorporate directly (see replyPrompt.js), so an empty
+  // box generates a fresh reply from the original message alone, while a
+  // partial draft gets completed/polished around what's already there. The
+  // result overwrites the box, still editable before sending.
   async function handleGenerateSuggestion() {
     const conversation = assist?.conversation;
     if (!conversation) return;
-    const guidance = assist.guidance;
-    setAssist((prev) => (prev ? { ...prev, status: 'generating', generateError: null } : prev));
+    const draft = assist.text;
+    setAssist((prev) => (prev ? { ...prev, generating: true, generateError: null } : prev));
     try {
       const custom = await getCustomPrompt('suggestReply');
       const response = await fetch(`/api/ai/${providerId}/suggest-reply`, {
@@ -192,7 +201,7 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
           subject: conversation.subject,
           sender: senderName(conversation, currentUserId),
           message: conversation.last_message,
-          guidance,
+          guidance: draft,
           customPromptText: custom?.text,
           customPromptMode: custom?.mode,
         }),
@@ -200,13 +209,13 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
       const data = await response.json();
       if (!response.ok) {
         setAssist((prev) =>
-          prev ? { ...prev, status: 'draft', generateError: data.error || 'Falha ao gerar sugestão de resposta.' } : prev,
+          prev ? { ...prev, generating: false, generateError: data.error || 'Falha ao gerar sugestão de resposta.' } : prev,
         );
       } else {
-        setAssist((prev) => (prev ? { ...prev, status: 'ready', text: data.reply, sent: false, sendError: null } : prev));
+        setAssist((prev) => (prev ? { ...prev, generating: false, text: data.reply, sent: false, sendError: null } : prev));
       }
     } catch (err) {
-      setAssist((prev) => (prev ? { ...prev, status: 'draft', generateError: err.message } : prev));
+      setAssist((prev) => (prev ? { ...prev, generating: false, generateError: err.message } : prev));
     }
   }
 
@@ -336,6 +345,7 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                             rel="noopener noreferrer"
                             className="btn btn-secondary btn-sm"
                           >
+                            <ExternalLink size={15} strokeWidth={1.8} />
                             Abrir no Canvas
                           </Link>
                           <button
@@ -344,6 +354,7 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                             disabled={archiving === conversation.id}
                             onClick={() => handleArchive(conversation)}
                           >
+                            <Archive size={15} strokeWidth={1.8} />
                             {archiving === conversation.id ? 'Arquivando…' : 'Arquivar'}
                           </button>
 
@@ -363,6 +374,7 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                                 </select>
                               )}
                               <button type="button" className="btn btn-primary btn-sm" onClick={() => openAssist(conversation)}>
+                                <Sparkles size={15} strokeWidth={1.8} />
                                 Responder com IA
                               </button>
                             </>
@@ -375,36 +387,38 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                           </p>
                         )}
 
-                        {thread?.status === 'loading' && <p className="lede">Carregando conversa…</p>}
-                        {thread?.status === 'error' && (
-                          <p className="alert alert-error" role="alert">
-                            {thread.error}
-                          </p>
-                        )}
-                        {thread?.status === 'loaded' && (
-                          <ul className="thread-list">
-                            {thread.messages.map((message) => {
-                              const attachments = attachmentFlag(message);
-                              return (
-                                <li key={message.id} className="thread-message">
-                                  <div className="thread-message-meta">
-                                    <span className="thread-message-sender">
-                                      {authorName(message, thread.participants, currentUserId)}
-                                    </span>
-                                    <span className="thread-message-date">{formatDate(message.created_at)}</span>
-                                  </div>
-                                  <p className="thread-message-text">{message.body}</p>
-                                  {attachments && (
-                                    <span className="thread-attachment-flag">
-                                      <Paperclip size={12} strokeWidth={2} />
-                                      {attachments}
-                                    </span>
-                                  )}
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        )}
+                        <div className="thread-panel">
+                          {thread?.status === 'loading' && <p className="lede">Carregando conversa…</p>}
+                          {thread?.status === 'error' && (
+                            <p className="alert alert-error" role="alert">
+                              {thread.error}
+                            </p>
+                          )}
+                          {thread?.status === 'loaded' && (
+                            <ul className="thread-list">
+                              {thread.messages.map((message) => {
+                                const attachments = attachmentFlag(message);
+                                return (
+                                  <li key={message.id} className="thread-message">
+                                    <div className="thread-message-meta">
+                                      <span className="thread-message-sender">
+                                        {authorName(message, thread.participants, currentUserId)}
+                                      </span>
+                                      <span className="thread-message-date">{formatDate(message.created_at)}</span>
+                                    </div>
+                                    <p className="thread-message-text">{message.body}</p>
+                                    {attachments && (
+                                      <span className="thread-attachment-flag">
+                                        <Paperclip size={12} strokeWidth={2} />
+                                        {attachments}
+                                      </span>
+                                    )}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -423,87 +437,86 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
       )}
 
       {assist && (
-        <Modal title="Resposta assistida por IA" onClose={() => setAssist(null)}>
-          {assist.status !== 'ready' ? (
-            <>
-              <p className="lede">
-                Descreva, se quiser, informações que a IA não teria como saber apenas pela mensagem recebida (uma
-                decisão a comunicar, um prazo, um dado específico) para orientar a sugestão de resposta.
-              </p>
-              <label className="compose-message-field">
-                <span>Informações adicionais para a IA (opcional)</span>
-                <textarea
-                  rows={4}
-                  value={assist.guidance}
-                  onChange={(e) => setAssist((prev) => (prev ? { ...prev, guidance: e.target.value } : prev))}
-                  placeholder="Ex.: o prazo de entrega foi prorrogado para sexta-feira…"
-                />
-              </label>
-              {assist.generateError && (
-                <p className="alert alert-error" role="alert">
-                  {assist.generateError}
-                </p>
-              )}
-              <div className="compose-message-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={assist.status === 'generating'}
-                  onClick={handleGenerateSuggestion}
-                >
-                  {assist.status === 'generating' ? 'Gerando…' : 'Gerar sugestão'}
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <label className="compose-message-field">
-                <span>Sugestão de resposta (edite como quiser antes de enviar)</span>
-                <textarea
-                  rows={8}
-                  value={assist.text}
-                  onChange={(e) => setAssist((prev) => (prev ? { ...prev, text: e.target.value, sent: false } : prev))}
-                />
-              </label>
+        <Modal
+          title="Resposta assistida por IA"
+          onClose={() => setAssist(null)}
+          preventBackdropClose={Boolean(assist.text.trim())}
+        >
+          <p className="lede">
+            Digite a resposta completa, um rascunho parcial, ou deixe em branco — a IA pode gerar a resposta do zero
+            a partir da mensagem recebida, ou continuar a partir do que você já escreveu aqui. O texto na caixa pode
+            ser enviado a qualquer momento, com ou sem ajuda da IA.
+          </p>
+          <label className="compose-message-field">
+            <span>Sua resposta</span>
+            <textarea
+              rows={8}
+              value={assist.text}
+              onChange={(e) => setAssist((prev) => (prev ? { ...prev, text: e.target.value, sent: false } : prev))}
+              placeholder="Escreva a resposta (ou parte dela) aqui…"
+            />
+          </label>
 
-              {assist.sendError && (
-                <p className="alert alert-error" role="alert">
-                  {assist.sendError}
-                </p>
-              )}
-
-              {assist.sent && (
-                <p className="alert alert-success" role="status">
-                  Resposta enviada pelo Canvas.
-                </p>
-              )}
-
-              <div className="compose-message-actions">
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => navigator.clipboard.writeText(assist.text)}
-                >
-                  Copiar resposta
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => setAssist((prev) => (prev ? { ...prev, status: 'draft', generateError: null } : prev))}
-                >
-                  Ajustar informações e gerar novamente
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={assist.sending || !assist.text.trim()}
-                  onClick={handleSendReply}
-                >
-                  {assist.sending ? 'Enviando…' : 'Enviar resposta pelo Canvas'}
-                </button>
-              </div>
-            </>
+          {assist.generateError && (
+            <p className="alert alert-error" role="alert">
+              {assist.generateError}
+            </p>
           )}
+
+          <div className="compose-message-actions">
+            {providers.length > 1 && (
+              <select aria-label="Motor de IA" value={providerId} onChange={(e) => setProviderId(e.target.value)}>
+                {providers.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              disabled={assist.generating}
+              onClick={handleGenerateSuggestion}
+            >
+              <Wand2 size={15} strokeWidth={1.8} />
+              {assist.generating ? 'Gerando…' : assist.text.trim() ? 'Continuar com IA' : 'Gerar com IA'}
+            </button>
+            {assist.text.trim() && (
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => navigator.clipboard.writeText(assist.text)}
+              >
+                <Copy size={15} strokeWidth={1.8} />
+                Copiar
+              </button>
+            )}
+          </div>
+
+          {assist.sendError && (
+            <p className="alert alert-error" role="alert">
+              {assist.sendError}
+            </p>
+          )}
+
+          {assist.sent && (
+            <p className="alert alert-success" role="status">
+              Resposta enviada pelo Canvas.
+            </p>
+          )}
+
+          <div className="compose-message-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={assist.sending || !assist.text.trim()}
+              onClick={handleSendReply}
+            >
+              <Send size={16} strokeWidth={1.8} />
+              {assist.sending ? 'Enviando…' : 'Enviar resposta pelo Canvas'}
+            </button>
+          </div>
         </Modal>
       )}
     </>

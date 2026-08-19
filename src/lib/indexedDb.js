@@ -1,13 +1,15 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'canvastools';
-const DB_VERSION = 4;
+const DB_VERSION = 5;
 
 export const STORE_SHORTCUTS = 'shortcuts';
 export const STORE_CACHE = 'cache';
 export const STORE_PROMPTS = 'prompts';
 export const STORE_GITHUB = 'github';
 export const STORE_GOOGLE = 'google';
+export const STORE_TASKS = 'tasks';
+export const STORE_PROJECTS = 'projects';
 
 let dbPromise = null;
 
@@ -35,6 +37,12 @@ function getDb() {
         if (!db.objectStoreNames.contains(STORE_GOOGLE)) {
           db.createObjectStore(STORE_GOOGLE, { keyPath: 'id' });
         }
+        if (!db.objectStoreNames.contains(STORE_TASKS)) {
+          db.createObjectStore(STORE_TASKS, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(STORE_PROJECTS)) {
+          db.createObjectStore(STORE_PROJECTS, { keyPath: 'id' });
+        }
       },
     });
   }
@@ -55,6 +63,28 @@ export async function dbPut(storeName, value) {
   const db = await getDb();
   if (!db) return;
   return db.put(storeName, value);
+}
+
+// Atomic read-modify-write: `dbGet` + `dbPut` are each their own transaction,
+// so two calls updating the same record close together race (both read the
+// same pre-update value, the second write silently clobbers the first's
+// change). tasksRepo.js's updateTask hit this for real — two drags fired
+// close together (Kanban status + Eisenhower priority) each read the same
+// stale task and wrote back only their own field, losing the other's
+// change. A single readwrite transaction spanning both the read and the
+// write closes that gap — IndexedDB serializes readwrite transactions
+// against the same store, so a second call can't read until the first's
+// write has committed. `updater` returning undefined skips the write
+// (used when the record no longer exists).
+export async function dbUpdate(storeName, key, updater) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const tx = db.transaction(storeName, 'readwrite');
+  const existing = await tx.store.get(key);
+  const updated = updater(existing);
+  if (updated !== undefined) await tx.store.put(updated);
+  await tx.done;
+  return updated;
 }
 
 export async function dbDelete(storeName, key) {

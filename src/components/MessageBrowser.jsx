@@ -1,10 +1,11 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
 import MessageList from './MessageList';
 import { groupConversationsByCourse } from '@/lib/messageGrouping';
 import { readCache, writeCache } from '@/lib/dashboardCache';
+import { courseMessagesUrl } from '@/lib/canvasLinks';
 
 const CACHE_KEY = 'messages:inbox';
 
@@ -136,9 +137,10 @@ export default function MessageBrowser({ currentUserId, baseUrl, providers }) {
     <div className="message-browser">
       <div className="browser-controls">
         <div className="provider-select">
-          <label htmlFor="course-filter">Curso</label>
+          <label htmlFor="course-filter">Contexto</label>
           <select id="course-filter" value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
             <option value="">Todos os favoritos</option>
+            <option value="other">Mensagens diretas</option>
             {courses.map((course) => (
               <option key={course.id} value={String(course.id)}>
                 {course.name}
@@ -168,23 +170,37 @@ export default function MessageBrowser({ currentUserId, baseUrl, providers }) {
         visibleGroups.map((group) => {
           const key = groupKey(group);
           const collapsed = collapsedKeys.has(key);
-          const title = group.course ? group.course.name : 'Outras mensagens';
+          const title = group.course ? group.course.name : 'Mensagens diretas';
           return (
             <section className="message-group" key={key}>
-              <button
-                type="button"
-                className="message-group-header"
-                onClick={() => toggleGroup(key)}
-                aria-expanded={!collapsed}
-              >
-                <span className={`group-chevron${collapsed ? '' : ' expanded'}`} aria-hidden="true">
-                  <ChevronRight size={16} strokeWidth={2} />
-                </span>
-                <span className="group-title">{title}</span>
-                <span className={`pending-badge${group.conversations.length ? ' has-pending' : ''}`}>
+              <div className="message-group-header">
+                <button
+                  type="button"
+                  className="message-group-toggle"
+                  onClick={() => toggleGroup(key)}
+                  aria-expanded={!collapsed}
+                >
+                  <span className={`group-chevron${collapsed ? '' : ' expanded'}`} aria-hidden="true">
+                    <ChevronRight size={16} strokeWidth={2} />
+                  </span>
+                  <span className="group-title">{title}</span>
+                </button>
+                {group.course && (
+                  <a
+                    href={courseMessagesUrl(baseUrl, group.course.id)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="external-link-icon"
+                    title="Abrir mensagens do curso no Canvas"
+                    aria-label="Abrir mensagens do curso no Canvas"
+                  >
+                    <ExternalLink size={14} strokeWidth={1.8} />
+                  </a>
+                )}
+                <span className={`pending-badge message-group-badge${group.conversations.length ? ' has-pending' : ''}`}>
                   {group.conversations.length}
                 </span>
-              </button>
+              </div>
               {!collapsed && (
                 <div className="message-group-body">
                   <MessageList

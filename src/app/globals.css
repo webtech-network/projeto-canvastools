@@ -1254,18 +1254,36 @@ a {
   width: 100%;
   padding: 0.75rem 1rem;
   background: var(--paper);
+}
+.message-group-header:hover {
+  background: var(--line);
+}
+/* The clickable "expand/collapse" part of the header — a <button> can't
+   contain the course-link <a> beside it (invalid nesting, and the anchor's
+   click would bubble into the toggle), so only the chevron+title are the
+   button; the link icon and pending badge are its siblings instead. */
+.message-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
   border: none;
+  background: none;
+  padding: 0;
   font: inherit;
   font-weight: 600;
   color: var(--ink);
   cursor: pointer;
   text-align: left;
 }
-.message-group-header:hover {
-  background: var(--line);
+/* Pushed to the far right of the header, same spot it occupied when the
+   toggle button (now just chevron+title) used to be flex:1 on its own. */
+.message-group-badge {
+  margin-left: auto;
 }
 .group-chevron {
   display: inline-block;
+  flex: none;
   transition: transform 0.12s ease;
   color: var(--ink-soft);
 }
@@ -1273,7 +1291,16 @@ a {
   transform: rotate(90deg);
 }
 .group-title {
-  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Lateral padding so the messages table reads as its own distinct box
+   inside the course group, instead of its border sitting flush against the
+   group's own border on the left/right (only .data-table-wrap's own
+   top/bottom margin separated them before). */
+.message-group-body {
+  padding: 0 1rem 1rem;
 }
 .message-group-body .data-table {
   margin: 0;
@@ -1313,6 +1340,9 @@ a {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
 }
 .message-detail-actions select {
   font: inherit;
@@ -1322,6 +1352,16 @@ a {
   border-radius: 8px;
   background: var(--paper-raised);
   color: var(--ink);
+}
+
+/* Light-background box for the full message thread — visually distinct from
+   the muted .message-detail-row backdrop and separated from the actions
+   strip above by .message-detail-actions' own border-bottom. */
+.thread-panel {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
 }
 
 .compose-message-toggle {
@@ -1576,12 +1616,11 @@ a {
 
 .thread-list {
   list-style: none;
-  margin: 0.9rem 0 0;
-  padding: 0.6rem 0 0;
-  border-top: 1px solid var(--line);
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.65rem;
+  gap: 0.75rem;
 }
 .thread-message {
   font-size: 0.9rem;
@@ -1591,6 +1630,9 @@ a {
   align-items: baseline;
   gap: 0.5rem;
   font-size: 0.8rem;
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.3rem;
+  border-bottom: 1px solid var(--line);
 }
 .thread-message-sender {
   font-weight: 600;
@@ -2288,4 +2330,287 @@ a {
   margin: 0;
   color: var(--ink);
   line-height: 1.55;
+}
+
+/* Tarefas (workspace) — Kanban board + Eisenhower matrix, both built from
+   the same TaskCard component and the same paper/line/radius/shadow tokens
+   every other card-based surface in this app already uses — no new colors
+   introduced, so no extra dark-mode overrides are needed here. */
+.quick-add-task {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0 0 1.25rem;
+}
+.quick-add-task input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.94rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+.quick-add-task input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.workspace-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1.25rem;
+}
+.workspace-filter-bar select,
+.workspace-filter-bar input[type='date'] {
+  font: inherit;
+  font-size: 0.88rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
+.task-detail-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.task-detail-fields-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.task-detail-fields-row .compose-message-field {
+  flex: 1;
+  min-width: 160px;
+}
+.task-detail-project-row,
+.task-detail-tag-input {
+  display: flex;
+  gap: 0.5rem;
+}
+.task-detail-project-row select,
+.task-detail-tag-input input {
+  flex: 1;
+  min-width: 0;
+}
+.task-detail-tag-removable {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.task-detail-tag-removable button {
+  display: inline-flex;
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.task-detail-tag-removable button:hover {
+  opacity: 1;
+}
+.task-detail-actions {
+  justify-content: space-between;
+}
+
+.kanban-board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(220px, 1fr));
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+.kanban-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  gap: 0.65rem;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.kanban-column--over {
+  border-color: var(--accent);
+  background: var(--paper-raised);
+}
+.kanban-column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.kanban-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 60px;
+}
+
+.eisenhower-matrix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.eisenhower-quadrant {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+  gap: 0.65rem;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.eisenhower-quadrant--over {
+  border-color: var(--accent);
+  background: var(--paper-raised);
+}
+.eisenhower-quadrant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+.eisenhower-quadrant-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 80px;
+}
+
+.kanban-card {
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+  cursor: grab;
+  box-shadow: var(--shadow);
+  touch-action: none;
+}
+.kanban-card.is-dragging {
+  opacity: 0.6;
+  cursor: grabbing;
+}
+.kanban-card-title {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--ink);
+}
+.kanban-card-project {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin-top: 0.15rem;
+}
+.kanban-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+.kanban-card-tag {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--brand-fg);
+  background: var(--brand-bg-strong);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+.kanban-card-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+.kanban-card-flag,
+.kanban-card-due,
+.kanban-card-urgent {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.kanban-card-flag {
+  color: var(--accent);
+}
+.kanban-card-urgent {
+  color: var(--err);
+}
+
+/* Condensed density (TaskCard.jsx, toggled in WorkspaceView.jsx) — one line
+   for the title, one for the project/course, everything else (tags, status
+   icon, priority icons, due date) moves into a column on the right instead
+   of stacking below, so the card stays compact regardless of which board
+   it's shown in. */
+.kanban-card--condensed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.7rem;
+}
+.kanban-card-condensed-text {
+  min-width: 0;
+  flex: 1;
+}
+.kanban-card--condensed .kanban-card-title,
+.kanban-card--condensed .kanban-card-project {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kanban-card--condensed .kanban-card-project {
+  margin-top: 0.1rem;
+}
+.kanban-card-condensed-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+  flex: none;
+  max-width: 45%;
+}
+.kanban-card--condensed .kanban-card-tags {
+  justify-content: flex-end;
+  margin-top: 0;
+}
+.kanban-card-condensed-icons {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--ink-soft);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+.kanban-card-status-icon {
+  display: inline-flex;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 900px) {
+  .kanban-board {
+    grid-template-columns: repeat(5, minmax(200px, 1fr));
+  }
+  .eisenhower-matrix {
+    grid-template-columns: 1fr;
+  }
 }

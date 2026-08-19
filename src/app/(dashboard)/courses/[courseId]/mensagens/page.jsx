@@ -2,6 +2,7 @@ import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listConversations } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
 import { listProviders } from '@/lib/aiProviders';
+import { courseMessagesUrl } from '@/lib/canvasLinks';
 import ComposeMessage from '@/components/ComposeMessage';
 import MessageList from '@/components/MessageList';
 import ContextBanner from '@/components/ContextBanner';
@@ -42,7 +43,15 @@ export default async function CourseMensagensPage({ params }) {
   return (
     <main className="page">
       <h1>Mensagens</h1>
-      <ContextBanner items={[{ label: 'Curso', value: course.name }]} />
+      <ContextBanner
+        items={[
+          {
+            label: 'Curso',
+            value: course.name,
+            link: { href: courseMessagesUrl(session.baseUrl, courseId), title: 'Abrir mensagens do curso no Canvas' },
+          },
+        ]}
+      />
       <p className="lede">Mensagens da caixa de entrada do Canvas associadas a este curso.</p>
 
       <ComposeMessage courseId={courseId} providers={configuredProviders} />

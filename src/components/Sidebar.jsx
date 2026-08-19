@@ -3,12 +3,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { GraduationCap, Sparkles, Mail, BookOpen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { GraduationCap, KanbanSquare, Sparkles, Mail, BookOpen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import SidebarMenu from './SidebarMenu';
 import { useMobileNav } from './MobileNavProvider';
 
 const NAV_ITEMS = [
   { href: '/courses', label: 'Cursos', Icon: GraduationCap },
+  { href: '/tarefas', label: 'Tarefas', Icon: KanbanSquare },
   { href: '/questoes', label: 'Questões', Icon: Sparkles },
   { href: '/mensagens', label: 'Mensagens', Icon: Mail },
   { href: '/tutorial', label: 'Tutorial', Icon: BookOpen },

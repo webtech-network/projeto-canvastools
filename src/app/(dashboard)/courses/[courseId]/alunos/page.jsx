@@ -2,6 +2,8 @@ import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listCourseStudents } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
 import { buildStudentRows } from '@/lib/studentReport';
+import { listProviders } from '@/lib/aiProviders';
+import { courseUrl } from '@/lib/canvasLinks';
 import StudentReport from '@/components/StudentReport';
 import ContextBanner from '@/components/ContextBanner';
 
@@ -29,14 +31,23 @@ export default async function AlunosPage({ params }) {
   const students = await listCourseStudents(client, courseId, { include: ['enrollments', 'email'] });
 
   const rows = buildStudentRows(students);
+  const configuredProviders = listProviders().filter((provider) => Boolean(session.aiApiKeys?.[provider.id]));
 
   return (
     <main className="page">
       <h1>Alunos</h1>
-      <ContextBanner items={[{ label: 'Curso', value: course.name }]} />
+      <ContextBanner
+        items={[
+          {
+            label: 'Curso',
+            value: course.name,
+            link: { href: courseUrl(session.baseUrl, courseId), title: 'Abrir curso no Canvas' },
+          },
+        ]}
+      />
       <p className="lede">Listagem dos alunos ativos do curso, com dados de matrícula, atividade e notas.</p>
 
-      <StudentReport rows={rows} />
+      <StudentReport rows={rows} courseId={courseId} baseUrl={session.baseUrl} providers={configuredProviders} />
     </main>
   );
 }

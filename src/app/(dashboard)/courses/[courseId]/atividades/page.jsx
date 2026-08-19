@@ -3,6 +3,7 @@ import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listAssignments } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
 import { isRealGroupAssignment, correctedGroupNeedsGradingCount } from '@/lib/groupGrading';
+import { courseUrl } from '@/lib/canvasLinks';
 import ContextBanner from '@/components/ContextBanner';
 import AssignmentsTable from '@/components/AssignmentsTable';
 
@@ -53,7 +54,15 @@ export default async function AtividadesPage({ params }) {
       <div className="page-header-row">
         <div>
           <h1>Atividades</h1>
-          <ContextBanner items={[{ label: 'Curso', value: course.name }]} />
+          <ContextBanner
+            items={[
+              {
+                label: 'Curso',
+                value: course.name,
+                link: { href: courseUrl(session.baseUrl, courseId), title: 'Abrir curso no Canvas' },
+              },
+            ]}
+          />
           <p className="lede">
             Avaliações pendentes de correção por atividade. Quizzes clássicos podem receber questões importadas.
           </p>

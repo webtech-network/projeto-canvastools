@@ -53,6 +53,7 @@ export const config = {
     '/api/ai/:path*',
     '/perfil/:path*',
     '/mensagens/:path*',
+    '/tarefas/:path*',
     '/api/dashboard/:path*',
     '/tutorial/:path*',
     '/sobre/:path*',
