@@ -1,5 +1,5 @@
 import { getGoogleConnection } from '@/lib/googleConnection';
-import { pushWorkspaceToGoogleDrive } from '@/lib/workspace/workspaceDriveSync';
+import { mergeSyncWorkspace } from '@/lib/workspace/workspaceDriveSync';
 import { setWorkspaceSyncState, getSyncStatusSnapshot } from './syncStatusStore';
 
 // Debounced push to Drive after workspace edits — called from
@@ -44,7 +44,7 @@ async function runWorkspaceSync() {
 
   setWorkspaceSyncState({ state: 'syncing' });
   try {
-    await pushWorkspaceToGoogleDrive();
+    await mergeSyncWorkspace();
     setWorkspaceSyncState({ state: 'synced', lastSyncAt: new Date().toISOString(), error: null });
   } catch (err) {
     const reauth = /Reconecte em \/perfil/.test(err.message || '');

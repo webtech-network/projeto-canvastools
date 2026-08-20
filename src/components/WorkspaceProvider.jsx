@@ -17,7 +17,8 @@ import {
   deleteProject as repoDeleteProject,
 } from '@/lib/workspace/projectsRepo';
 import { EMPTY_FILTERS } from '@/lib/workspace/filters';
-import { scheduleWorkspaceSync } from '@/lib/sync/workspaceSyncScheduler';
+import { scheduleWorkspaceSync, flushWorkspaceSyncNow } from '@/lib/sync/workspaceSyncScheduler';
+import { subscribeSyncStatus, getSyncStatusSnapshot } from '@/lib/sync/syncStatusStore';
 
 const WorkspaceContext = createContext(null);
 
@@ -98,13 +99,52 @@ export function WorkspaceProvider({ children }) {
 
   useEffect(() => {
     let cancelled = false;
-    async function hydrate() {
+    async function hydrateFromLocal() {
       const [tasks, projects] = await Promise.all([listTasks(), listProjects()]);
-      if (!cancelled) dispatch({ type: 'HYDRATE', tasks, projects });
+      if (!cancelled) {
+        dispatch({
+          type: 'HYDRATE',
+          tasks: tasks.filter((t) => !t.deletedAt),
+          projects: projects.filter((p) => !p.deletedAt),
+        });
+      }
     }
-    hydrate();
+    hydrateFromLocal();
+    // "Ao acionar a interface, automaticamente deve disparar a
+    // sincronização em background" — reconcile with Drive right away,
+    // without blocking the local-first paint above. Silently a no-op if
+    // Google isn't connected (see workspaceSyncScheduler.js).
+    flushWorkspaceSyncNow();
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // Re-reads local IndexedDB whenever a workspace sync just completed —
+  // picks up whatever mergeSyncWorkspace() reconciled (tasks/projects
+  // created, edited or tombstoned on another device) without requiring a
+  // page reload.
+  useEffect(() => {
+    let cancelled = false;
+    let previousState = getSyncStatusSnapshot().workspace.state;
+    const unsubscribe = subscribeSyncStatus(() => {
+      const current = getSyncStatusSnapshot().workspace.state;
+      if (current === 'synced' && previousState !== 'synced' && !cancelled) {
+        Promise.all([listTasks(), listProjects()]).then(([tasks, projects]) => {
+          if (!cancelled) {
+            dispatch({
+              type: 'HYDRATE',
+              tasks: tasks.filter((t) => !t.deletedAt),
+              projects: projects.filter((p) => !p.deletedAt),
+            });
+          }
+        });
+      }
+      previousState = current;
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
     };
   }, []);
 

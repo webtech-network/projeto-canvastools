@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { CloudCheck, Cloud, CloudAlert, WifiOff, LoaderCircle, Download } from 'lucide-react';
+import { CloudCheck, Cloud, CloudAlert, WifiOff, LoaderCircle } from 'lucide-react';
 import {
   subscribeSyncStatus,
   getSyncStatusSnapshot,
@@ -12,7 +12,6 @@ import {
 } from '@/lib/sync/syncStatusStore';
 import { getGoogleConnection } from '@/lib/googleConnection';
 import { flushWorkspaceSyncNow } from '@/lib/sync/workspaceSyncScheduler';
-import { pullWorkspaceFromGoogleDrive } from '@/lib/workspace/workspaceDriveSync';
 
 function formatDateTime(iso) {
   if (!iso) return null;
@@ -73,8 +72,6 @@ export default function SyncStatusIndicator() {
     getServerSyncStatusSnapshot,
   );
   const [open, setOpen] = useState(false);
-  const [pulling, setPulling] = useState(false);
-  const [pullError, setPullError] = useState(null);
   const containerRef = useRef(null);
 
   // Seeds both slices from the real IndexedDB connection on mount — without
@@ -122,21 +119,6 @@ export default function SyncStatusIndicator() {
     };
   }, [open]);
 
-  async function handlePull() {
-    if (!window.confirm('Baixar as tarefas do Google Drive substitui as tarefas e projetos deste dispositivo. Continuar?')) {
-      return;
-    }
-    setPulling(true);
-    setPullError(null);
-    try {
-      await pullWorkspaceFromGoogleDrive();
-      window.location.reload();
-    } catch (err) {
-      setPullError(err.message);
-      setPulling(false);
-    }
-  }
-
   const combined = pickCombinedState(workspace.state, settings.state);
   const { Icon, color, label } = BADGE[combined];
 
@@ -159,19 +141,9 @@ export default function SyncStatusIndicator() {
           <p className="sync-status-line">{domainLine('Tarefas', workspace)}</p>
           <p className="sync-status-line">{domainLine('Configurações', settings)}</p>
 
-          {pullError && (
-            <p className="alert alert-error" role="alert">
-              {pullError}
-            </p>
-          )}
-
           <div className="sync-status-actions">
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => flushWorkspaceSyncNow()}>
               Sincronizar tarefas agora
-            </button>
-            <button type="button" className="btn btn-secondary btn-sm" disabled={pulling} onClick={handlePull}>
-              <Download size={14} strokeWidth={1.8} />
-              {pulling ? 'Baixando…' : 'Baixar tarefas do Drive'}
             </button>
           </div>
 

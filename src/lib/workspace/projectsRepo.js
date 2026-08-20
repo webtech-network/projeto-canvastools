@@ -16,6 +16,7 @@ export async function createProject({ name, type, canvasReference = null }) {
     name,
     type,
     canvasReference,
+    deletedAt: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -44,6 +45,7 @@ export async function replaceAllProjects(projectsArray) {
         name: p.name || '',
         type: p.type === 'canvas-course' ? 'canvas-course' : 'personal',
         canvasReference: p.canvasReference ?? null,
+        deletedAt: p.deletedAt ?? null,
         createdAt: p.createdAt ?? now,
         updatedAt: p.updatedAt ?? now,
       }),
@@ -55,10 +57,11 @@ export async function replaceAllProjects(projectsArray) {
 // Deleting a project never cascades into deleting its tasks — that would
 // silently destroy a professor's work over what's just an organizational
 // grouping. Affected tasks are kept, only detached (projectId: null).
+// Soft delete (tombstone) — see tasksRepo.js's deleteTask for why.
 export async function deleteProject(id) {
-  await dbDelete(STORE_PROJECTS, id);
+  await updateProject(id, { deletedAt: Date.now() });
   const tasks = await listTasks();
-  const affected = tasks.filter((t) => t.projectId === id);
+  const affected = tasks.filter((t) => t.projectId === id && !t.deletedAt);
   await Promise.all(affected.map((t) => updateTask(t.id, { projectId: null })));
   return affected.map((t) => t.id);
 }

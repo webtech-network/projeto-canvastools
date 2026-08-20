@@ -2,13 +2,18 @@ import { getGoogleConnection, getValidAccessToken, saveGoogleConnection } from '
 import { findDriveFile, createDriveFile, downloadDriveFile, updateDriveFile, WORKSPACE_FILE_NAME } from '@/lib/googleDriveClient';
 import { listTasks, replaceAllTasks } from './tasksRepo';
 import { listProjects, replaceAllProjects } from './projectsRepo';
+import { mergeRecords } from './workspaceMerge';
 
-// Mirrors googleDriveSync.js's shape exactly (same resolve-fileId /
-// recreate-on-stale-fileId pattern), but for the workspace's own separate
-// Drive file — see CLAUDE.md / the Phase 2 plan for why this is a second
-// file rather than folded into the settings envelope. No encryption: task
-// titles/descriptions aren't credentials, same reasoning settingsExport.js
-// already applies to aiModels staying unconditionally plaintext.
+// The app's only workspace sync entry point — always bidirectional.
+// Downloads whatever's on Drive, reconciles it against what's local
+// (mergeRecords: per-record, newest updatedAt wins — see workspaceMerge.js
+// for why this is deliberately simpler than a full CRDT/field-level merge),
+// writes the reconciled result back to IndexedDB, then pushes that same
+// result to Drive so both sides converge. This replaced an earlier
+// one-directional push + destructive-pull pair — two separate actions
+// turned out to feel unnatural and never brought remote changes back on
+// their own; a single always-reconciling command is simpler for both the
+// user and the code.
 
 const EXPORT_KIND = 'workspace-export';
 const EXPORT_VERSION = 1;
@@ -20,19 +25,39 @@ async function resolveWorkspaceFileId(accessToken) {
   return existing?.id || null;
 }
 
-export async function pushWorkspaceToGoogleDrive() {
+export async function mergeSyncWorkspace() {
   const accessToken = await getValidAccessToken();
-  const [tasks, projects] = await Promise.all([listTasks(), listProjects()]);
+  const [localTasks, localProjects] = await Promise.all([listTasks(), listProjects()]);
+
+  let fileId = await resolveWorkspaceFileId(accessToken);
+  let remoteTasks = [];
+  let remoteProjects = [];
+  if (fileId) {
+    // Let a failed download abort the whole attempt (propagates up,
+    // scheduler retries later) rather than silently treating remote as
+    // empty — doing that would let the push step below overwrite real
+    // remote data with an incomplete merge.
+    const fileBody = await downloadDriveFile(accessToken, fileId);
+    if (fileBody?.kind === EXPORT_KIND) {
+      remoteTasks = Array.isArray(fileBody.tasks) ? fileBody.tasks : [];
+      remoteProjects = Array.isArray(fileBody.projects) ? fileBody.projects : [];
+    }
+  }
+
+  const mergedTasks = mergeRecords(localTasks, remoteTasks);
+  const mergedProjects = mergeRecords(localProjects, remoteProjects);
+
+  await replaceAllTasks(mergedTasks);
+  await replaceAllProjects(mergedProjects);
+
   const fileBody = {
     app: 'canvastools',
     kind: EXPORT_KIND,
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
-    tasks,
-    projects,
+    tasks: mergedTasks,
+    projects: mergedProjects,
   };
-
-  let fileId = await resolveWorkspaceFileId(accessToken);
   if (fileId) {
     try {
       await updateDriveFile(accessToken, fileId, fileBody);
@@ -46,24 +71,8 @@ export async function pushWorkspaceToGoogleDrive() {
   }
 
   await saveGoogleConnection({ workspaceFileId: fileId, workspaceLastSuccessfulSyncAt: new Date().toISOString() });
-}
-
-export async function pullWorkspaceFromGoogleDrive() {
-  const accessToken = await getValidAccessToken();
-
-  const fileId = await resolveWorkspaceFileId(accessToken);
-  if (!fileId) {
-    throw new Error('Nenhum arquivo de tarefas encontrado no Google Drive.');
-  }
-
-  const fileBody = await downloadDriveFile(accessToken, fileId);
-  if (fileBody?.kind !== EXPORT_KIND) {
-    throw new Error('Arquivo inválido: não é um export de tarefas do CanvasTools.');
-  }
-
-  const projects = await replaceAllProjects(Array.isArray(fileBody.projects) ? fileBody.projects : []);
-  const tasks = await replaceAllTasks(Array.isArray(fileBody.tasks) ? fileBody.tasks : []);
-
-  await saveGoogleConnection({ workspaceFileId: fileId, workspaceLastSuccessfulSyncAt: new Date().toISOString() });
-  return { tasks, projects };
+  return {
+    tasks: mergedTasks.filter((t) => !t.deletedAt).length,
+    projects: mergedProjects.filter((p) => !p.deletedAt).length,
+  };
 }

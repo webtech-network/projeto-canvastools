@@ -30,6 +30,7 @@ export async function createTask({ title, projectId = null }) {
     tags: [],
     dueDate: null,
     canvasReferences: null,
+    deletedAt: null,
     createdAt: now,
     updatedAt: now,
   };
@@ -47,8 +48,14 @@ export async function updateTask(id, patch) {
   return updated ?? null;
 }
 
+// Soft delete — a tombstone (deletedAt stamped) instead of a physical row
+// removal, so a deletion can be reconciled against edits made on another
+// device the same way any other field change would be (see
+// workspace/workspaceMerge.js). The row is filtered out of the UI at the
+// WorkspaceProvider hydrate boundary, not here — listTasks() itself must
+// keep returning tombstones, since the merge/sync engine needs them.
 export async function deleteTask(id) {
-  await dbDelete(STORE_TASKS, id);
+  return updateTask(id, { deletedAt: Date.now() });
 }
 
 export async function setTaskStatus(id, status) {
@@ -81,6 +88,7 @@ export async function replaceAllTasks(tasksArray) {
         tags: Array.isArray(t.tags) ? t.tags : [],
         dueDate: t.dueDate ?? null,
         canvasReferences: t.canvasReferences ?? null,
+        deletedAt: t.deletedAt ?? null,
         createdAt: t.createdAt ?? now,
         updatedAt: t.updatedAt ?? now,
       }),
@@ -93,6 +101,7 @@ export async function listAllTags() {
   const tasks = await listTasks();
   const tags = new Set();
   for (const task of tasks) {
+    if (task.deletedAt) continue;
     for (const tag of task.tags || []) tags.add(tag);
   }
   return [...tags].sort((a, b) => a.localeCompare(b));
