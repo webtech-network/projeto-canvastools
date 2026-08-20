@@ -293,6 +293,9 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                 <SortIcon direction={sort.key === 'date' ? sort.direction : null} />
               </button>
             </th>
+            <th>
+              <span className="sr-only">Ações</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -333,10 +336,22 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                   <td>{senderName(conversation, currentUserId)}</td>
                   <td className="message-snippet">{conversation.last_message || '—'}</td>
                   <td className="pending-cell">{formatDate(conversationDate(conversation))}</td>
+                  <td className="actions-cell">
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-icon"
+                      title="Arquivar"
+                      aria-label="Arquivar mensagem"
+                      disabled={archiving === conversation.id}
+                      onClick={() => handleArchive(conversation)}
+                    >
+                      <Archive size={16} strokeWidth={1.8} />
+                    </button>
+                  </td>
                 </tr>
                 {expanded && (
                   <tr className="message-detail-row">
-                    <td colSpan={6}>
+                    <td colSpan={7}>
                       <div className="message-detail">
                         <div className="message-detail-actions">
                           <Link
@@ -348,15 +363,6 @@ export default function MessageList({ conversations, currentUserId, baseUrl, pro
                             <ExternalLink size={15} strokeWidth={1.8} />
                             Abrir no Canvas
                           </Link>
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            disabled={archiving === conversation.id}
-                            onClick={() => handleArchive(conversation)}
-                          >
-                            <Archive size={15} strokeWidth={1.8} />
-                            {archiving === conversation.id ? 'Arquivando…' : 'Arquivar'}
-                          </button>
 
                           {providers.length > 0 && (
                             <>

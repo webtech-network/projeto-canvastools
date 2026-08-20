@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CircleCheck } from 'lucide-react';
 import { getGoogleConnection, saveGoogleConnection, clearGoogleConnection } from '@/lib/googleConnection';
+import { resetSyncStatus } from '@/lib/sync/syncStatusStore';
 
 function formatDateTime(iso) {
   if (!iso) return null;
@@ -71,6 +72,7 @@ export default function GoogleConnection() {
       // best-effort revocation — local disconnect proceeds regardless
     } finally {
       await clearGoogleConnection();
+      resetSyncStatus();
       setConnection(null);
       setDisconnecting(false);
     }

@@ -31,6 +31,27 @@ export async function updateProject(id, patch) {
   return updated ?? null;
 }
 
+// Replace, not merge — see tasksRepo.js's replaceAllTasks. Called only from
+// workspace/workspaceDriveSync.js's pull path.
+export async function replaceAllProjects(projectsArray) {
+  const existing = await listProjects();
+  await Promise.all(existing.map((p) => dbDelete(STORE_PROJECTS, p.id)));
+  const now = Date.now();
+  await Promise.all(
+    projectsArray.map((p) =>
+      dbPut(STORE_PROJECTS, {
+        id: typeof p.id === 'string' && p.id ? p.id : crypto.randomUUID(),
+        name: p.name || '',
+        type: p.type === 'canvas-course' ? 'canvas-course' : 'personal',
+        canvasReference: p.canvasReference ?? null,
+        createdAt: p.createdAt ?? now,
+        updatedAt: p.updatedAt ?? now,
+      }),
+    ),
+  );
+  return projectsArray.length;
+}
+
 // Deleting a project never cascades into deleting its tasks — that would
 // silently destroy a professor's work over what's just an organizational
 // grouping. Affected tasks are kept, only detached (projectId: null).

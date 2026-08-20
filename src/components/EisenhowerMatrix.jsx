@@ -1,5 +1,6 @@
 'use client';
 
+import { Info } from 'lucide-react';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import EisenhowerQuadrant from './EisenhowerQuadrant';
 import { useWorkspace } from './WorkspaceProvider';
@@ -23,11 +24,17 @@ const QUADRANT_ORDER = [
   QUADRANTS.NOT_URGENT_NOT_IMPORTANT,
 ];
 
+// The matrix is for deciding what to prioritize among work that's actually
+// in flight — Backlog (not yet planned) and Done (already finished) don't
+// belong in a priority call, and Block sits out too since it's waiting on
+// something else, not something to rank by urgency/importance right now.
+const MATRIX_STATUSES = new Set(['TODO', 'DOING']);
+
 export default function EisenhowerMatrix({ onSelect }) {
   const { tasks, projects, filters, moveTaskPriority } = useWorkspace();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  const filtered = applyFilters(tasks, filters, projects);
+  const filtered = applyFilters(tasks, filters, projects).filter((t) => MATRIX_STATUSES.has(t.status));
 
   function handleDragEnd({ active, over }) {
     if (!over) return;
@@ -37,18 +44,25 @@ export default function EisenhowerMatrix({ onSelect }) {
   }
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="eisenhower-matrix">
-        {QUADRANT_ORDER.map((quadrant) => (
-          <EisenhowerQuadrant
-            key={quadrant}
-            quadrant={quadrant}
-            label={QUADRANT_LABELS[quadrant]}
-            tasks={filtered.filter((t) => quadrantOf(t.priority) === quadrant)}
-            onSelect={onSelect}
-          />
-        ))}
-      </div>
-    </DndContext>
+    <>
+      <p className="alert alert-info">
+        <Info size={16} strokeWidth={1.8} aria-hidden="true" />
+        A matriz mostra apenas tarefas em Todo e Doing — Backlog, Block e Done ficam fora, já que priorizar não se
+        aplica a tarefas ainda não planejadas, impedidas ou já concluídas.
+      </p>
+      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        <div className="eisenhower-matrix">
+          {QUADRANT_ORDER.map((quadrant) => (
+            <EisenhowerQuadrant
+              key={quadrant}
+              quadrant={quadrant}
+              label={QUADRANT_LABELS[quadrant]}
+              tasks={filtered.filter((t) => quadrantOf(t.priority) === quadrant)}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      </DndContext>
+    </>
   );
 }

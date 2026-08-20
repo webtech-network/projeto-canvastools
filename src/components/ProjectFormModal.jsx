@@ -5,15 +5,26 @@ import Modal from './Modal';
 import { useWorkspace } from './WorkspaceProvider';
 import { listCoursesCached } from '@/lib/workspace/canvasResolution';
 
-export default function ProjectFormModal({ onClose }) {
-  const { addProject } = useWorkspace();
-  const [name, setName] = useState('');
-  const [type, setType] = useState('personal');
-  const [courseId, setCourseId] = useState('');
+// Doubles as create and edit — `project` (optional) pre-fills the form and
+// switches the submit action to editProject instead of addProject; used
+// both by WorkspaceView.jsx's top-level "+ Novo projeto" and by
+// ProjectsManagerModal.jsx's per-row "Editar".
+export default function ProjectFormModal({ project = null, onClose }) {
+  const { addProject, editProject } = useWorkspace();
+  const isEditing = Boolean(project);
+
+  const [name, setName] = useState(project?.name || '');
+  const [type, setType] = useState(project?.type || 'personal');
+  const [courseId, setCourseId] = useState(project?.canvasReference?.courseId || '');
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  // Only Canvas-favorited courses are offered — same "favorites only, for
+  // cost/relevance reasons" convention CourseBrowser.jsx and the messages
+  // screens already use elsewhere in this app.
+  const favoriteCourses = courses.filter((c) => c.is_favorite);
 
   useEffect(() => {
     if (type !== 'canvas-course' || courses.length > 0) return;
@@ -33,21 +44,30 @@ export default function ProjectFormModal({ onClose }) {
     setSaving(true);
     setError(null);
     try {
-      await addProject({
+      const payload = {
         name: name.trim(),
         type,
         canvasReference: type === 'canvas-course' ? { courseId } : null,
-      });
+      };
+      if (isEditing) {
+        await editProject(project.id, payload);
+      } else {
+        await addProject(payload);
+      }
       onClose();
     } catch (err) {
-      setError(err.message || 'Falha ao criar o projeto.');
+      setError(err.message || 'Falha ao salvar o projeto.');
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <Modal title="Novo projeto" onClose={onClose} preventBackdropClose={Boolean(name.trim())}>
+    <Modal
+      title={isEditing ? 'Editar projeto' : 'Novo projeto'}
+      onClose={onClose}
+      preventBackdropClose={Boolean(name.trim())}
+    >
       <form onSubmit={handleSubmit}>
         <label className="compose-message-field">
           <span>Nome</span>
@@ -79,12 +99,16 @@ export default function ProjectFormModal({ onClose }) {
             <span>Curso</span>
             <select value={courseId} onChange={(e) => setCourseId(e.target.value)} disabled={loadingCourses}>
               <option value="">{loadingCourses ? 'Carregando…' : 'Selecione um curso'}</option>
-              {courses.map((c) => (
+              {favoriteCourses.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
                 </option>
               ))}
             </select>
+            <span className="field-note">
+              Somente cursos marcados como favoritos no Canvas aparecem aqui — marque um curso como favorito no
+              Painel de Cursos para vinculá-lo a um projeto.
+            </span>
           </label>
         )}
 
@@ -96,7 +120,7 @@ export default function ProjectFormModal({ onClose }) {
 
         <div className="compose-message-actions">
           <button type="submit" className="btn btn-primary" disabled={saving || !name.trim()}>
-            {saving ? 'Criando…' : 'Criar projeto'}
+            {saving ? 'Salvando…' : isEditing ? 'Salvar projeto' : 'Criar projeto'}
           </button>
         </div>
       </form>

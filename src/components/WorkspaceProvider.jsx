@@ -17,10 +17,12 @@ import {
   deleteProject as repoDeleteProject,
 } from '@/lib/workspace/projectsRepo';
 import { EMPTY_FILTERS } from '@/lib/workspace/filters';
+import { scheduleWorkspaceSync } from '@/lib/sync/workspaceSyncScheduler';
 
 const WorkspaceContext = createContext(null);
 
 const DENSITY_STORAGE_KEY = 'canvastools:workspace-card-density';
+const STAGES_COLLAPSED_STORAGE_KEY = 'canvastools:workspace-stages-collapsed';
 
 const initialState = {
   tasks: [],
@@ -28,6 +30,7 @@ const initialState = {
   filters: EMPTY_FILTERS,
   view: 'kanban',
   cardDensity: 'expanded',
+  stagesCollapsed: false,
   loading: true,
 };
 
@@ -74,6 +77,8 @@ function reducer(state, action) {
       return { ...state, view: action.view };
     case 'SET_DENSITY':
       return { ...state, cardDensity: action.density };
+    case 'SET_STAGES_COLLAPSED':
+      return { ...state, stagesCollapsed: action.collapsed };
     default:
       return state;
   }
@@ -110,23 +115,31 @@ export function WorkspaceProvider({ children }) {
     if (stored === 'condensed' || stored === 'expanded') {
       dispatch({ type: 'SET_DENSITY', density: stored });
     }
+    if (window.localStorage.getItem(STAGES_COLLAPSED_STORAGE_KEY) === '1') {
+      dispatch({ type: 'SET_STAGES_COLLAPSED', collapsed: true });
+    }
   }, []);
 
   const addTask = useCallback(async (title, projectId = null) => {
     const task = await repoCreateTask({ title, projectId });
     dispatch({ type: 'TASK_UPSERT', task });
+    scheduleWorkspaceSync();
     return task;
   }, []);
 
   const editTask = useCallback(async (id, patch) => {
     const task = await repoUpdateTask(id, patch);
-    if (task) dispatch({ type: 'TASK_UPSERT', task });
+    if (task) {
+      dispatch({ type: 'TASK_UPSERT', task });
+      scheduleWorkspaceSync();
+    }
     return task;
   }, []);
 
   const removeTask = useCallback(async (id) => {
     await repoDeleteTask(id);
     dispatch({ type: 'TASK_REMOVE', id });
+    scheduleWorkspaceSync();
   }, []);
 
   // Optimistic: state updates immediately (drag feels instant) via
@@ -137,35 +150,44 @@ export function WorkspaceProvider({ children }) {
   // stale by then.
   const moveTaskStatus = useCallback((id, status) => {
     dispatch({ type: 'TASK_PATCH', id, patch: { status } });
-    repoSetTaskStatus(id, status).catch(async () => {
-      const fresh = await repoGetTask(id);
-      if (fresh) dispatch({ type: 'TASK_UPSERT', task: fresh });
-    });
+    repoSetTaskStatus(id, status)
+      .then(() => scheduleWorkspaceSync())
+      .catch(async () => {
+        const fresh = await repoGetTask(id);
+        if (fresh) dispatch({ type: 'TASK_UPSERT', task: fresh });
+      });
   }, []);
 
   const moveTaskPriority = useCallback((id, priority) => {
     dispatch({ type: 'TASK_PATCH', id, patch: { priority } });
-    repoSetTaskPriority(id, priority).catch(async () => {
-      const fresh = await repoGetTask(id);
-      if (fresh) dispatch({ type: 'TASK_UPSERT', task: fresh });
-    });
+    repoSetTaskPriority(id, priority)
+      .then(() => scheduleWorkspaceSync())
+      .catch(async () => {
+        const fresh = await repoGetTask(id);
+        if (fresh) dispatch({ type: 'TASK_UPSERT', task: fresh });
+      });
   }, []);
 
   const addProject = useCallback(async ({ name, type, canvasReference = null }) => {
     const project = await repoCreateProject({ name, type, canvasReference });
     dispatch({ type: 'PROJECT_UPSERT', project });
+    scheduleWorkspaceSync();
     return project;
   }, []);
 
   const editProject = useCallback(async (id, patch) => {
     const project = await repoUpdateProject(id, patch);
-    if (project) dispatch({ type: 'PROJECT_UPSERT', project });
+    if (project) {
+      dispatch({ type: 'PROJECT_UPSERT', project });
+      scheduleWorkspaceSync();
+    }
     return project;
   }, []);
 
   const removeProject = useCallback(async (id) => {
     await repoDeleteProject(id);
     dispatch({ type: 'PROJECT_REMOVE', id });
+    scheduleWorkspaceSync();
   }, []);
 
   const setFilters = useCallback((filters) => dispatch({ type: 'SET_FILTERS', filters }), []);
@@ -173,6 +195,10 @@ export function WorkspaceProvider({ children }) {
   const setCardDensity = useCallback((density) => {
     window.localStorage.setItem(DENSITY_STORAGE_KEY, density);
     dispatch({ type: 'SET_DENSITY', density });
+  }, []);
+  const setStagesCollapsed = useCallback((collapsed) => {
+    window.localStorage.setItem(STAGES_COLLAPSED_STORAGE_KEY, collapsed ? '1' : '0');
+    dispatch({ type: 'SET_STAGES_COLLAPSED', collapsed });
   }, []);
 
   const value = {
@@ -188,6 +214,7 @@ export function WorkspaceProvider({ children }) {
     setFilters,
     setView,
     setCardDensity,
+    setStagesCollapsed,
   };
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

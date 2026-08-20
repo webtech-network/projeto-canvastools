@@ -25,6 +25,13 @@ export async function saveGoogleConnection(fields) {
     connectedAt: existing?.connectedAt ?? Date.now(),
     fileId: fields.fileId !== undefined ? fields.fileId : existing?.fileId,
     lastSuccessfulSyncAt: fields.lastSuccessfulSyncAt !== undefined ? fields.lastSuccessfulSyncAt : existing?.lastSuccessfulSyncAt,
+    // Same idea as fileId/lastSuccessfulSyncAt above, but for the separate
+    // workspace (tasks/projects) Drive file — see workspace/workspaceDriveSync.js.
+    workspaceFileId: fields.workspaceFileId !== undefined ? fields.workspaceFileId : existing?.workspaceFileId,
+    workspaceLastSuccessfulSyncAt:
+      fields.workspaceLastSuccessfulSyncAt !== undefined
+        ? fields.workspaceLastSuccessfulSyncAt
+        : existing?.workspaceLastSuccessfulSyncAt,
   };
   await dbPut(STORE_GOOGLE, record);
   return record;

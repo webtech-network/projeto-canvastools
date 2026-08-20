@@ -363,6 +363,7 @@ a {
 .topbar-user {
   display: flex;
   align-items: center;
+  gap: 0.4rem;
 }
 
 /* Avatar-triggered dropdown replacing the old separate "username link" +
@@ -430,6 +431,79 @@ a {
 .user-menu-item:hover {
   background: var(--paper);
   color: var(--accent);
+}
+
+/* Sync-status trust indicator (SyncStatusIndicator.jsx) — same popover
+   shape as .user-menu-popover, sized wider since it holds full status
+   sentences instead of short menu labels. */
+.sync-status {
+  position: relative;
+}
+.sync-status-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: none;
+  background: none;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.sync-status-trigger:hover {
+  background: var(--paper);
+}
+.sync-status-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.sync-spin {
+  animation: sync-spin 0.9s linear infinite;
+}
+@keyframes sync-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.sync-status-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 260px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.75rem;
+  z-index: 30;
+}
+.sync-status-line {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+.sync-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+.sync-status-link {
+  display: block;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+}
+.sync-status-link:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 640px) {
@@ -985,6 +1059,13 @@ a {
   background: var(--ok-bg);
   color: var(--ok);
 }
+.alert-info {
+  background: var(--brand-bg-strong);
+  color: var(--brand-fg);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 .alert-toggle {
   display: inline-flex;
   align-items: center;
@@ -1185,6 +1266,21 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+}
+/* Groups the legend into "Status" / "Classificação" sections (see
+   WorkspaceView.jsx) instead of one flat, unlabeled icon list. */
+.icon-legend-label {
+  font-weight: 600;
+  color: var(--ink);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+}
+.icon-legend-separator {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  margin: 0 0.25rem;
 }
 
 .pending-badge {
@@ -1434,6 +1530,11 @@ a {
   background: var(--paper);
   color: var(--ink);
   resize: vertical;
+}
+.compose-message-field .field-note {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
 }
 .compose-message-field input:focus,
 .compose-message-field textarea:focus {
@@ -2423,6 +2524,53 @@ a {
   justify-content: space-between;
 }
 
+.workspace-projects-group {
+  margin: 0 0 1.1rem;
+}
+.workspace-projects-group h3 {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+  margin: 0 0 0.4rem;
+}
+.workspace-projects-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.workspace-projects-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+}
+.workspace-projects-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-projects-count {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.workspace-projects-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex: none;
+}
+
 .kanban-board {
   display: grid;
   grid-template-columns: repeat(5, minmax(220px, 1fr));
@@ -2460,6 +2608,38 @@ a {
   flex-direction: column;
   gap: 0.6rem;
   min-height: 60px;
+}
+
+/* Backlog/Block collapse toggle (WorkspaceView.jsx) — assumes these are
+   grid children 1 and 2, which STATUSES (tasksRepo.js) guarantees by
+   ordering them first. The other three columns pick up the freed space. */
+.kanban-board--stages-collapsed {
+  grid-template-columns: 56px 56px repeat(3, minmax(220px, 1fr));
+}
+.kanban-column--collapsed {
+  width: 56px;
+  min-width: 56px;
+  align-items: center;
+  padding: 0.5rem 0.3rem;
+}
+.kanban-column-collapsed-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  height: 100%;
+  padding: 0.4rem 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.kanban-column-collapsed-label .pending-badge {
+  writing-mode: horizontal-tb;
+  transform: none;
 }
 
 .eisenhower-matrix {
@@ -2609,6 +2789,9 @@ a {
 @media (max-width: 900px) {
   .kanban-board {
     grid-template-columns: repeat(5, minmax(200px, 1fr));
+  }
+  .kanban-board--stages-collapsed {
+    grid-template-columns: 56px 56px repeat(3, minmax(200px, 1fr));
   }
   .eisenhower-matrix {
     grid-template-columns: 1fr;

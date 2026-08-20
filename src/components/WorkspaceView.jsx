@@ -1,21 +1,22 @@
 'use client';
 
 import { useState } from 'react';
-import { Flag, Zap } from 'lucide-react';
+import { Flag, Zap, FolderKanban, Rows3, Rows4 } from 'lucide-react';
 import { useWorkspace } from './WorkspaceProvider';
 import WorkspaceFilterBar from './WorkspaceFilterBar';
 import QuickAddTask from './QuickAddTask';
 import KanbanBoard from './KanbanBoard';
 import EisenhowerMatrix from './EisenhowerMatrix';
 import TaskDetailModal from './TaskDetailModal';
-import ProjectFormModal from './ProjectFormModal';
+import ProjectsManagerModal from './ProjectsManagerModal';
 import { STATUS_META } from '@/lib/workspace/statusMeta';
 import { STATUSES } from '@/lib/workspace/tasksRepo';
 
 export default function WorkspaceView() {
-  const { view, setView, cardDensity, setCardDensity, loading, tasks } = useWorkspace();
+  const { view, setView, cardDensity, setCardDensity, stagesCollapsed, setStagesCollapsed, loading, tasks } =
+    useWorkspace();
   const [selectedTaskId, setSelectedTaskId] = useState(null);
-  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [showProjectsManager, setShowProjectsManager] = useState(false);
   // Looked up fresh every render (rather than storing the clicked object
   // itself) so the modal always reflects the latest state — e.g. a drag
   // that changes the task moments before the click is still respected.
@@ -60,8 +61,19 @@ export default function WorkspaceView() {
             Condensada
           </button>
         </div>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowProjectForm(true)}>
-          + Novo projeto
+        {view === 'kanban' && (
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setStagesCollapsed(!stagesCollapsed)}
+          >
+            {stagesCollapsed ? <Rows4 size={15} strokeWidth={1.8} /> : <Rows3 size={15} strokeWidth={1.8} />}
+            {stagesCollapsed ? 'Mostrar Backlog/Block' : 'Recolher Backlog/Block'}
+          </button>
+        )}
+        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowProjectsManager(true)}>
+          <FolderKanban size={15} strokeWidth={1.8} />
+          Projetos
         </button>
       </div>
 
@@ -79,6 +91,7 @@ export default function WorkspaceView() {
           legend is what makes the condensed cards' icon-only status/
           priority indicators (see TaskCard.jsx) legible either way. */}
       <ul className="icon-legend">
+        <li className="icon-legend-label">Status</li>
         {STATUSES.map((status) => {
           const { label, Icon } = STATUS_META[status];
           return (
@@ -87,6 +100,8 @@ export default function WorkspaceView() {
             </li>
           );
         })}
+        <li className="icon-legend-separator" aria-hidden="true" />
+        <li className="icon-legend-label">Classificação</li>
         <li>
           <Flag size={14} strokeWidth={1.8} aria-hidden="true" /> Importante
         </li>
@@ -96,7 +111,7 @@ export default function WorkspaceView() {
       </ul>
 
       {selectedTask && <TaskDetailModal task={selectedTask} onClose={() => setSelectedTaskId(null)} />}
-      {showProjectForm && <ProjectFormModal onClose={() => setShowProjectForm(false)} />}
+      {showProjectsManager && <ProjectsManagerModal onClose={() => setShowProjectsManager(false)} />}
     </>
   );
 }

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getSession, isSessionValid } from '@/lib/session';
 import UserMenu from './UserMenu';
 import MobileNavToggle from './MobileNavToggle';
+import SyncStatusIndicator from './SyncStatusIndicator';
 import logoFull from '@/assets/images/logo-full.png';
 import logoFullDark from '@/assets/images/logo-full-dark.png';
 
@@ -29,6 +30,7 @@ export default async function Topbar() {
       </div>
       {loggedIn && (
         <div className="topbar-user">
+          <SyncStatusIndicator />
           <UserMenu userName={session.user?.name} avatarUrl={session.user?.avatar_url} />
         </div>
       )}

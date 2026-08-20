@@ -7,8 +7,10 @@ import { applyFilters } from '@/lib/workspace/filters';
 import { STATUSES } from '@/lib/workspace/tasksRepo';
 import { STATUS_META } from '@/lib/workspace/statusMeta';
 
+const COLLAPSIBLE_STATUSES = new Set(['BACKLOG', 'BLOCK']);
+
 export default function KanbanBoard({ onSelect }) {
-  const { tasks, projects, filters, moveTaskStatus } = useWorkspace();
+  const { tasks, projects, filters, moveTaskStatus, stagesCollapsed } = useWorkspace();
   // A distance activation constraint lets a plain click (no pointer
   // movement) reach TaskCard's onClick normally — without it, dnd-kit's
   // PointerSensor would swallow every click as a zero-distance drag attempt.
@@ -25,7 +27,7 @@ export default function KanbanBoard({ onSelect }) {
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="kanban-board">
+      <div className={`kanban-board${stagesCollapsed ? ' kanban-board--stages-collapsed' : ''}`}>
         {STATUSES.map((status) => (
           <KanbanColumn
             key={status}
@@ -33,6 +35,7 @@ export default function KanbanBoard({ onSelect }) {
             label={STATUS_META[status].label}
             tasks={filtered.filter((t) => t.status === status)}
             onSelect={onSelect}
+            collapsed={stagesCollapsed && COLLAPSIBLE_STATUSES.has(status)}
           />
         ))}
       </div>
