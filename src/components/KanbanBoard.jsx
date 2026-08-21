@@ -9,7 +9,7 @@ import { STATUS_META } from '@/lib/workspace/statusMeta';
 
 const COLLAPSIBLE_STATUSES = new Set(['BACKLOG', 'BLOCK']);
 
-export default function KanbanBoard({ onSelect }) {
+export default function KanbanBoard({ onSelect, onCreate }) {
   const { tasks, projects, filters, moveTaskStatus, stagesCollapsed, setStagesCollapsed } = useWorkspace();
   // A distance activation constraint lets a plain click (no pointer
   // movement) reach TaskCard's onClick normally — without it, dnd-kit's
@@ -38,6 +38,7 @@ export default function KanbanBoard({ onSelect }) {
             onSelect={onSelect}
             collapsed={stagesCollapsed && COLLAPSIBLE_STATUSES.has(status)}
             onExpand={() => setStagesCollapsed(false)}
+            onCreate={onCreate}
           />
         ))}
       </div>

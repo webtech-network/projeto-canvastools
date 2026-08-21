@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'canvastools';
-const DB_VERSION = 5;
+const DB_VERSION = 6;
 
 export const STORE_SHORTCUTS = 'shortcuts';
 export const STORE_CACHE = 'cache';
@@ -10,6 +10,7 @@ export const STORE_GITHUB = 'github';
 export const STORE_GOOGLE = 'google';
 export const STORE_TASKS = 'tasks';
 export const STORE_PROJECTS = 'projects';
+export const STORE_COURSE_NOTES = 'courseNotes';
 
 let dbPromise = null;
 
@@ -42,6 +43,12 @@ function getDb() {
         }
         if (!db.objectStoreNames.contains(STORE_PROJECTS)) {
           db.createObjectStore(STORE_PROJECTS, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(STORE_COURSE_NOTES)) {
+          // keyPath 'id' (not 'courseCode') so mergeRecords (workspace/
+          // workspaceMerge.js, reused as-is for course notes) can operate on
+          // it identically to tasks/projects — id is set to the course code.
+          db.createObjectStore(STORE_COURSE_NOTES, { keyPath: 'id' });
         }
       },
     });

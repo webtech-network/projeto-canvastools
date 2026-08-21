@@ -18,23 +18,29 @@ function toDateInputValue(dateStr) {
 }
 
 // Full edit surface (spec section 6) — opened by clicking a TaskCard from
-// either view. Wraps the existing Modal.jsx (same component every other
-// modal in this app uses); preventBackdropClose guards unsaved edits, same
-// rationale as MessageList.jsx's AI reply modal.
-export default function TaskDetailModal({ task, onClose }) {
-  const { projects, editTask, removeTask } = useWorkspace();
+// either view. Also doubles as the "new task" screen: omit `task` and pass
+// `initialStatus` instead (KanbanColumn.jsx's double-click-on-empty-space,
+// pre-selecting that column's stage) — creation is a two-step
+// addTask()-then-editTask() under the hood, since WorkspaceProvider's
+// addTask only takes title/projectId, but the modal collects every field in
+// one form either way. Wraps the existing Modal.jsx (same component every
+// other modal in this app uses); preventBackdropClose guards unsaved edits,
+// same rationale as MessageList.jsx's AI reply modal.
+export default function TaskDetailModal({ task = null, initialStatus, onClose }) {
+  const { projects, addTask, editTask, removeTask } = useWorkspace();
+  const isCreating = !task;
 
-  const [title, setTitle] = useState(task.title);
-  const [description, setDescription] = useState(task.description || '');
-  const [projectId, setProjectId] = useState(task.projectId || '');
-  const [tags, setTags] = useState(task.tags || []);
+  const [title, setTitle] = useState(task?.title || '');
+  const [description, setDescription] = useState(task?.description || '');
+  const [projectId, setProjectId] = useState(task?.projectId || '');
+  const [tags, setTags] = useState(task?.tags || []);
   const [tagInput, setTagInput] = useState('');
-  const [dueDate, setDueDate] = useState(toDateInputValue(task.dueDate));
-  const [status, setStatus] = useState(task.status);
-  const [urgent, setUrgent] = useState(Boolean(task.priority?.urgent));
-  const [important, setImportant] = useState(Boolean(task.priority?.important));
-  const [assignmentId, setAssignmentId] = useState(task.canvasReferences?.assignmentId || '');
-  const [studentId, setStudentId] = useState(task.canvasReferences?.studentId || '');
+  const [dueDate, setDueDate] = useState(toDateInputValue(task?.dueDate));
+  const [status, setStatus] = useState(task?.status || initialStatus || STATUSES[0]);
+  const [urgent, setUrgent] = useState(Boolean(task?.priority?.urgent));
+  const [important, setImportant] = useState(Boolean(task?.priority?.important));
+  const [assignmentId, setAssignmentId] = useState(task?.canvasReferences?.assignmentId || '');
+  const [studentId, setStudentId] = useState(task?.canvasReferences?.studentId || '');
 
   const [assignments, setAssignments] = useState([]);
   const [students, setStudents] = useState([]);
@@ -70,11 +76,12 @@ export default function TaskDetailModal({ task, onClose }) {
     };
   }, [courseId]);
 
-  const dirty =
-    title !== task.title ||
-    description !== (task.description || '') ||
-    projectId !== (task.projectId || '') ||
-    tagInput.trim().length > 0;
+  const dirty = isCreating
+    ? title.trim().length > 0 || description.trim().length > 0 || tagInput.trim().length > 0
+    : title !== task.title ||
+      description !== (task.description || '') ||
+      projectId !== (task.projectId || '') ||
+      tagInput.trim().length > 0;
 
   function addTag() {
     const value = tagInput.trim();
@@ -96,7 +103,7 @@ export default function TaskDetailModal({ task, onClose }) {
     setSaving(true);
     setError(null);
     try {
-      await editTask(task.id, {
+      const patch = {
         title: title.trim(),
         description,
         projectId: projectId || null,
@@ -107,7 +114,13 @@ export default function TaskDetailModal({ task, onClose }) {
         canvasReferences: courseId
           ? { courseId, assignmentId: assignmentId || null, studentId: studentId || null }
           : null,
-      });
+      };
+      if (isCreating) {
+        const created = await addTask(title.trim(), projectId || null);
+        await editTask(created.id, patch);
+      } else {
+        await editTask(task.id, patch);
+      }
       onClose();
     } catch (err) {
       setError(err.message || 'Falha ao salvar a tarefa.');
@@ -117,6 +130,7 @@ export default function TaskDetailModal({ task, onClose }) {
   }
 
   async function handleDelete() {
+    if (isCreating) return;
     if (!window.confirm('Excluir esta tarefa?')) return;
     setDeleting(true);
     try {
@@ -129,7 +143,7 @@ export default function TaskDetailModal({ task, onClose }) {
 
   return (
     <>
-      <Modal title="Detalhes da tarefa" onClose={onClose} preventBackdropClose={dirty}>
+      <Modal title={isCreating ? 'Nova tarefa' : 'Detalhes da tarefa'} onClose={onClose} preventBackdropClose={dirty}>
         <form onSubmit={handleSubmit}>
           <label className="compose-message-field">
             <span>Título</span>
@@ -275,11 +289,13 @@ export default function TaskDetailModal({ task, onClose }) {
           )}
 
           <div className="compose-message-actions task-detail-actions">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={handleDelete} disabled={deleting}>
-              {deleting ? 'Excluindo…' : 'Excluir tarefa'}
-            </button>
+            {!isCreating && (
+              <button type="button" className="btn btn-secondary btn-sm" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Excluindo…' : 'Excluir tarefa'}
+              </button>
+            )}
             <button type="submit" className="btn btn-primary" disabled={saving || !title.trim()}>
-              {saving ? 'Salvando…' : 'Salvar'}
+              {saving ? (isCreating ? 'Criando…' : 'Salvando…') : isCreating ? 'Criar tarefa' : 'Salvar'}
             </button>
           </div>
         </form>

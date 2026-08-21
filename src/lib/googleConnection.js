@@ -32,6 +32,13 @@ export async function saveGoogleConnection(fields) {
       fields.workspaceLastSuccessfulSyncAt !== undefined
         ? fields.workspaceLastSuccessfulSyncAt
         : existing?.workspaceLastSuccessfulSyncAt,
+    // Same idea again, but for the course-notes Drive file — see
+    // courseNotes/courseNotesSync.js.
+    courseNotesFileId: fields.courseNotesFileId !== undefined ? fields.courseNotesFileId : existing?.courseNotesFileId,
+    courseNotesLastSuccessfulSyncAt:
+      fields.courseNotesLastSuccessfulSyncAt !== undefined
+        ? fields.courseNotesLastSuccessfulSyncAt
+        : existing?.courseNotesLastSuccessfulSyncAt,
   };
   await dbPut(STORE_GOOGLE, record);
   return record;

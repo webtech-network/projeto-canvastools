@@ -358,6 +358,12 @@ a {
   min-width: 0;
   padding: 1.75rem 2rem 3rem;
   width: 100%;
+  /* A column flex around the single {children} page element — visually a
+     no-op for every page except one that opts in with flex: 1 on its own
+     root (see .page-tarefas), since a lone block-level flex child without
+     that keeps its normal content-driven height either way. */
+  display: flex;
+  flex-direction: column;
 }
 
 .topbar-user {
@@ -599,6 +605,31 @@ a {
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 1.75rem 2rem 2rem;
+}
+
+/* Tarefas (tarefas/page.jsx) opts into filling all the way down to the
+   viewport bottom — flex: 1 inside .dashboard-content's column flex, which
+   only takes effect because .dashboard-content is that flex column's
+   container. WorkspaceView.jsx renders as a Fragment (no wrapping element),
+   so its toolbar/board/legend all become direct children of this box —
+   .kanban-board/.eisenhower-matrix below target that DOM position directly
+   to grow into the remaining space while the toolbar and legend keep their
+   natural height. */
+.page-tarefas {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.page-tarefas .kanban-board,
+.page-tarefas .eisenhower-matrix {
+  flex: 1;
+  min-height: 0;
+}
+.page-tarefas .kanban-column-body,
+.page-tarefas .eisenhower-quadrant-body {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .page p.lede {
@@ -1262,7 +1293,7 @@ a {
   gap: 0;
 }
 
-.fav-cell {
+.data-table td.fav-cell {
   width: 2.25rem;
   text-align: center;
 }
@@ -1275,6 +1306,34 @@ a {
 }
 .course-name-cell a:hover {
   text-decoration: underline;
+  color: var(--accent);
+}
+.course-name-btn {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.course-name-btn svg {
+  flex-shrink: 0;
+  color: var(--ink-soft);
+}
+.course-name-btn:hover {
+  text-decoration: underline;
+  color: var(--accent);
+}
+tr.is-expanded .course-name-btn {
+  color: var(--accent);
+}
+tr.is-expanded .course-name-btn svg {
   color: var(--accent);
 }
 .subject-toggle-btn {
@@ -1306,7 +1365,12 @@ a {
    (e.g. course-name-cell). text-align + inline-flex .btn children + margin
    gets the same right-aligned, gapped button row without breaking table
    layout. */
-.actions-cell {
+/* .data-table td already sets text-align: left with the same specificity
+   (one class + one element = 0,1,1 either way) — these need to win that tie
+   by source order alone, which is fragile. Pinned to .data-table
+   td.actions-cell etc. below instead, so the win is by specificity, not
+   accidental ordering. */
+.data-table td.actions-cell {
   text-align: right;
   white-space: nowrap;
   vertical-align: middle;
@@ -1315,15 +1379,15 @@ a {
   margin-left: 0.5rem;
 }
 
-.pending-cell,
-.status-cell {
+.data-table td.pending-cell,
+.data-table td.status-cell {
   width: 1%;
   text-align: center;
   white-space: nowrap;
 }
 /* AssignmentsTable.jsx — "Data de entrega" cell for an assignment whose due
    date has already passed. */
-.pending-cell.is-past-due {
+.data-table td.pending-cell.is-past-due {
   color: var(--err);
   font-weight: 600;
 }
@@ -1358,15 +1422,6 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-}
-/* Groups the legend into "Status" / "Classificação" sections (see
-   WorkspaceView.jsx) instead of one flat, unlabeled icon list. */
-.icon-legend-label {
-  font-weight: 600;
-  color: var(--ink);
-  text-transform: uppercase;
-  font-size: 0.72rem;
-  letter-spacing: 0.03em;
 }
 .icon-legend-separator {
   width: 1px;
@@ -3034,6 +3089,29 @@ a {
 .kanban-card-urgent {
   color: var(--err);
 }
+.kanban-card-classification {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+/* Separates status / classification / due date within a card's meta row —
+   only rendered between groups that actually have content, see
+   TaskCard.jsx's withSeparators. */
+.kanban-card-meta-separator {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+}
+/* "Grifadas em amarelo" — an overdue task's due-date badge gets the
+   existing --warn/--warn-bg token pair (already theme-aware) as a
+   highlighter-style pill, rather than the whole card. */
+.kanban-card-due.is-past-due {
+  background: var(--warn-bg);
+  color: var(--warn);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-weight: 600;
+}
 
 /* Condensed density (TaskCard.jsx, toggled in WorkspaceView.jsx) — one line
    for the title, one for the project/course, everything else (tags, status
@@ -3095,4 +3173,152 @@ a {
   .eisenhower-matrix {
     grid-template-columns: 1fr;
   }
+}
+
+/* A landscape phone ("deitado") has plenty of width even under 900px — the
+   single-column collapse above is really only needed for portrait width.
+   Must come after the block above to win the source-order tie at equal
+   specificity. */
+@media (max-width: 900px) and (orientation: landscape) {
+  .eisenhower-matrix {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Course notes (CourseNoteEditor.jsx / MarkdownEditor.jsx) — the inline row
+   CourseBrowser.jsx expands directly below a course's <tr> when its name is
+   clicked. */
+.course-note-row td {
+  padding: 0 0 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.course-note-editor {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+}
+.course-note-editor-topbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+.course-note-editor-status {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.markdown-editor {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--paper-raised);
+}
+.markdown-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.4rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+.markdown-editor-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.markdown-editor-toolbar-btn:hover:not(:disabled) {
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+.markdown-editor-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.markdown-editor-mode-toggle {
+  margin-left: auto;
+}
+.markdown-editor-mode-toggle.active {
+  background: var(--accent);
+  color: #fff9f2;
+}
+.markdown-editor-textarea {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  padding: 0.85rem;
+  border: none;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+.markdown-editor-textarea:focus {
+  outline: none;
+}
+.markdown-editor-rich {
+  min-height: 220px;
+  padding: 0.85rem 1rem;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+.markdown-editor-rich:focus {
+  outline: none;
+}
+.markdown-editor-rich:empty::before {
+  content: attr(data-placeholder);
+  color: var(--ink-soft);
+  font-style: italic;
+  pointer-events: none;
+}
+.markdown-editor-rich h1,
+.markdown-editor-rich h2,
+.markdown-editor-rich h3,
+.markdown-editor-rich h4 {
+  margin: 0.9rem 0 0.4rem;
+  font-family: var(--font-display), serif;
+}
+.markdown-editor-rich p,
+.markdown-editor-rich div {
+  margin: 0 0 0.75rem;
+}
+.markdown-editor-rich ul,
+.markdown-editor-rich ol {
+  margin: 0 0 0.75rem;
+  padding-left: 1.4rem;
+}
+.markdown-editor-rich blockquote {
+  margin: 0 0 0.75rem;
+  padding-left: 0.85rem;
+  border-left: 3px solid var(--line);
+  color: var(--ink-soft);
+}
+.markdown-editor-rich code {
+  background: var(--paper);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  font-size: 0.88em;
+}
+.markdown-editor-rich pre {
+  background: var(--paper);
+  border-radius: 8px;
+  padding: 0.75rem;
+  overflow-x: auto;
+  margin: 0 0 0.75rem;
+}
+.markdown-editor-rich pre code {
+  background: none;
+  padding: 0;
 }

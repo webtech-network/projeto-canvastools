@@ -20,6 +20,27 @@ function formatDueDate(dateStr) {
   return new Date(year, month - 1, day).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
+// A finished task is never "late" regardless of its due date, so DONE is
+// excluded — same reasoning as EisenhowerMatrix.jsx's MATRIX_ALWAYS_EXCLUDED.
+function isPastDue(dateStr, status) {
+  if (!dateStr || status === 'DONE') return false;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const due = new Date(year, month - 1, day);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return due < today;
+}
+
+// Interleaves a thin visual separator between whichever of the three meta
+// groups (status / classification / due date) actually have content —
+// never a dangling separator next to nothing.
+function withSeparators(nodes) {
+  const visible = nodes.filter(Boolean);
+  return visible.flatMap((node, i) =>
+    i === 0 ? [node] : [<span key={`sep-${node.key}`} className="kanban-card-meta-separator" aria-hidden="true" />, node],
+  );
+}
+
 // Shared by KanbanBoard.jsx and EisenhowerMatrix.jsx — same card, same
 // click-to-open behavior; only the droppable container it sits in differs
 // between the two views (KanbanColumn vs EisenhowerQuadrant). Renders in one
@@ -29,12 +50,15 @@ function formatDueDate(dateStr) {
 // so status (otherwise invisible in the Eisenhower view) and priority
 // (otherwise invisible in the Kanban view) stay visible regardless of which
 // board is showing. See the icon legend in WorkspaceView.jsx's footer for
-// what each icon means.
+// what each icon means. Status/classification/due date share one
+// `metaSegments` builder below (separators, per-density icon size and
+// label visibility) so both densities stay in sync automatically.
 export default function TaskCard({ task, onSelect }) {
   const { projects, cardDensity } = useWorkspace();
   const project = task.projectId ? projects.find((p) => p.id === task.projectId) : null;
   const dueDate = formatDueDate(task.dueDate);
   const StatusIcon = STATUS_META[task.status]?.Icon;
+  const overdue = isPastDue(task.dueDate, task.status);
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: task.id,
@@ -47,6 +71,40 @@ export default function TaskCard({ task, onSelect }) {
   };
 
   const condensed = cardDensity === 'condensed';
+  const iconSize = condensed ? 14 : 13;
+
+  const statusSeg = StatusIcon ? (
+    <span key="status" className="kanban-card-status-icon" title={STATUS_META[task.status].label}>
+      <StatusIcon size={iconSize} strokeWidth={1.8} />
+      {!condensed && ` ${STATUS_META[task.status].label}`}
+    </span>
+  ) : null;
+
+  const classificationSeg =
+    task.priority?.important || task.priority?.urgent ? (
+      <span key="classification" className="kanban-card-classification">
+        {task.priority?.important && (
+          <span className="kanban-card-flag" title="Importante">
+            <Flag size={iconSize} strokeWidth={1.8} />
+            {!condensed && ' Importante'}
+          </span>
+        )}
+        {task.priority?.urgent && (
+          <span className="kanban-card-urgent" title="Urgente">
+            <Zap size={iconSize} strokeWidth={1.8} />
+            {!condensed && ' Urgente'}
+          </span>
+        )}
+      </span>
+    ) : null;
+
+  const dueSeg = dueDate ? (
+    <span key="due" className={`kanban-card-due${overdue ? ' is-past-due' : ''}`} title={overdue ? 'Prazo vencido' : 'Prazo'}>
+      <CalendarDays size={iconSize} strokeWidth={1.8} /> {dueDate}
+    </span>
+  ) : null;
+
+  const metaSegments = withSeparators([statusSeg, classificationSeg, dueSeg]);
 
   return (
     <div
@@ -73,28 +131,7 @@ export default function TaskCard({ task, onSelect }) {
                 ))}
               </div>
             )}
-            <div className="kanban-card-condensed-icons">
-              {StatusIcon && (
-                <span className="kanban-card-status-icon" title={STATUS_META[task.status].label}>
-                  <StatusIcon size={14} strokeWidth={1.8} />
-                </span>
-              )}
-              {task.priority?.important && (
-                <span className="kanban-card-flag" title="Importante">
-                  <Flag size={14} strokeWidth={1.8} />
-                </span>
-              )}
-              {task.priority?.urgent && (
-                <span className="kanban-card-urgent" title="Urgente">
-                  <Zap size={14} strokeWidth={1.8} />
-                </span>
-              )}
-              {dueDate && (
-                <span className="kanban-card-due" title="Prazo">
-                  <CalendarDays size={14} strokeWidth={1.8} /> {dueDate}
-                </span>
-              )}
-            </div>
+            <div className="kanban-card-condensed-icons">{metaSegments}</div>
           </div>
         </>
       ) : (
@@ -110,25 +147,7 @@ export default function TaskCard({ task, onSelect }) {
               ))}
             </div>
           )}
-          {(task.priority?.important || task.priority?.urgent || dueDate) && (
-            <div className="kanban-card-footer">
-              {task.priority?.important && (
-                <span className="kanban-card-flag" title="Importante">
-                  <Flag size={13} strokeWidth={1.8} /> Importante
-                </span>
-              )}
-              {task.priority?.urgent && (
-                <span className="kanban-card-urgent" title="Urgente">
-                  <Zap size={13} strokeWidth={1.8} /> Urgente
-                </span>
-              )}
-              {dueDate && (
-                <span className="kanban-card-due">
-                  <CalendarDays size={13} strokeWidth={1.8} /> {dueDate}
-                </span>
-              )}
-            </div>
-          )}
+          <div className="kanban-card-footer">{metaSegments}</div>
         </>
       )}
     </div>

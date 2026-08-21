@@ -9,8 +9,15 @@ import TaskCard from './TaskCard';
 // Backlog/Block without expanding it first. Clicking the collapsed strip
 // (via `onExpand`) is a second way to reveal it, alongside the shared toggle
 // button in WorkspaceView.jsx.
-export default function KanbanColumn({ status, label, Icon, tasks, onSelect, collapsed, onExpand }) {
+export default function KanbanColumn({ status, label, Icon, tasks, onSelect, collapsed, onExpand, onCreate }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
+
+  // Only fires when the double-click landed on the body wrapper itself, not
+  // bubbled up from a TaskCard inside it (cards have their own single-click
+  // onSelect) — "fora dos cards" (outside the cards).
+  function handleBodyDoubleClick(e) {
+    if (e.target === e.currentTarget) onCreate(status);
+  }
 
   return (
     <div
@@ -38,7 +45,11 @@ export default function KanbanColumn({ status, label, Icon, tasks, onSelect, col
             </span>
             <span className="pending-badge">{tasks.length}</span>
           </div>
-          <div className="kanban-column-body">
+          <div
+            className="kanban-column-body"
+            onDoubleClick={handleBodyDoubleClick}
+            title="Duplo clique para criar uma tarefa neste estágio"
+          >
             {tasks.map((task) => (
               <TaskCard key={task.id} task={task} onSelect={onSelect} />
             ))}

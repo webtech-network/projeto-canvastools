@@ -11,6 +11,7 @@
 
 export const SETTINGS_FILE_NAME = 'canvastools-preferences.json';
 export const WORKSPACE_FILE_NAME = 'canvastools-workspace.json';
+export const COURSE_NOTES_FILE_NAME = 'canvastools-course-notes.json';
 
 async function driveFetch(url, options) {
   const response = await fetch(url, options);

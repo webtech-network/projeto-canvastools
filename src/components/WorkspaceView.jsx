@@ -44,6 +44,9 @@ export default function WorkspaceView() {
   const [showProjectsManager, setShowProjectsManager] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showExportImport, setShowExportImport] = useState(false);
+  // Set by KanbanColumn.jsx's double-click-on-empty-space — opens
+  // TaskDetailModal in "create" mode with this status pre-selected.
+  const [creatingStatus, setCreatingStatus] = useState(null);
   // Looked up fresh every render (rather than storing the clicked object
   // itself) so the modal always reflects the latest state — e.g. a drag
   // that changes the task moments before the click is still respected.
@@ -93,29 +96,6 @@ export default function WorkspaceView() {
           {stagesCollapsed ? <PanelLeftOpen size={16} strokeWidth={1.8} /> : <PanelLeftClose size={16} strokeWidth={1.8} />}
         </button>
 
-        <button type="button" className="btn btn-secondary btn-icon" onClick={() => setShowProjectsManager(true)} title="Projetos" aria-label="Projetos">
-          <FolderKanban size={16} strokeWidth={1.8} />
-        </button>
-
-        <button
-          type="button"
-          className="btn btn-secondary btn-icon"
-          onClick={() => setShowExportImport(true)}
-          title="Exportar/Importar tarefas (JSON)"
-          aria-label="Exportar/Importar tarefas (JSON)"
-        >
-          <FileJson size={16} strokeWidth={1.8} />
-        </button>
-
-        <Link
-          href="/perfil?tab=preferencias"
-          className="btn btn-secondary btn-icon"
-          title="Preferências de Tarefas"
-          aria-label="Preferências de Tarefas"
-        >
-          <Settings size={16} strokeWidth={1.8} />
-        </Link>
-
         <div className="workspace-toolbar-right">
           <div className="segmented" role="group" aria-label="Densidade dos cards">
             <button
@@ -162,11 +142,34 @@ export default function WorkspaceView() {
               <Grid2x2 size={16} strokeWidth={1.8} />
             </button>
           </div>
+
+          <button type="button" className="btn btn-secondary btn-icon" onClick={() => setShowProjectsManager(true)} title="Projetos" aria-label="Projetos">
+            <FolderKanban size={16} strokeWidth={1.8} />
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-icon"
+            onClick={() => setShowExportImport(true)}
+            title="Exportar/Importar tarefas (JSON)"
+            aria-label="Exportar/Importar tarefas (JSON)"
+          >
+            <FileJson size={16} strokeWidth={1.8} />
+          </button>
+
+          <Link
+            href="/perfil?tab=preferencias"
+            className="btn btn-secondary btn-icon"
+            title="Preferências de Tarefas"
+            aria-label="Preferências de Tarefas"
+          >
+            <Settings size={16} strokeWidth={1.8} />
+          </Link>
         </div>
       </div>
 
       {view === 'kanban' ? (
-        <KanbanBoard onSelect={(task) => setSelectedTaskId(task.id)} />
+        <KanbanBoard onSelect={(task) => setSelectedTaskId(task.id)} onCreate={(status) => setCreatingStatus(status)} />
       ) : (
         <EisenhowerMatrix onSelect={(task) => setSelectedTaskId(task.id)} />
       )}
@@ -176,7 +179,6 @@ export default function WorkspaceView() {
           legend is what makes the condensed cards' icon-only status/
           priority indicators (see TaskCard.jsx) legible either way. */}
       <ul className="icon-legend">
-        <li className="icon-legend-label">Status</li>
         {STATUSES.map((status) => {
           const { label, Icon } = STATUS_META[status];
           return (
@@ -186,7 +188,6 @@ export default function WorkspaceView() {
           );
         })}
         <li className="icon-legend-separator" aria-hidden="true" />
-        <li className="icon-legend-label">Classificação</li>
         <li>
           <Flag size={14} strokeWidth={1.8} aria-hidden="true" /> Importante
         </li>
@@ -196,6 +197,7 @@ export default function WorkspaceView() {
       </ul>
 
       {selectedTask && <TaskDetailModal task={selectedTask} onClose={() => setSelectedTaskId(null)} />}
+      {creatingStatus && <TaskDetailModal initialStatus={creatingStatus} onClose={() => setCreatingStatus(null)} />}
       {showProjectsManager && <ProjectsManagerModal onClose={() => setShowProjectsManager(false)} />}
       {showFilterModal && <WorkspaceFilterModal onClose={() => setShowFilterModal(false)} />}
       {showExportImport && <WorkspaceExportImport onClose={() => setShowExportImport(false)} />}

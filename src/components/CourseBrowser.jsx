@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ListChecks, Mail, Star, Megaphone, ClipboardCheck, Users, RefreshCw } from 'lucide-react';
+import { ListChecks, Mail, Star, Megaphone, ClipboardCheck, Users, RefreshCw, ExternalLink, NotebookText } from 'lucide-react';
 import StatusIcon from './StatusIcon';
 import SortIcon from './SortIcon';
+import CourseNoteEditor from './CourseNoteEditor';
 import { isPublished } from '@/lib/dashboard';
 import { readCache, writeCache } from '@/lib/dashboardCache';
 
@@ -44,6 +45,10 @@ const STATUS_FILTERS = [
 export default function CourseBrowser() {
   const [courseList, setCourseList] = useState([]);
   const [query, setQuery] = useState('');
+  // At most one course's notes editor open at a time — clicking the same
+  // course's name again collapses it, clicking a different course switches
+  // to that one instead of stacking multiple editors in the table.
+  const [expandedCourseId, setExpandedCourseId] = useState(null);
   // Starts on "Favoritos" by default (per product decision), but falls back to
   // "Todos" when the account has no favorited/starred courses in Canvas, so
   // the first screen is never an empty dead end. Data now arrives
@@ -331,8 +336,11 @@ export default function CourseBrowser() {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((course) => (
-              <tr key={course.id}>
+            {sorted.map((course) => {
+              const expanded = expandedCourseId === course.id;
+              return (
+              <Fragment key={course.id}>
+              <tr className={expanded ? 'is-expanded' : undefined}>
                 <td className="status-cell">
                   <StatusIcon status={toStatus(course.workflow_state)} />
                 </td>
@@ -350,8 +358,25 @@ export default function CourseBrowser() {
                   </button>
                 </td>
                 <td className="course-name-cell">
-                  <a href={course.html_url} target="_blank" rel="noopener noreferrer" title="Abrir curso no Canvas">
+                  <button
+                    type="button"
+                    className="course-name-btn"
+                    onClick={() => setExpandedCourseId(expanded ? null : course.id)}
+                    title="Anotações do curso"
+                    aria-expanded={expanded}
+                  >
+                    <NotebookText size={15} strokeWidth={1.8} aria-hidden="true" />
                     {course.name}
+                  </button>
+                  <a
+                    href={course.html_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="external-link-icon"
+                    title="Abrir curso no Canvas"
+                    aria-label="Abrir curso no Canvas"
+                  >
+                    <ExternalLink size={14} strokeWidth={1.8} />
                   </a>
                 </td>
                 <td className="pending-cell">
@@ -399,7 +424,16 @@ export default function CourseBrowser() {
                   </Link>
                 </td>
               </tr>
-            ))}
+              {expanded && (
+                <tr className="course-note-row">
+                  <td colSpan={6}>
+                    <CourseNoteEditor courseId={course.id} courseCode={course.course_code} />
+                  </td>
+                </tr>
+              )}
+              </Fragment>
+              );
+            })}
           </tbody>
         </table>
         </div>

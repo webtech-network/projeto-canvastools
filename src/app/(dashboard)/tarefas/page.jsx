@@ -14,7 +14,7 @@ export default async function TarefasPage() {
   }
 
   return (
-    <main className="page">
+    <main className="page page-tarefas">
       <h1>Tarefas</h1>
       <p className="lede">Organize suas tarefas em um quadro Kanban ou na matriz de Eisenhower.</p>
 
