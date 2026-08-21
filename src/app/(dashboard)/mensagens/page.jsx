@@ -18,8 +18,8 @@ export default async function MensagensPage() {
     <main className="page">
       <h1>Mensagens</h1>
       <p className="lede">
-        Caixa de entrada do Canvas para seus cursos favoritos, agrupada por curso. Marque cursos como favoritos no
-        Painel de Cursos para vê-los aqui.
+        Caixa de entrada do Canvas para seus cursos favoritos e publicados, agrupada por curso. Marque cursos como
+        favoritos no Painel de Cursos para vê-los aqui.
       </p>
 
       <MessageBrowser currentUserId={session.user?.id} baseUrl={session.baseUrl} providers={configuredProviders} />

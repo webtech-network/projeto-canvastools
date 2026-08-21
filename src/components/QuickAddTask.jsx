@@ -32,9 +32,14 @@ export default function QuickAddTask() {
         placeholder="Nova tarefa…"
         aria-label="Título da nova tarefa"
       />
-      <button type="submit" className="btn btn-primary" disabled={!title.trim() || submitting}>
+      <button
+        type="submit"
+        className="btn btn-primary btn-icon"
+        disabled={!title.trim() || submitting}
+        title="Adicionar tarefa"
+        aria-label="Adicionar tarefa"
+      >
         <Plus size={16} strokeWidth={1.8} />
-        Nova tarefa
       </button>
     </form>
   );

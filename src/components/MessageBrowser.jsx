@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
+import { ChevronRight, ChevronsDown, ChevronsUp, ExternalLink, RefreshCw } from 'lucide-react';
 import MessageList from './MessageList';
 import { groupConversationsByCourse } from '@/lib/messageGrouping';
 import { readCache, writeCache } from '@/lib/dashboardCache';
@@ -148,12 +148,26 @@ export default function MessageBrowser({ currentUserId, baseUrl, providers }) {
             ))}
           </select>
         </div>
-        <div className="segmented" role="group" aria-label="Expandir ou recolher grupos de mensagens">
-          <button type="button" className="segmented-btn" onClick={expandAll}>
-            Expandir tudo
-          </button>
-          <button type="button" className="segmented-btn" onClick={collapseAll}>
-            Recolher tudo
+        <div className="browser-controls-actions">
+          <div className="segmented" role="group" aria-label="Expandir ou recolher grupos de mensagens">
+            <button type="button" className="segmented-btn" onClick={expandAll} title="Expandir tudo">
+              <ChevronsDown size={16} strokeWidth={2} aria-hidden="true" />
+              Expandir tudo
+            </button>
+            <button type="button" className="segmented-btn" onClick={collapseAll} title="Recolher tudo">
+              <ChevronsUp size={16} strokeWidth={2} aria-hidden="true" />
+              Recolher tudo
+            </button>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={fetchFresh}
+            disabled={loading}
+            title="Recarregar mensagens"
+          >
+            <RefreshCw size={14} strokeWidth={2} aria-hidden="true" />
+            {loading ? 'Atualizando…' : 'Recarregar'}
           </button>
         </div>
       </div>
@@ -222,10 +236,6 @@ export default function MessageBrowser({ currentUserId, baseUrl, providers }) {
             ? `Carregado em ${formatDateTime(fetchedAt)}${stale ? ' — dados salvos, atualizando em segundo plano…' : ''}`
             : 'Carregando…'}
         </span>
-        <button type="button" className="btn btn-secondary btn-sm" onClick={fetchFresh} disabled={loading}>
-          <RefreshCw size={14} strokeWidth={2} aria-hidden="true" />
-          {loading ? 'Atualizando…' : 'Recarregar'}
-        </button>
       </div>
     </div>
   );

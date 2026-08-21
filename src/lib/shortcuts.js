@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { dbGetAll, dbPut, dbDelete, STORE_SHORTCUTS } from './indexedDb';
+import { DEFAULT_SHORTCUT_ICON_ID } from './shortcutIcons';
 
 const EXPORT_KIND = 'shortcuts-export';
 const EXPORT_VERSION = 1;
@@ -9,13 +10,14 @@ export async function listShortcuts() {
   return rows.sort((a, b) => a.order - b.order);
 }
 
-export async function saveShortcut({ id, label, url }) {
+export async function saveShortcut({ id, label, url, icon }) {
   const shortcuts = await listShortcuts();
   const existing = id ? shortcuts.find((s) => s.id === id) : null;
   const record = {
     id: id || crypto.randomUUID(),
     label,
     url,
+    icon: icon || existing?.icon || DEFAULT_SHORTCUT_ICON_ID,
     order: existing?.order ?? shortcuts.length,
     createdAt: existing?.createdAt ?? Date.now(),
   };
@@ -50,7 +52,7 @@ export async function exportShortcutsFile() {
     kind: EXPORT_KIND,
     version: EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
-    shortcuts: shortcuts.map(({ id, label, url, order }) => ({ id, label, url, order })),
+    shortcuts: shortcuts.map(({ id, label, url, icon, order }) => ({ id, label, url, icon, order })),
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -75,6 +77,7 @@ export async function replaceAllShortcuts(shortcutsArray) {
         id: typeof s.id === 'string' && s.id ? s.id : crypto.randomUUID(),
         label: s.label || '',
         url: s.url || '',
+        icon: s.icon || DEFAULT_SHORTCUT_ICON_ID,
         order: Number.isInteger(s.order) ? s.order : index,
         createdAt: Date.now(),
       }),

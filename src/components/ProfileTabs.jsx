@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { User, KeyRound, Bookmark, Wand2, Link2 } from 'lucide-react';
+import { User, KeyRound, Bookmark, Wand2, Link2, SlidersHorizontal } from 'lucide-react';
 import ApiKeyManager from './ApiKeyManager';
 import ShortcutsManager from './ShortcutsManager';
 import PromptCustomizer from './PromptCustomizer';
@@ -10,6 +10,7 @@ import GithubConnection from './GithubConnection';
 import GoogleConnection from './GoogleConnection';
 import SettingsSaveLoad from './SettingsSaveLoad';
 import ThemeToggle from './ThemeToggle';
+import TarefasPreferences from './TarefasPreferences';
 import { useUnsavedChangesGuard } from '@/lib/useUnsavedChangesGuard';
 
 const TABS = [
@@ -18,19 +19,27 @@ const TABS = [
   { key: 'ia', label: 'Plataformas de IA', Icon: KeyRound },
   { key: 'prompts', label: 'Prompts de IA', Icon: Wand2 },
   { key: 'atalhos', label: 'Atalhos do Dashboard', Icon: Bookmark },
+  { key: 'preferencias', label: 'Preferências', Icon: SlidersHorizontal },
 ];
 
 const TAB_KEYS = TABS.map((t) => t.key);
 
-// Reuses the same folder-style tab CSS (.tab-folder/.tab-folder-btn/
-// .tab-folder-panel) as QuizImportPanel.jsx — same client-only, local
-// useState pattern, mostly no URL sync, EXCEPT the initial tab: the GitHub
-// and Google OAuth callbacks (github/oauth2/callback, google/oauth2/callback)
-// both redirect back to /perfil?tab=plataformas so the professor lands on
-// the right tab instead of "Geral" — read once at mount, not kept in sync
-// afterward. `providers` here is listProviders()'s output already merged
-// with a `hasApiKey` boolean per entry (computed server-side in
-// perfil/page.jsx from the session, never the key itself).
+// Own icon-sidebar nav (.profile-layout/.profile-sidebar/.profile-panel) —
+// NOT QuizImportPanel.jsx's horizontal .tab-folder pattern, which this used
+// to share: with six sections and labels like "Plataformas associadas"/
+// "Atalhos do Dashboard", the horizontal tab row overflowed badly on
+// anything narrower than a wide desktop and was unusable on a phone (a
+// sideways-scrolling row of text tabs). The sidebar collapses to a
+// horizontal icon+small-label strip below 640px instead (see globals.css) —
+// still compact, but every section stays one tap away without scrolling
+// through hidden tabs. Same client-only, local useState pattern, mostly no
+// URL sync, EXCEPT the initial tab: the GitHub and Google OAuth callbacks
+// (github/oauth2/callback, google/oauth2/callback) both redirect back to
+// /perfil?tab=plataformas so the professor lands on the right section
+// instead of "Geral" — read once at mount, not kept in sync afterward.
+// `providers` here is listProviders()'s output already merged with a
+// `hasApiKey` boolean per entry (computed server-side in perfil/page.jsx
+// from the session, never the key itself).
 //
 // SettingsSaveLoad (the "Salvar/Carregar Configurações do CanvasTools"
 // block) renders above the tab nav, not inside any single tab panel, since
@@ -61,23 +70,25 @@ export default function ProfileTabs({ userName, baseUrl, providers }) {
         <SettingsSaveLoad onNavigateToPlatforms={() => setTab('plataformas')} />
       </div>
 
-      <div className="tab-folder" role="tablist" aria-label="Seções do perfil">
-        {TABS.map(({ key, label, Icon }) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={tab === key}
-            className={`tab-folder-btn${tab === key ? ' active' : ''}`}
-            onClick={() => setTab(key)}
-          >
-            <Icon size={16} strokeWidth={1.8} />
-            {label}
-          </button>
-        ))}
-      </div>
+      <div className="profile-layout">
+        <nav className="profile-sidebar" role="tablist" aria-label="Seções do perfil">
+          {TABS.map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              className={`profile-sidebar-btn${tab === key ? ' active' : ''}`}
+              onClick={() => setTab(key)}
+              title={label}
+            >
+              <Icon size={18} strokeWidth={1.8} />
+              <span className="profile-sidebar-label">{label}</span>
+            </button>
+          ))}
+        </nav>
 
-      <div className="tab-folder-panel" role="tabpanel">
+        <div className="profile-panel" role="tabpanel">
         {tab === 'geral' && (
           <>
             <dl className="profile-info">
@@ -98,7 +109,7 @@ export default function ProfileTabs({ userName, baseUrl, providers }) {
             </div>
 
             <p className="lede">
-              Além do tema e dos atalhos e prompts nas abas ao lado, outras preferências (idioma, provedor de IA
+              Além do tema e dos atalhos e prompts nas seções ao lado, outras preferências (idioma, provedor de IA
               padrão, notificações) devem chegar aqui conforme forem implementadas.
             </p>
           </>
@@ -144,6 +155,9 @@ export default function ProfileTabs({ userName, baseUrl, providers }) {
             <ShortcutsManager onDirtyChange={(isDirty) => setDirty('shortcuts', isDirty)} />
           </>
         )}
+
+        {tab === 'preferencias' && <TarefasPreferences />}
+        </div>
       </div>
     </div>
   );

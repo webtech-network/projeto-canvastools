@@ -19,11 +19,9 @@ import {
 import { EMPTY_FILTERS } from '@/lib/workspace/filters';
 import { scheduleWorkspaceSync, flushWorkspaceSyncNow } from '@/lib/sync/workspaceSyncScheduler';
 import { subscribeSyncStatus, getSyncStatusSnapshot } from '@/lib/sync/syncStatusStore';
+import { resolveWorkspacePreferences, patchSessionOverride } from '@/lib/workspace/workspacePreferences';
 
 const WorkspaceContext = createContext(null);
-
-const DENSITY_STORAGE_KEY = 'canvastools:workspace-card-density';
-const STAGES_COLLAPSED_STORAGE_KEY = 'canvastools:workspace-stages-collapsed';
 
 const initialState = {
   tasks: [],
@@ -149,15 +147,17 @@ export function WorkspaceProvider({ children }) {
   }, []);
 
   // Read after mount only (like Sidebar.jsx's collapse preference) so the
-  // server-rendered ('expanded') markup matches the client's first paint.
+  // server-rendered markup (initialState's hardcoded values, which match
+  // FALLBACK_PREFERENCES) never mismatches the client's first paint.
+  // Resolves the persistent default (edited in /perfil's Preferências tab)
+  // merged with this tab's session override (see workspacePreferences.js) —
+  // "abra com as configurações predefinidas" on a session's first visit,
+  // then whatever was toggled directly on this screen for the rest of it.
   useEffect(() => {
-    const stored = window.localStorage.getItem(DENSITY_STORAGE_KEY);
-    if (stored === 'condensed' || stored === 'expanded') {
-      dispatch({ type: 'SET_DENSITY', density: stored });
-    }
-    if (window.localStorage.getItem(STAGES_COLLAPSED_STORAGE_KEY) === '1') {
-      dispatch({ type: 'SET_STAGES_COLLAPSED', collapsed: true });
-    }
+    const prefs = resolveWorkspacePreferences();
+    dispatch({ type: 'SET_DENSITY', density: prefs.cardDensity });
+    dispatch({ type: 'SET_VIEW', view: prefs.view });
+    dispatch({ type: 'SET_STAGES_COLLAPSED', collapsed: prefs.stagesCollapsed });
   }, []);
 
   const addTask = useCallback(async (title, projectId = null) => {
@@ -208,8 +208,8 @@ export function WorkspaceProvider({ children }) {
       });
   }, []);
 
-  const addProject = useCallback(async ({ name, type, canvasReference = null }) => {
-    const project = await repoCreateProject({ name, type, canvasReference });
+  const addProject = useCallback(async ({ name, type, canvasReference = null, color = null }) => {
+    const project = await repoCreateProject({ name, type, canvasReference, color });
     dispatch({ type: 'PROJECT_UPSERT', project });
     scheduleWorkspaceSync();
     return project;
@@ -230,15 +230,37 @@ export function WorkspaceProvider({ children }) {
     scheduleWorkspaceSync();
   }, []);
 
+  // These three write only to the session-tier override (workspacePreferences.js)
+  // — never to the persistent default, which is only ever changed via
+  // /perfil's Preferências tab (TarefasPreferences.jsx). "Ao alterar algo
+  // [na tela de Tarefas], mantenha estas opções nas configurações de
+  // sessão que devem sobrepor as configurações padrões durante a sessão."
   const setFilters = useCallback((filters) => dispatch({ type: 'SET_FILTERS', filters }), []);
-  const setView = useCallback((view) => dispatch({ type: 'SET_VIEW', view }), []);
+  const setView = useCallback((view) => {
+    patchSessionOverride({ view });
+    dispatch({ type: 'SET_VIEW', view });
+  }, []);
   const setCardDensity = useCallback((density) => {
-    window.localStorage.setItem(DENSITY_STORAGE_KEY, density);
+    patchSessionOverride({ cardDensity: density });
     dispatch({ type: 'SET_DENSITY', density });
   }, []);
   const setStagesCollapsed = useCallback((collapsed) => {
-    window.localStorage.setItem(STAGES_COLLAPSED_STORAGE_KEY, collapsed ? '1' : '0');
+    patchSessionOverride({ stagesCollapsed: collapsed });
     dispatch({ type: 'SET_STAGES_COLLAPSED', collapsed });
+  }, []);
+
+  // For mutations that bypass the wrappers above and write to IndexedDB
+  // directly (WorkspaceExportImport.jsx's file import, via
+  // workspaceExport.js's replaceAllTasks/replaceAllProjects) — re-reads
+  // local IndexedDB and re-hydrates state, same as the post-sync effect
+  // above, but callable on demand instead of waiting for a sync transition.
+  const refreshFromLocal = useCallback(async () => {
+    const [tasks, projects] = await Promise.all([listTasks(), listProjects()]);
+    dispatch({
+      type: 'HYDRATE',
+      tasks: tasks.filter((t) => !t.deletedAt),
+      projects: projects.filter((p) => !p.deletedAt),
+    });
   }, []);
 
   const value = {
@@ -255,6 +277,7 @@ export function WorkspaceProvider({ children }) {
     setView,
     setCardDensity,
     setStagesCollapsed,
+    refreshFromLocal,
   };
 
   return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;

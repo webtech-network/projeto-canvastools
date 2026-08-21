@@ -3,6 +3,7 @@ import { findDriveFile, createDriveFile, downloadDriveFile, updateDriveFile, WOR
 import { listTasks, replaceAllTasks } from './tasksRepo';
 import { listProjects, replaceAllProjects } from './projectsRepo';
 import { mergeRecords } from './workspaceMerge';
+import { WORKSPACE_EXPORT_KIND, WORKSPACE_EXPORT_VERSION } from './workspaceExport';
 
 // The app's only workspace sync entry point — always bidirectional.
 // Downloads whatever's on Drive, reconciles it against what's local
@@ -14,9 +15,6 @@ import { mergeRecords } from './workspaceMerge';
 // turned out to feel unnatural and never brought remote changes back on
 // their own; a single always-reconciling command is simpler for both the
 // user and the code.
-
-const EXPORT_KIND = 'workspace-export';
-const EXPORT_VERSION = 1;
 
 async function resolveWorkspaceFileId(accessToken) {
   const cached = (await getGoogleConnection())?.workspaceFileId;
@@ -38,7 +36,7 @@ export async function mergeSyncWorkspace() {
     // empty — doing that would let the push step below overwrite real
     // remote data with an incomplete merge.
     const fileBody = await downloadDriveFile(accessToken, fileId);
-    if (fileBody?.kind === EXPORT_KIND) {
+    if (fileBody?.kind === WORKSPACE_EXPORT_KIND) {
       remoteTasks = Array.isArray(fileBody.tasks) ? fileBody.tasks : [];
       remoteProjects = Array.isArray(fileBody.projects) ? fileBody.projects : [];
     }
@@ -52,8 +50,8 @@ export async function mergeSyncWorkspace() {
 
   const fileBody = {
     app: 'canvastools',
-    kind: EXPORT_KIND,
-    version: EXPORT_VERSION,
+    kind: WORKSPACE_EXPORT_KIND,
+    version: WORKSPACE_EXPORT_VERSION,
     exportedAt: new Date().toISOString(),
     tasks: mergedTasks,
     projects: mergedProjects,

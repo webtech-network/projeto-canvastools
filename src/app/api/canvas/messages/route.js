@@ -16,7 +16,10 @@ export async function GET() {
   const client = buildClient(session);
 
   const rawCourses = await listCourses(client);
-  const favoriteCourses = rawCourses.filter((c) => c.is_favorite);
+  // Favorite AND published — an unpublished favorite course has no real
+  // conversations worth surfacing here and would just be dead weight in the
+  // context selector (see mensagens/page.jsx's note under the page title).
+  const favoriteCourses = rawCourses.filter((c) => c.is_favorite && c.workflow_state === 'available');
 
   // A 401 here (as opposed to elsewhere in the app) almost always means the
   // Canvas Developer Key has "Enforce Scopes" on without the Conversations

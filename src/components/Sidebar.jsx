@@ -3,15 +3,25 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { GraduationCap, KanbanSquare, Sparkles, Mail, BookOpen, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+  LayoutDashboard,
+  GraduationCap,
+  KanbanSquare,
+  Sparkles,
+  Mail,
+  BookOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react';
 import SidebarMenu from './SidebarMenu';
 import { useMobileNav } from './MobileNavProvider';
 
 const NAV_ITEMS = [
+  { href: '/', label: 'Dashboard', Icon: LayoutDashboard, exact: true },
   { href: '/courses', label: 'Cursos', Icon: GraduationCap },
   { href: '/tarefas', label: 'Tarefas', Icon: KanbanSquare },
-  { href: '/questoes', label: 'Questões', Icon: Sparkles },
   { href: '/mensagens', label: 'Mensagens', Icon: Mail },
+  { href: '/questoes', label: 'Questões', Icon: Sparkles },
   { href: '/tutorial', label: 'Tutorial', Icon: BookOpen },
 ];
 
@@ -81,8 +91,8 @@ export default function Sidebar() {
           {collapsed ? <PanelLeftOpen size={22} strokeWidth={1.8} /> : <PanelLeftClose size={22} strokeWidth={1.8} />}
         </button>
         <nav className="sidebar-nav">
-          {NAV_ITEMS.map(({ href, label, Icon }) => {
-            const active = pathname.startsWith(href);
+          {NAV_ITEMS.map(({ href, label, Icon, exact }) => {
+            const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link
                 key={href}

@@ -1,6 +1,5 @@
 'use client';
 
-import { Info } from 'lucide-react';
 import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import EisenhowerQuadrant from './EisenhowerQuadrant';
 import { useWorkspace } from './WorkspaceProvider';
@@ -24,17 +23,25 @@ const QUADRANT_ORDER = [
   QUADRANTS.NOT_URGENT_NOT_IMPORTANT,
 ];
 
-// The matrix is for deciding what to prioritize among work that's actually
-// in flight — Backlog (not yet planned) and Done (already finished) don't
-// belong in a priority call, and Block sits out too since it's waiting on
-// something else, not something to rank by urgency/importance right now.
-const MATRIX_STATUSES = new Set(['TODO', 'DOING']);
+// Done (already finished) never belongs in a priority call — that exclusion
+// is unconditional. Backlog/Block are conditional instead, driven by the
+// same `stagesCollapsed` toggle that collapses those two columns in the
+// Kanban board (see WorkspaceView.jsx's shared toggle button): "collapsed"
+// here means "hide Backlog/Block from the matrix too", not yet planned or
+// blocked work isn't worth a priority call either, while "expanded" (the
+// default) shows every in-flight status.
+const MATRIX_ALWAYS_EXCLUDED = new Set(['DONE']);
+const MATRIX_HIDDEN_WHEN_COLLAPSED = new Set(['BACKLOG', 'BLOCK']);
 
 export default function EisenhowerMatrix({ onSelect }) {
-  const { tasks, projects, filters, moveTaskPriority } = useWorkspace();
+  const { tasks, projects, filters, moveTaskPriority, stagesCollapsed } = useWorkspace();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  const filtered = applyFilters(tasks, filters, projects).filter((t) => MATRIX_STATUSES.has(t.status));
+  const filtered = applyFilters(tasks, filters, projects).filter((t) => {
+    if (MATRIX_ALWAYS_EXCLUDED.has(t.status)) return false;
+    if (stagesCollapsed && MATRIX_HIDDEN_WHEN_COLLAPSED.has(t.status)) return false;
+    return true;
+  });
 
   function handleDragEnd({ active, over }) {
     if (!over) return;
@@ -44,25 +51,18 @@ export default function EisenhowerMatrix({ onSelect }) {
   }
 
   return (
-    <>
-      <p className="alert alert-info">
-        <Info size={16} strokeWidth={1.8} aria-hidden="true" />
-        A matriz mostra apenas tarefas em Todo e Doing — Backlog, Block e Done ficam fora, já que priorizar não se
-        aplica a tarefas ainda não planejadas, impedidas ou já concluídas.
-      </p>
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-        <div className="eisenhower-matrix">
-          {QUADRANT_ORDER.map((quadrant) => (
-            <EisenhowerQuadrant
-              key={quadrant}
-              quadrant={quadrant}
-              label={QUADRANT_LABELS[quadrant]}
-              tasks={filtered.filter((t) => quadrantOf(t.priority) === quadrant)}
-              onSelect={onSelect}
-            />
-          ))}
-        </div>
-      </DndContext>
-    </>
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <div className="eisenhower-matrix">
+        {QUADRANT_ORDER.map((quadrant) => (
+          <EisenhowerQuadrant
+            key={quadrant}
+            quadrant={quadrant}
+            label={QUADRANT_LABELS[quadrant]}
+            tasks={filtered.filter((t) => quadrantOf(t.priority) === quadrant)}
+            onSelect={onSelect}
+          />
+        ))}
+      </div>
+    </DndContext>
   );
 }

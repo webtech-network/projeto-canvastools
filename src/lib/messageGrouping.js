@@ -26,10 +26,11 @@ export function countMessagesByCourse(conversations, courseIds) {
 
 /**
  * Groups conversations by course for the messages screen's collapsible
- * sections. Every course in `courses` gets a group (possibly empty, so a
- * favorite course with no messages still shows up), plus a trailing
- * `{ course: null, ... }` bucket for any conversation that matched none of
- * them (e.g. a direct message with no shared course context).
+ * sections. A leading `{ course: null, ... }` bucket holds any conversation
+ * that matched no course (e.g. a direct message with no shared course
+ * context) — shown first per product decision. Every course in `courses`
+ * then gets a group (possibly empty, so a favorite course with no messages
+ * still shows up).
  */
 export function groupConversationsByCourse(conversations, courses) {
   const courseById = new Map(courses.map((c) => [String(c.id), c]));
@@ -46,6 +47,6 @@ export function groupConversationsByCourse(conversations, courses) {
   }
 
   const result = courses.map((c) => groups.get(String(c.id)));
-  if (other.length) result.push({ course: null, conversations: other });
+  if (other.length) result.unshift({ course: null, conversations: other });
   return result;
 }

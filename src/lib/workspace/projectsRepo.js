@@ -9,13 +9,14 @@ export async function getProject(id) {
   return dbGet(STORE_PROJECTS, id);
 }
 
-export async function createProject({ name, type, canvasReference = null }) {
+export async function createProject({ name, type, canvasReference = null, color = null }) {
   const now = Date.now();
   const project = {
     id: crypto.randomUUID(),
     name,
     type,
     canvasReference,
+    color,
     deletedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -45,6 +46,7 @@ export async function replaceAllProjects(projectsArray) {
         name: p.name || '',
         type: p.type === 'canvas-course' ? 'canvas-course' : 'personal',
         canvasReference: p.canvasReference ?? null,
+        color: p.color ?? null,
         deletedAt: p.deletedAt ?? null,
         createdAt: p.createdAt ?? now,
         updatedAt: p.updatedAt ?? now,

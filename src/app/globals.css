@@ -668,6 +668,82 @@ a {
   border-bottom: 1px dashed var(--line);
 }
 
+/* Configurações (ProfileTabs.jsx) — icon sidebar instead of QuizImportPanel's
+   horizontal .tab-folder: with six sections and long labels ("Plataformas
+   associadas", "Atalhos do Dashboard") the tab row overflowed the page width
+   badly and was unusable on a phone. A vertical rail keeps every section's
+   width contribution to a single fixed column regardless of label length. */
+.profile-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  margin-top: 1.25rem;
+}
+.profile-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: none;
+  width: 220px;
+}
+.profile-sidebar-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.profile-sidebar-btn svg {
+  flex-shrink: 0;
+}
+.profile-sidebar-btn:hover {
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+.profile-sidebar-btn.active {
+  background: var(--paper-raised);
+  border-color: var(--line);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+.profile-panel {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  padding: 1.25rem;
+}
+
+/* Tablet-portrait and phone widths: the rail stays docked on the left (never
+   flips to a horizontal strip) but narrows — each button switches from
+   icon-beside-label to icon-above-label, stacked and centered, so the
+   column's width contribution shrinks to roughly one icon's width instead
+   of the longest label's. */
+@media (max-width: 768px) {
+  .profile-sidebar {
+    width: 78px;
+  }
+  .profile-sidebar-btn {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.55rem 0.35rem;
+    font-size: 0.66rem;
+    text-align: center;
+    line-height: 1.15;
+  }
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -704,6 +780,11 @@ a {
 }
 .btn-secondary:hover {
   border-color: var(--accent);
+}
+.btn-secondary.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff9f2;
 }
 .btn-ghost {
   background: transparent;
@@ -974,6 +1055,13 @@ a {
   margin: 1.25rem 0 1.5rem;
 }
 
+.browser-controls-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+}
+
 .search-input {
   flex: 1 1 240px;
   min-width: 0;
@@ -1023,6 +1111,10 @@ a {
 }
 .segmented-btn:not(.active):hover {
   color: var(--ink);
+}
+.segmented-btn.icon-only {
+  padding: 0.45rem;
+  gap: 0;
 }
 
 .badge {
@@ -1540,6 +1632,45 @@ a {
 .compose-message-field textarea:focus {
   outline: none;
   border-color: var(--accent);
+}
+/* A lone <button> or <div class="segmented"> child (e.g. TarefasPreferences.jsx's
+   density/view/Backlog-Block controls) would otherwise stretch to the
+   field's full width under this column flex's default align-items: stretch
+   — .segmented's own inner buttons stay compact either way (they're not
+   flex items of THIS container), but the surrounding box itself visibly
+   stretched, leaving a large empty bordered strip next to a small control. */
+.compose-message-field > button,
+.compose-message-field > .segmented {
+  align-self: flex-start;
+}
+
+.project-color-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.project-color-swatch {
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+.project-color-swatch:hover {
+  transform: scale(1.08);
+}
+.project-color-swatch.active {
+  box-shadow: 0 0 0 2px var(--paper-raised), 0 0 0 4px var(--accent);
+}
+.project-color-swatch--none {
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  border-style: dashed;
 }
 .compose-message-actions {
   display: flex;
@@ -2146,6 +2277,32 @@ a {
   color: var(--ink-soft);
 }
 
+/* On a phone-width screen, four separate 180px-min tiles wrap into a tall
+   stack — condense them into one row instead, matching the request that all
+   four "big numbers" stay visible together without scrolling. */
+@media (max-width: 640px) {
+  .stat-tile-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.4rem;
+  }
+  .stat-tile {
+    padding: 0.55rem 0.4rem;
+    gap: 0.1rem;
+    text-align: center;
+    align-items: center;
+  }
+  .stat-tile-label {
+    font-size: 0.6rem;
+    letter-spacing: 0;
+  }
+  .stat-tile-value {
+    font-size: 1.15rem;
+  }
+  .stat-tile-sub {
+    display: none;
+  }
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
@@ -2270,6 +2427,21 @@ a {
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 0.6rem;
 }
+.shortcuts-grid--condensed {
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.5rem;
+}
+.card-link--condensed {
+  justify-content: flex-start;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+}
+.card-link--condensed .card-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
 
 .shortcuts-manager {
   margin-top: 1rem;
@@ -2309,6 +2481,46 @@ a {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 0.65rem 0.9rem;
+}
+.shortcuts-list-item-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--ink-soft);
+  min-width: 0;
+}
+.shortcuts-list-item-main .card-title {
+  display: block;
+}
+
+.shortcuts-icon-picker {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.shortcut-icon-swatch {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.shortcut-icon-swatch:hover {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+.shortcut-icon-swatch.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff9f2;
 }
 .shortcuts-list-actions {
   display: flex;
@@ -2458,12 +2670,75 @@ a {
   border-color: var(--accent);
 }
 
-.workspace-filter-bar {
+/* Single control row (spec: quick-add, filter, Backlog/Block toggle,
+   projetos on the left; density + view switches pushed right via
+   margin-left: auto on .workspace-toolbar-right). QuickAddTask.jsx's own
+   margin is zeroed out here since this row now owns the spacing. */
+.workspace-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   margin: 0 0 1.25rem;
+}
+.workspace-toolbar .quick-add-task {
+  flex: 1 1 240px;
+  min-width: 160px;
+  margin: 0;
+}
+.workspace-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-left: auto;
+}
+
+.workspace-filter-modal-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+.workspace-filter-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+.workspace-filter-modal-field select,
+.workspace-filter-modal-field input {
+  font: inherit;
+  font-weight: 400;
+  font-size: 0.94rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-raised);
+  color: var(--ink);
+}
+
+.workspace-export-import {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+.workspace-export-import-section h3 {
+  margin: 0 0 0.3rem;
+  font-size: 1rem;
+}
+.workspace-export-import-section .lede {
+  margin: 0 0 0.65rem;
+}
+.workspace-export-import-section .alert {
+  margin-top: 0.65rem;
+}
+.workspace-export-import-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
 }
 .workspace-filter-bar select,
 .workspace-filter-bar input[type='date'] {
@@ -2551,6 +2826,13 @@ a {
   border-radius: 8px;
   background: var(--paper-raised);
 }
+.workspace-projects-color-dot {
+  flex: none;
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
 .workspace-projects-name {
   flex: 1;
   min-width: 0;
@@ -2603,6 +2885,11 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
+.kanban-column-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
 .kanban-column-body {
   display: flex;
   flex-direction: column;
@@ -2622,24 +2909,36 @@ a {
   align-items: center;
   padding: 0.5rem 0.3rem;
 }
+/* Count sits first, at the visual top, in normal orientation; the column
+   name follows below it, rotated to read top-to-bottom in the narrow strip —
+   see KanbanColumn.jsx's DOM order, which this CSS deliberately doesn't need
+   to reverse (no full-box rotation trick). The whole strip is one <button>
+   so clicking anywhere on it re-expands the column. */
 .kanban-column-collapsed-label {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.5rem;
   height: 100%;
+  width: 100%;
   padding: 0.4rem 0;
+  border: none;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+.kanban-column-collapsed-label:hover {
+  color: var(--ink);
+}
+.kanban-column-collapsed-name {
   writing-mode: vertical-rl;
   transform: rotate(180deg);
+  flex: 1;
   font-weight: 600;
   font-size: 0.8rem;
-  color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.02em;
-}
-.kanban-column-collapsed-label .pending-badge {
-  writing-mode: horizontal-tb;
-  transform: none;
 }
 
 .eisenhower-matrix {

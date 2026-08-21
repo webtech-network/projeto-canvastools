@@ -47,6 +47,11 @@ export default function ProjectsManagerModal({ onClose }) {
         <ul className="workspace-projects-list">
           {group.map((project) => (
             <li key={project.id} className="workspace-projects-row">
+              <span
+                className="workspace-projects-color-dot"
+                style={{ backgroundColor: project.color || 'transparent' }}
+                aria-hidden="true"
+              />
               <span className="workspace-projects-name">{project.name}</span>
               <span className="workspace-projects-count">{taskCountFor(project.id)} tarefa(s)</span>
               <span className="workspace-projects-actions">

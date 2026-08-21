@@ -5,6 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Flag, Zap, CalendarDays } from 'lucide-react';
 import { useWorkspace } from './WorkspaceProvider';
 import { STATUS_META } from '@/lib/workspace/statusMeta';
+import { projectCardStyle } from '@/lib/workspace/projectColors';
 
 // `dueDate` is stored as a plain 'YYYY-MM-DD' string (no time/timezone) —
 // parsing it via `new Date('YYYY-MM-DD')` treats it as UTC midnight per the
@@ -40,9 +41,10 @@ export default function TaskCard({ task, onSelect }) {
     data: { task },
   });
 
-  const style = transform
-    ? { transform: CSS.Translate.toString(transform), zIndex: 10 }
-    : undefined;
+  const style = {
+    ...projectCardStyle(project),
+    ...(transform ? { transform: CSS.Translate.toString(transform), zIndex: 10 } : undefined),
+  };
 
   const condensed = cardDensity === 'condensed';
 
