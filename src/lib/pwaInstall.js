@@ -5,6 +5,25 @@
 // are called from ServiceWorkerRegistration.jsx, the app's one headless
 // "PWA-related side effects" component.
 
+// Chrome can fire beforeinstallprompt as soon as it finishes evaluating
+// installability — which can happen before this app's own JS has hydrated
+// and attached a listener, silently dropping the event. INSTALL_PROMPT_CAPTURE_SCRIPT
+// is inlined verbatim into a beforeInteractive <Script> in layout.jsx (same
+// technique as theme.js's THEME_INIT_SCRIPT) so a listener is live from the
+// very first paint, stashing the event on `window` until this module's own
+// effect (ServiceWorkerRegistration.jsx) picks it up on mount.
+export const INSTALL_PROMPT_GLOBAL_KEY = '__cvtDeferredInstallPrompt';
+export const INSTALL_PROMPT_READY_EVENT = 'cvt:install-prompt-ready';
+export const INSTALL_PROMPT_CAPTURE_SCRIPT = `
+(function () {
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    window.${INSTALL_PROMPT_GLOBAL_KEY} = e;
+    window.dispatchEvent(new Event('${INSTALL_PROMPT_READY_EVENT}'));
+  });
+})();
+`;
+
 let deferredPrompt = null;
 let installed = false;
 const listeners = new Set();
@@ -31,6 +50,17 @@ function notify() {
 export function capturePrompt(event) {
   deferredPrompt = event;
   notify();
+}
+
+// Called once from ServiceWorkerRegistration.jsx's mount effect — picks up
+// whatever the early beforeInteractive script (INSTALL_PROMPT_CAPTURE_SCRIPT
+// above) already stashed before this module even loaded, closing the
+// hydration-timing gap described above. A no-op if nothing was stashed
+// (the event hasn't fired yet, or this browser doesn't support it at all).
+export function claimStashedPrompt() {
+  if (typeof window === 'undefined') return;
+  const stashed = window[INSTALL_PROMPT_GLOBAL_KEY];
+  if (stashed) capturePrompt(stashed);
 }
 
 export function markInstalled() {

@@ -2,6 +2,7 @@ import { Fraunces, IBM_Plex_Sans } from 'next/font/google';
 import Script from 'next/script';
 import bannerOg from '@/assets/images/banner_og.jpeg';
 import { THEME_INIT_SCRIPT } from '@/lib/theme';
+import { INSTALL_PROMPT_CAPTURE_SCRIPT } from '@/lib/pwaInstall';
 import './globals.css';
 
 const GA_MEASUREMENT_ID = 'G-15544DM2DE';
@@ -64,6 +65,15 @@ export default function RootLayout({ children }) {
             see src/lib/theme.js. */}
         <Script id="theme-init" strategy="beforeInteractive">
           {THEME_INIT_SCRIPT}
+        </Script>
+        {/* Attaches a beforeinstallprompt listener before this app's own JS
+            hydrates — Chrome can fire that event as soon as it evaluates
+            installability, which can happen before a React effect would be
+            live to catch it. Stashes on window; pwaInstall.js's
+            claimStashedPrompt() (called from ServiceWorkerRegistration.jsx)
+            picks it up once the app is actually running. */}
+        <Script id="install-prompt-capture" strategy="beforeInteractive">
+          {INSTALL_PROMPT_CAPTURE_SCRIPT}
         </Script>
         <Script src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} strategy="afterInteractive" />
         <Script id="google-analytics" strategy="afterInteractive">
