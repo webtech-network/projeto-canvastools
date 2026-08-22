@@ -24,3 +24,12 @@ export function courseMessagesUrl(baseUrl, courseId) {
 export function studentGradesUrl(baseUrl, courseId, studentId) {
   return `${baseUrl}/courses/${courseId}/grades/${studentId}`;
 }
+
+// Canvas's own grading UI for a single assignment. `baseUrl` here is usually
+// derived from an item's own `html_url` (`new URL(item.htmlUrl).origin`)
+// rather than session.baseUrl, since callers like RecentDeadlines.jsx only
+// ever have the per-item Canvas URL on hand, not the session — same domain
+// either way, just a different source for it.
+export function speedGraderUrl(baseUrl, courseId, assignmentId) {
+  return `${baseUrl}/courses/${courseId}/gradebook/speed_grader?assignment_id=${assignmentId}`;
+}

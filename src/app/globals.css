@@ -2499,6 +2499,14 @@ tr.is-expanded .course-name-btn {
   padding-top: 0.75rem;
 }
 
+/* RecentDeadlines.jsx — groups the SpeedGrader icon and the overdue/upcoming
+   date tag together as the row's trailing (right-side) content. */
+.deadline-trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
 .deadline-tag {
   display: inline-flex;
   align-items: center;
