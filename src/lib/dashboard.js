@@ -82,13 +82,22 @@ export function deriveDueDateItems(assignments, courses) {
  * remaining slots going to the nearest FUTURE items — if there are fewer
  * than `maxPast` past items, the freed slots roll over to future items (e.g.
  * zero past items → maxTotal future items). Returned in chronological order.
+ *
+ * A PAST item only counts if it still has ungraded submissions
+ * (`needsGrading`) — once every submission's corrected, there's nothing left
+ * to act on, so it's dropped instead of lingering here as a done deal (it
+ * still shows on DueDateCalendar, which has no such notion of "handled").
+ * FUTURE items are never filtered this way — a deadline that hasn't arrived
+ * yet has no submissions to grade regardless.
  */
 export function deriveRecentWindow(dueDateItems, { now = new Date(), windowDays = 7, maxTotal = 5, maxPast = 2 } = {}) {
   const windowStart = new Date(now.getTime() - windowDays * 86400000);
   const windowEnd = new Date(now.getTime() + windowDays * 86400000);
   const inWindow = dueDateItems.filter((i) => i.dueAt >= windowStart && i.dueAt <= windowEnd);
 
-  const past = inWindow.filter((i) => i.dueAt <= now).sort((a, b) => b.dueAt - a.dueAt); // closest-to-now first
+  const past = inWindow
+    .filter((i) => i.dueAt <= now && i.needsGrading)
+    .sort((a, b) => b.dueAt - a.dueAt); // closest-to-now first
   const future = inWindow.filter((i) => i.dueAt > now).sort((a, b) => a.dueAt - b.dueAt); // soonest first
 
   const pastSlots = Math.min(maxPast, past.length);
