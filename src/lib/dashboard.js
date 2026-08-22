@@ -28,6 +28,34 @@ export function derivePendingGrading(assignments) {
   };
 }
 
+// The itemized "correções pendentes" list backing PendingGradingList.jsx on
+// the dashboard — unlike deriveDueDateItems, an assignment with no due_at is
+// still kept (an ungraded submission doesn't stop being pending just because
+// the assignment has no deadline), and the list isn't time-windowed like
+// deriveRecentWindow's "prazos recentes" — every currently-ungraded
+// assignment shows, sorted so the ones with a due date (soonest first) lead,
+// followed by the undated ones.
+export function derivePendingGradingItems(assignments, courses) {
+  const courseById = new Map(courses.map((c) => [c.id, c]));
+  return assignments
+    .filter((a) => (a.needs_grading_count ?? 0) > 0)
+    .map((a) => ({
+      id: a.id,
+      name: a.name,
+      dueAt: a.due_at ? new Date(a.due_at) : null,
+      courseId: a.course_id,
+      courseName: courseById.get(a.course_id)?.name ?? '',
+      htmlUrl: a.html_url,
+      needsGradingCount: a.needs_grading_count,
+    }))
+    .sort((a, b) => {
+      if (a.dueAt && b.dueAt) return a.dueAt - b.dueAt;
+      if (a.dueAt) return -1;
+      if (b.dueAt) return 1;
+      return a.name.localeCompare(b.name);
+    });
+}
+
 // Normalizes a flat assignments array (e.g. from
 // Promise.all(courses.map(c => listAssignments(client, c.id))).flat() — each
 // Assignment object already carries its own course_id) into a

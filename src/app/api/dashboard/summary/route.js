@@ -7,12 +7,20 @@ import {
   filterActiveFavoriteCourses,
   sumTotalStudents,
   derivePendingGrading,
+  derivePendingGradingItems,
   deriveDueDateItems,
   deriveRecentWindow,
 } from '@/lib/dashboard';
 
 function serializeItem(item) {
   return { ...item, dueAt: item.dueAt.toISOString() };
+}
+
+// derivePendingGradingItems() keeps undated assignments (dueAt: null),
+// unlike deriveDueDateItems' items — serializeItem() would crash calling
+// .toISOString() on null, so this only touches the field when it's set.
+function serializePendingGradingItem(item) {
+  return { ...item, dueAt: item.dueAt ? item.dueAt.toISOString() : null };
 }
 
 // Backs the dashboard's stale-while-revalidate panel (see DashboardPanel.jsx)
@@ -72,6 +80,7 @@ export async function GET() {
   );
 
   const { pendingAssignmentsCount, pendingGradingSum } = derivePendingGrading(assignments);
+  const pendingGradingItems = derivePendingGradingItems(assignments, courses);
   const dueDateItems = deriveDueDateItems(assignments, courses);
   const recentItems = deriveRecentWindow(dueDateItems);
 
@@ -81,8 +90,8 @@ export async function GET() {
     messages: { pendingCount },
     grading:
       assignmentsResult.status === 'fulfilled'
-        ? { pendingAssignmentsCount, pendingGradingSum }
-        : { pendingAssignmentsCount: null, pendingGradingSum: null },
+        ? { pendingAssignmentsCount, pendingGradingSum, items: pendingGradingItems.map(serializePendingGradingItem) }
+        : { pendingAssignmentsCount: null, pendingGradingSum: null, items: [] },
     calendar: { items: dueDateItems.map(serializeItem) },
     recent: { items: recentItems.map(serializeItem) },
     generatedAt: new Date().toISOString(),

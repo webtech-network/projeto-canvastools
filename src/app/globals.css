@@ -1027,6 +1027,7 @@ a {
   padding: 0.95rem 1.2rem;
   text-decoration: none;
   color: var(--ink);
+  cursor: pointer;
   transition: border-color 0.12s ease, transform 0.12s ease;
 }
 .card-link:hover {
@@ -1035,6 +1036,21 @@ a {
 }
 .card-title {
   font-weight: 600;
+}
+
+/* PendingGradingList.jsx — the Canvas LMS icon sits inline right after the
+   title text, as its own <a> (not nested inside the row's <li role="link">,
+   which isn't an anchor precisely so this can be a real, separately
+   clickable link — see that file's own comment). */
+.card-title-external-link {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.4rem;
+  color: var(--ink-soft);
+  vertical-align: -2px;
+}
+.card-title-external-link:hover {
+  color: var(--accent);
 }
 .card-meta {
   color: var(--ink-soft);

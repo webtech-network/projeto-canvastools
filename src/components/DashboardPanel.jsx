@@ -5,7 +5,9 @@ import { readCache, writeCache } from '@/lib/dashboardCache';
 import DashboardStats from './DashboardStats';
 import DueDateCalendar from './DueDateCalendar';
 import RecentDeadlines from './RecentDeadlines';
+import DashboardDoingTasks from './DashboardDoingTasks';
 import DashboardShortcuts from './DashboardShortcuts';
+import PendingGradingList from './PendingGradingList';
 
 const CACHE_KEYS = {
   courses: 'dashboard:courses',
@@ -116,11 +118,16 @@ export default function DashboardPanel() {
       />
 
       <div className="dashboard-grid">
+        <DashboardDoingTasks />
+        <DashboardShortcuts />
+      </div>
+
+      <div className="dashboard-grid">
         <DueDateCalendar items={summary.calendar?.items} loading={showLoading} />
         <RecentDeadlines items={summary.recent?.items} loading={showLoading} />
       </div>
 
-      <DashboardShortcuts />
+      <PendingGradingList items={summary.grading?.items} loading={showLoading} />
     </div>
   );
 }
