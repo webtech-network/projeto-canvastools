@@ -32,6 +32,22 @@ export const metadata = {
     locale: 'pt_BR',
     type: 'website',
   },
+  // "Add to Home Screen" on iOS Safari — that browser never fires
+  // beforeinstallprompt (see pwaInstall.js), so this + src/app/apple-icon.png
+  // is the only PWA affordance it gets; the manifest.js icons/display below
+  // are what Chrome/Edge/Android use instead.
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'CanvasTools' },
+};
+
+// Explicit now (rather than relying on Next's implicit default) so
+// themeColor can be added — width/initialScale are repeated here
+// deliberately, since declaring this export at all replaces the default
+// `width=device-width, initial-scale=1` Next.js otherwise injects, and that
+// default is what keeps every page responsive on a phone.
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  themeColor: '#173a60', // --brand, same as manifest.js
 };
 
 export default function RootLayout({ children }) {

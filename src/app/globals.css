@@ -2525,22 +2525,10 @@ tr.is-expanded .course-name-btn {
 .shortcuts-manager {
   margin-top: 1rem;
 }
-.shortcuts-form {
+.shortcuts-manager-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
+  justify-content: flex-end;
   margin-bottom: 1rem;
-}
-.shortcuts-form input {
-  flex: 1 1 200px;
-  min-width: 0;
-  font: inherit;
-  font-size: 0.92rem;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--paper-raised);
-  color: var(--ink);
 }
 .shortcuts-list {
   list-style: none;

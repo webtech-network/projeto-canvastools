@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { CircleUserRound } from 'lucide-react';
+import { CircleUserRound, Download } from 'lucide-react';
+import { subscribeInstall, getInstallSnapshot, getServerInstallSnapshot, triggerInstall } from '@/lib/pwaInstall';
 
 // Replaces the old "username link to /perfil" + standalone "Sair" button
 // pair in Topbar.jsx with a single avatar-triggered dropdown, mirroring
@@ -15,6 +16,12 @@ import { CircleUserRound } from 'lucide-react';
 export default function UserMenu({ userName, avatarUrl }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
+  // Chrome/Edge/Android only — iOS Safari never fires beforeinstallprompt,
+  // so `available` there stays false forever and this item just never
+  // renders (installing there stays the manual Share > "Adicionar à Tela
+  // de Início" flow, which src/app/apple-icon.png + layout.jsx's
+  // appleWebApp metadata already support).
+  const { available: canInstall } = useSyncExternalStore(subscribeInstall, getInstallSnapshot, getServerInstallSnapshot);
 
   useEffect(() => {
     if (!open) return;
@@ -59,6 +66,19 @@ export default function UserMenu({ userName, avatarUrl }) {
           <Link href="/perfil" className="user-menu-item" role="menuitem" onClick={() => setOpen(false)}>
             Configurações
           </Link>
+          {canInstall && (
+            <button
+              type="button"
+              className="user-menu-item"
+              role="menuitem"
+              onClick={() => {
+                triggerInstall();
+                setOpen(false);
+              }}
+            >
+              <Download size={15} strokeWidth={1.8} aria-hidden="true" /> Instalar app
+            </button>
+          )}
           <form action="/api/auth/logout" method="POST">
             <button type="submit" className="user-menu-item" role="menuitem">
               Sair

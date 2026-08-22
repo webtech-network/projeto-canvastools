@@ -13,7 +13,33 @@ const SHELL_CACHE = 'canvastools-shell-v1';
 // login/logout.
 const PASSTHROUGH_PATTERNS = [/^\/api\//, /^\/oauth2\/callback/, /^\/github\/oauth2\/callback/, /^\/google\/oauth2\/callback/];
 
-self.addEventListener('install', () => {
+// The App Shell — sidebar chrome (rendered inside all three) + Tarefas and
+// Configurações, both already 100% local-first (IndexedDB/localStorage), so
+// once their own page shell loads from cache they keep working with zero
+// network. Pre-armazenado at install time instead of waiting for the
+// reactive fetch-and-cache below, so a professor who's never manually
+// opened /tarefas or /perfil is still covered the first time they go
+// offline — this only runs once the SW is already registered (i.e. already
+// logged in), so the session cookie is present for these fetches.
+const SHELL_PRECACHE_URLS = ['/', '/tarefas', '/perfil'];
+
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(SHELL_CACHE).then((cache) =>
+      Promise.all(
+        SHELL_PRECACHE_URLS.map((url) =>
+          fetch(url)
+            .then((response) => {
+              // A redirect (e.g. no valid session at this exact moment)
+              // means this response is actually /login's HTML — never cache
+              // that under the shell route's own key.
+              if (response.ok && !response.redirected) return cache.put(url, response);
+            })
+            .catch(() => {}), // best-effort — never let this block SW install
+        ),
+      ),
+    ),
+  );
   self.skipWaiting();
 });
 

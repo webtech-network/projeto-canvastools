@@ -152,7 +152,7 @@ export default function ProfileTabs({ userName, baseUrl, providers }) {
         {tab === 'atalhos' && (
           <>
             <p className="tab-folder-description">Atalhos exibidos no painel inicial.</p>
-            <ShortcutsManager onDirtyChange={(isDirty) => setDirty('shortcuts', isDirty)} />
+            <ShortcutsManager />
           </>
         )}
 
