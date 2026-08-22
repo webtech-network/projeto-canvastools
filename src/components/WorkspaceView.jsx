@@ -72,8 +72,11 @@ export default function WorkspaceView() {
   return (
     <>
       <div className="workspace-toolbar">
-        <QuickAddTask />
+        <div className="workspace-toolbar-primary">
+          <QuickAddTask />
+        </div>
 
+        <div className="workspace-toolbar-secondary">
         <button
           type="button"
           className={`btn btn-secondary btn-icon${hasActiveFilters ? ' active' : ''}`}
@@ -165,6 +168,7 @@ export default function WorkspaceView() {
           >
             <Settings size={16} strokeWidth={1.8} />
           </Link>
+        </div>
         </div>
       </div>
 

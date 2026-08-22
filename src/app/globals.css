@@ -1088,9 +1088,26 @@ a {
 
 .browser-controls-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   margin-left: auto;
+  /* Without this, the group's own intrinsic width (segmented pair + the
+     Recarregar button) refuses to shrink below its content size even though
+     .browser-controls itself wraps — on a narrow phone that forces the
+     whole page wider instead of this group reflowing within it. Same class
+     of bug as .provider-select's own min-width: 0 fix just above. */
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .browser-controls-actions {
+    /* margin-left: auto only makes sense pinning this group to the right of
+       a wide single-line row — once it wraps to its own line on a phone,
+       that would just misalign it; let it take the full row width instead. */
+    margin-left: 0;
+    width: 100%;
+  }
 }
 
 .search-input {
@@ -1312,7 +1329,6 @@ a {
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
-  gap: 0.4rem;
   background: none;
   border: none;
   padding: 0;
@@ -1322,18 +1338,11 @@ a {
   text-align: left;
   cursor: pointer;
 }
-.course-name-btn svg {
-  flex-shrink: 0;
-  color: var(--ink-soft);
-}
 .course-name-btn:hover {
   text-decoration: underline;
   color: var(--accent);
 }
 tr.is-expanded .course-name-btn {
-  color: var(--accent);
-}
-tr.is-expanded .course-name-btn svg {
   color: var(--accent);
 }
 .subject-toggle-btn {
@@ -1390,6 +1399,21 @@ tr.is-expanded .course-name-btn svg {
 .data-table td.pending-cell.is-past-due {
   color: var(--err);
   font-weight: 600;
+}
+
+/* Painel de Cursos on a portrait phone: the publicado/favorito columns and
+   the filter buttons' text labels are the first things to go — icons alone
+   (with a title tooltip) carry the same meaning in far less width. Scoped to
+   .course-browser so other tables sharing .status-cell/.fav-cell (Atividades,
+   Mensagens) are unaffected — this is specifically about the courses panel. */
+@media (max-width: 640px) and (orientation: portrait) {
+  .course-browser .status-cell,
+  .course-browser .fav-cell {
+    display: none;
+  }
+  .course-browser .segmented-btn-text {
+    display: none;
+  }
 }
 
 /* Explains the icon-only column headers (courses table, atividades table) —
@@ -2725,10 +2749,13 @@ tr.is-expanded .course-name-btn svg {
   border-color: var(--accent);
 }
 
-/* Single control row (spec: quick-add, filter, Backlog/Block toggle,
-   projetos on the left; density + view switches pushed right via
-   margin-left: auto on .workspace-toolbar-right). QuickAddTask.jsx's own
-   margin is zeroed out here since this row now owns the spacing. */
+/* Two explicit blocks (quick-add on its own; every other control together)
+   rather than one flat flex-wrap row of individual buttons — at narrow
+   widths that made wrapping unpredictable (a button could end up sharing
+   the quick-add's line depending on exactly how much room was left). Each
+   block has its own min-width below, so when they don't both fit on one
+   row, .workspace-toolbar's own flex-wrap puts each on its own line
+   (exactly two lines on a phone), rather than wrapping mid-block. */
 .workspace-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -2736,10 +2763,23 @@ tr.is-expanded .course-name-btn svg {
   gap: 0.6rem;
   margin: 0 0 1.25rem;
 }
-.workspace-toolbar .quick-add-task {
+.workspace-toolbar-primary {
+  display: flex;
   flex: 1 1 240px;
-  min-width: 160px;
+  min-width: 200px;
+}
+.workspace-toolbar-primary .quick-add-task {
+  flex: 1;
+  min-width: 0;
   margin: 0;
+}
+.workspace-toolbar-secondary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 2 1 420px;
+  min-width: 0;
 }
 .workspace-toolbar-right {
   display: flex;
@@ -3189,7 +3229,10 @@ tr.is-expanded .course-name-btn svg {
    CourseBrowser.jsx expands directly below a course's <tr> when its name is
    clicked. */
 .course-note-row td {
-  padding: 0 0 1rem;
+  /* Inset on every side (not just the bottom) so the editor reads as its
+     own box sitting below the course row, rather than content flush
+     against the table's own edges. */
+  padding: 0.75rem 0.85rem 1rem;
   border-bottom: 1px solid var(--line);
 }
 .course-note-editor {
@@ -3201,12 +3244,25 @@ tr.is-expanded .course-name-btn svg {
 .course-note-editor-topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.65rem;
+}
+.course-note-editor-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.course-note-editor-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 .course-note-editor-status {
   font-size: 0.82rem;
   color: var(--ink-soft);
+  white-space: nowrap;
 }
 
 .markdown-editor {

@@ -89,20 +89,24 @@ export default function CourseNoteEditor({ courseId, courseCode }) {
   return (
     <div className="course-note-editor">
       <div className="course-note-editor-topbar">
-        <button type="button" className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving || loading}>
-          {saving ? <Loader2 size={15} strokeWidth={2} className="sync-spin" /> : <Save size={15} strokeWidth={1.8} />}
-          {saving ? 'Salvando…' : 'Salvar'}
-        </button>
+        <h3 className="course-note-editor-title">Notas do curso</h3>
 
-        <span className="course-note-editor-status">
-          {syncState === 'syncing' && 'Sincronizando com o Google Drive…'}
-          {syncState === 'synced' &&
-            (lastSavedAt
-              ? `Sincronizado — ${formatDateTime(new Date(lastSavedAt).toISOString())}`
-              : 'Sincronizado — nada salvo ainda para este curso.')}
-          {syncState === 'not-connected' && 'Google Drive não conectado — salvando só neste navegador.'}
-          {syncState === 'error' && (syncError || 'Falha ao sincronizar com o Google Drive.')}
-        </span>
+        <div className="course-note-editor-topbar-right">
+          <span className="course-note-editor-status">
+            {syncState === 'syncing' && 'Sincronizando com o Google Drive…'}
+            {syncState === 'synced' &&
+              (lastSavedAt
+                ? `Sincronizado — ${formatDateTime(new Date(lastSavedAt).toISOString())}`
+                : 'Sincronizado — nada salvo ainda para este curso.')}
+            {syncState === 'not-connected' && 'Google Drive não conectado — salvando só neste navegador.'}
+            {syncState === 'error' && (syncError || 'Falha ao sincronizar com o Google Drive.')}
+          </span>
+
+          <button type="button" className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving || loading}>
+            {saving ? <Loader2 size={15} strokeWidth={2} className="sync-spin" /> : <Save size={15} strokeWidth={1.8} />}
+            {saving ? 'Salvando…' : 'Salvar'}
+          </button>
+        </div>
       </div>
 
       {loading ? (

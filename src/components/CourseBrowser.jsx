@@ -2,7 +2,19 @@
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ListChecks, Mail, Star, Megaphone, ClipboardCheck, Users, RefreshCw, ExternalLink, NotebookText } from 'lucide-react';
+import {
+  ListChecks,
+  Mail,
+  Star,
+  Megaphone,
+  ClipboardCheck,
+  Users,
+  RefreshCw,
+  ExternalLink,
+  CircleCheckBig,
+  CircleDashed,
+  List,
+} from 'lucide-react';
 import StatusIcon from './StatusIcon';
 import SortIcon from './SortIcon';
 import CourseNoteEditor from './CourseNoteEditor';
@@ -37,9 +49,9 @@ const SORTERS = {
 };
 
 const STATUS_FILTERS = [
-  { key: 'published', label: 'Publicados' },
-  { key: 'unpublished', label: 'Não publicados' },
-  { key: 'all', label: 'Todos' },
+  { key: 'published', label: 'Publicados', Icon: CircleCheckBig },
+  { key: 'unpublished', label: 'Não publicados', Icon: CircleDashed },
+  { key: 'all', label: 'Todos', Icon: List },
 ];
 
 export default function CourseBrowser() {
@@ -239,30 +251,39 @@ export default function CourseBrowser() {
             type="button"
             className={`segmented-btn${onlyFavorites ? ' active' : ''}`}
             onClick={() => handleSetOnlyFavorites(true)}
+            title={`Favoritos (${favoritesCount})`}
           >
             <Star size={14} strokeWidth={2} fill="currentColor" aria-hidden="true" />
-            Favoritos ({favoritesCount})
+            <span className="segmented-btn-text">Favoritos ({favoritesCount})</span>
           </button>
           <button
             type="button"
             className={`segmented-btn${!onlyFavorites ? ' active' : ''}`}
             onClick={() => handleSetOnlyFavorites(false)}
+            title={`Todos (${courseList.length})`}
           >
-            Todos ({courseList.length})
+            <List size={14} strokeWidth={2} aria-hidden="true" />
+            <span className="segmented-btn-text">Todos ({courseList.length})</span>
           </button>
         </div>
         <div className="segmented" role="group" aria-label="Filtrar por status de publicação">
-          {STATUS_FILTERS.map(({ key, label }) => (
-            <button
-              key={key}
-              type="button"
-              className={`segmented-btn${statusFilter === key ? ' active' : ''}`}
-              onClick={() => setStatusFilter(key)}
-            >
-              {label} (
-              {key === 'all' ? courseList.length : key === 'published' ? publishedCount : unpublishedCount})
-            </button>
-          ))}
+          {STATUS_FILTERS.map(({ key, label, Icon }) => {
+            const count = key === 'all' ? courseList.length : key === 'published' ? publishedCount : unpublishedCount;
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`segmented-btn${statusFilter === key ? ' active' : ''}`}
+                onClick={() => setStatusFilter(key)}
+                title={`${label} (${count})`}
+              >
+                <Icon size={14} strokeWidth={2} aria-hidden="true" />
+                <span className="segmented-btn-text">
+                  {label} ({count})
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -284,7 +305,7 @@ export default function CourseBrowser() {
         <table className="data-table">
           <thead>
             <tr>
-              <th aria-sort={sortAria('status')}>
+              <th className="status-cell" aria-sort={sortAria('status')}>
                 <button
                   type="button"
                   className="th-sort-btn"
@@ -296,7 +317,7 @@ export default function CourseBrowser() {
                   <SortIcon direction={sort.key === 'status' ? sort.direction : null} />
                 </button>
               </th>
-              <th aria-sort={sortAria('favorite')}>
+              <th className="fav-cell" aria-sort={sortAria('favorite')}>
                 <button type="button" className="th-sort-btn" onClick={() => toggleSort('favorite')}>
                   <span className="sr-only">Favorito</span>
                   <SortIcon direction={sort.key === 'favorite' ? sort.direction : null} />
@@ -365,7 +386,6 @@ export default function CourseBrowser() {
                     title="Anotações do curso"
                     aria-expanded={expanded}
                   >
-                    <NotebookText size={15} strokeWidth={1.8} aria-hidden="true" />
                     {course.name}
                   </button>
                   <a
