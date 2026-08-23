@@ -72,34 +72,36 @@ export default function WorkspaceView() {
   return (
     <>
       <div className="workspace-toolbar">
+        {/* Nova tarefa + Filtrar tarefas share the first line — everything
+            else (including o botão de mostrar/ocultar Backlog/Block) lives
+            on the second line, in workspace-toolbar-right. */}
         <div className="workspace-toolbar-primary">
           <QuickAddTask />
+          <button
+            type="button"
+            className={`btn btn-secondary btn-icon${hasActiveFilters ? ' active' : ''}`}
+            onClick={() => setShowFilterModal(true)}
+            title="Filtrar tarefas"
+            aria-label="Filtrar tarefas"
+            aria-pressed={hasActiveFilters}
+          >
+            <Filter size={16} strokeWidth={1.8} />
+          </button>
         </div>
 
         <div className="workspace-toolbar-secondary">
-        <button
-          type="button"
-          className={`btn btn-secondary btn-icon${hasActiveFilters ? ' active' : ''}`}
-          onClick={() => setShowFilterModal(true)}
-          title="Filtrar tarefas"
-          aria-label="Filtrar tarefas"
-          aria-pressed={hasActiveFilters}
-        >
-          <Filter size={16} strokeWidth={1.8} />
-        </button>
-
-        <button
-          type="button"
-          className={`btn btn-secondary btn-icon${stagesCollapsed ? ' active' : ''}`}
-          onClick={() => setStagesCollapsed(!stagesCollapsed)}
-          title={stagesToggleTitle}
-          aria-label={stagesToggleTitle}
-          aria-pressed={stagesCollapsed}
-        >
-          {stagesCollapsed ? <PanelLeftOpen size={16} strokeWidth={1.8} /> : <PanelLeftClose size={16} strokeWidth={1.8} />}
-        </button>
-
         <div className="workspace-toolbar-right">
+          <button
+            type="button"
+            className={`btn btn-secondary btn-icon${stagesCollapsed ? ' active' : ''}`}
+            onClick={() => setStagesCollapsed(!stagesCollapsed)}
+            title={stagesToggleTitle}
+            aria-label={stagesToggleTitle}
+            aria-pressed={stagesCollapsed}
+          >
+            {stagesCollapsed ? <PanelLeftOpen size={16} strokeWidth={1.8} /> : <PanelLeftClose size={16} strokeWidth={1.8} />}
+          </button>
+
           <div className="segmented" role="group" aria-label="Densidade dos cards">
             <button
               type="button"

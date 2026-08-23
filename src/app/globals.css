@@ -1592,7 +1592,32 @@ tr.is-expanded .course-name-btn {
   color: var(--ink-soft);
 }
 
+/* Negative on purpose: .browser-controls' own 1.25rem margin-top collapses
+   THROUGH .message-browser (no padding/border here to block it) and through
+   .page-title-row's 0 margin-bottom above it — without this override the
+   title-to-controls gap renders at the full 20px instead of the ~8px this
+   page (and CourseBrowser/AssignmentsTable below) actually wants once the
+   old <p className="lede"> no longer sits between them. */
 .message-browser {
+  margin-top: -0.75rem;
+}
+
+/* Same reasoning as .message-browser above — .course-browser has no margin
+   of its own by default, so .browser-controls' 1.25rem margin-top collapses
+   straight through to .page-title-row's 0 margin-bottom. */
+.course-browser {
+  margin-top: -0.75rem;
+}
+
+/* AssignmentsTable.jsx renders a Fragment, so its own .browser-controls is a
+   direct sibling of .page-header-row (not wrapped in a container to target
+   the same way) — scoped to that adjacency instead of touching
+   .browser-controls itself, which other pages (StudentReport, RubricGrader)
+   still use at its normal 1.25rem margin. Unlike .message-browser/
+   .course-browser above, this directly REPLACES .browser-controls' own
+   margin-top rather than collapsing through a wrapper, so it's set straight
+   to the ~8px target instead of a negative offset. */
+.page-header-row + .browser-controls {
   margin-top: 0.5rem;
 }
 
@@ -2405,7 +2430,10 @@ tr.is-expanded .course-name-btn {
 /* Dashboard panel (/, DashboardPanel.jsx and friends) */
 
 .dashboard-panel {
-  margin: 1.5rem 0;
+  /* Top/bottom margins are split (not the 1.5rem 0 shorthand) so the gap
+     under .page-title-row can be tightened on its own, independent of the
+     spacing kept before WebTechFooter below. */
+  margin: 0.5rem 0 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -2853,6 +2881,8 @@ tr.is-expanded .course-name-btn {
 }
 .workspace-toolbar-primary {
   display: flex;
+  align-items: center;
+  gap: 0.6rem;
   flex: 1 1 240px;
   min-width: 200px;
 }
@@ -2860,6 +2890,9 @@ tr.is-expanded .course-name-btn {
   flex: 1;
   min-width: 0;
   margin: 0;
+}
+.workspace-toolbar-primary > .btn-icon {
+  flex-shrink: 0;
 }
 .workspace-toolbar-secondary {
   display: flex;
@@ -2878,16 +2911,15 @@ tr.is-expanded .course-name-btn {
 
 @media (max-width: 640px) {
   /* Without this, .workspace-toolbar's own flex-wrap alone only guarantees
-     primary (quick-add) and secondary (filter/toggle/density/view/projects/
-     export/preferences) land on separate lines — secondary's own content is
-     still too wide for a phone, so it wrapped AGAIN into a third line. A
-     narrower input frees room on line 1, and letting line 2 scroll
-     horizontally instead of wrapping keeps the toolbar at exactly two lines
-     regardless of exact viewport width. */
-  .quick-add-task input {
-    flex: 0 1 140px;
-    width: 140px;
-  }
+     primary (nova tarefa + filtrar) and secondary (mostrar/ocultar Backlog-
+     Block, densidade, visão, projetos, exportar, preferências) land on
+     separate lines — secondary's own content is still too wide for a phone,
+     so it wrapped AGAIN into a third line. Letting line 2 scroll horizontally
+     instead of wrapping keeps the toolbar at exactly two lines regardless of
+     exact viewport width; the quick-add input itself already fills whatever
+     room line 1 has left over (flex:1, min-width:0 from the base rule) once
+     it's sharing that line with just the "+" and filter buttons, so it needs
+     no extra override here. */
   .workspace-toolbar-secondary {
     flex-wrap: nowrap;
     overflow-x: auto;
