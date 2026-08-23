@@ -29,7 +29,10 @@ function groupKey(group) {
 export default function MessageBrowser({ currentUserId, baseUrl, providers }) {
   const [courses, setCourses] = useState([]);
   const [conversations, setConversations] = useState([]);
-  const [courseFilter, setCourseFilter] = useState('');
+  // Defaults to "Mensagens diretas" (courseFilter='other', see groupKey())
+  // rather than the "Todos os favoritos" empty string — direct messages are
+  // the context a professor most often opens this screen to check.
+  const [courseFilter, setCourseFilter] = useState('other');
   const [collapsedKeys, setCollapsedKeys] = useState(() => new Set());
 
   const [loading, setLoading] = useState(true);
