@@ -34,9 +34,9 @@ export default function DashboardDoingTasks() {
     <section className="dashboard-card">
       <div className="dashboard-card-header">
         <h3>Tarefas em andamento</h3>
-        <Link href="/tarefas" className="btn btn-ghost btn-sm">
-          Ver quadro
+        <Link href="/tarefas" className="btn btn-ghost btn-sm" title="Painel de tarefas" aria-label="Painel de tarefas">
           <ArrowRight size={14} strokeWidth={1.8} />
+          <span className="dashboard-card-header-btn-text">Painel</span>
         </Link>
       </div>
 

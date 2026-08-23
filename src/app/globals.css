@@ -2535,6 +2535,14 @@ tr.is-expanded .course-name-btn {
   margin: 0;
 }
 
+/* DashboardDoingTasks.jsx's "Painel" button — icon-only on a phone, same
+   space-saving pattern as .segmented-btn-text (CourseBrowser) above. */
+@media (max-width: 640px) {
+  .dashboard-card-header-btn-text {
+    display: none;
+  }
+}
+
 .calendar-nav {
   display: flex;
   align-items: center;
