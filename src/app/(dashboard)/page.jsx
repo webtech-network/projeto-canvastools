@@ -1,6 +1,8 @@
+import { ExternalLink } from 'lucide-react';
 import { getSession, isSessionValid } from '@/lib/session';
 import DashboardPanel from '@/components/DashboardPanel';
 import WebTechFooter from '@/components/WebTechFooter';
+import InfoHint from '@/components/InfoHint';
 
 export default async function HomePage() {
   const session = await getSession();
@@ -10,8 +12,28 @@ export default async function HomePage() {
 
   return (
     <main className="page">
-      <h1>Olá, {session.user?.name?.split(' ')[0] || 'professor(a)'}</h1>
-      <p className="lede">Um resumo dos seus cursos favoritos, mensagens e prazos.</p>
+      <div className="page-title-row">
+        <h1>Olá, {session.user?.name?.split(' ')[0] || 'professor(a)'}</h1>
+        <InfoHint label="Sobre o Dashboard">
+          <p>
+            Um resumo do seu dia a dia como professor: disciplinas ativas, alunos, mensagens pendentes e correções
+            pendentes no topo, seguidos das suas tarefas em andamento, atalhos, calendário de prazos, atividades
+            recentes e correções pendentes por curso.
+          </p>
+          <p>
+            Em "Atividades recentes" e "Correções pendentes", clique na linha de uma atividade para corrigi-la dentro
+            do próprio CanvasTools — o ícone à direita abre a mesma atividade direto no SpeedGrader do Canvas.
+          </p>
+          <h4>Ícones e botões</h4>
+          <ul className="icon-legend">
+            <li>
+              <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" /> Abrir no SpeedGrader (Canvas)
+            </li>
+            <li className="deadline-tag overdue">Atrasada</li>
+            <li className="deadline-tag upcoming">Em breve</li>
+          </ul>
+        </InfoHint>
+      </div>
 
       <DashboardPanel />
 

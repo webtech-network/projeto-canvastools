@@ -645,6 +645,82 @@ a {
   flex-wrap: wrap;
 }
 
+/* Mensagens, Dashboard, Painel de Cursos, Atividades do curso e Painel de
+   Tarefas each wrap their <h1> in this row instead of following it with an
+   always-visible <p className="lede">: the description moved into an
+   InfoHint.jsx popover, opened via the info icon this row pushes to the far
+   right of the title line. */
+.page-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+/* Atividades (courses/[courseId]/atividades/page.jsx) nests .page-title-row
+   inside .page-header-row's title column instead of directly under .page —
+   without flex:1 that column shrinks to its content width, which drags the
+   InfoHint trigger (and its right-anchored popover) in from the page's true
+   right edge and makes the popover overflow off the left side of the card. */
+.page-header-block {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.info-hint {
+  position: relative;
+  flex-shrink: 0;
+}
+.info-hint-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.info-hint-trigger:hover {
+  background: var(--paper);
+  color: var(--accent);
+}
+.info-hint-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: min(420px, 90vw);
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.2rem;
+  z-index: 30;
+  color: var(--ink);
+}
+.info-hint-popover p {
+  margin: 0 0 0.6rem;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+.info-hint-popover p:last-of-type {
+  margin-bottom: 0;
+}
+.info-hint-popover h4 {
+  margin: 0.9rem 0 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-soft);
+}
+.info-hint-popover .icon-legend {
+  margin-top: 0.4rem;
+}
+
 /* Folder-style tabs (QuizImportPanel) — deliberately more visually distinct
    than the compact .segmented toggle used elsewhere: tabs sit above the
    panel, the active tab visually merges with it (shared background, no
@@ -2800,6 +2876,26 @@ tr.is-expanded .course-name-btn {
   margin-left: auto;
 }
 
+@media (max-width: 640px) {
+  /* Without this, .workspace-toolbar's own flex-wrap alone only guarantees
+     primary (quick-add) and secondary (filter/toggle/density/view/projects/
+     export/preferences) land on separate lines — secondary's own content is
+     still too wide for a phone, so it wrapped AGAIN into a third line. A
+     narrower input frees room on line 1, and letting line 2 scroll
+     horizontally instead of wrapping keeps the toolbar at exactly two lines
+     regardless of exact viewport width. */
+  .quick-add-task input {
+    flex: 0 1 140px;
+    width: 140px;
+  }
+  .workspace-toolbar-secondary {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.2rem;
+  }
+}
+
 .workspace-filter-modal-fields {
   display: flex;
   flex-direction: column;
@@ -3088,18 +3184,25 @@ tr.is-expanded .course-name-btn {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.65rem 0.75rem;
-  cursor: grab;
+  cursor: pointer;
   box-shadow: var(--shadow);
-  touch-action: none;
 }
 .kanban-card.is-dragging {
   opacity: 0.6;
-  cursor: grabbing;
 }
+/* The drag handle is just the title text (see TaskCard.jsx) — cursor and
+   touch-action live here, not on .kanban-card, so the rest of the card
+   still scrolls/taps normally instead of intercepting every touch as a
+   drag attempt. */
 .kanban-card-title {
   font-weight: 600;
   font-size: 0.92rem;
   color: var(--ink);
+  cursor: grab;
+  touch-action: none;
+}
+.kanban-card.is-dragging .kanban-card-title {
+  cursor: grabbing;
 }
 .kanban-card-project {
   font-size: 0.8rem;

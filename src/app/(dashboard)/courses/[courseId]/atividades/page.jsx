@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { CircleCheckBig, CircleDashed, ClipboardCheck, ExternalLink, ClipboardList, ListPlus } from 'lucide-react';
 import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listAssignments } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
@@ -6,6 +7,7 @@ import { isRealGroupAssignment, correctedGroupNeedsGradingCount } from '@/lib/gr
 import { courseUrl } from '@/lib/canvasLinks';
 import ContextBanner from '@/components/ContextBanner';
 import AssignmentsTable from '@/components/AssignmentsTable';
+import InfoHint from '@/components/InfoHint';
 
 export default async function AtividadesPage({ params }) {
   const { courseId } = await params;
@@ -52,8 +54,42 @@ export default async function AtividadesPage({ params }) {
   return (
     <main className="page">
       <div className="page-header-row">
-        <div>
-          <h1>Atividades</h1>
+        <div className="page-header-block">
+          <div className="page-title-row">
+            <h1>Atividades</h1>
+            <InfoHint label="Sobre a tela de Atividades">
+              <p>
+                Todas as atividades do curso, com destaque para as que têm entregas pendentes de correção. Quizzes
+                clássicos (não os New Quizzes) podem receber questões importadas em lote.
+              </p>
+              <p>
+                Filtre por status de publicação e clique no nome de uma atividade para ver seu enunciado sem sair da
+                página.
+              </p>
+              <h4>Ícones e botões</h4>
+              <ul className="icon-legend">
+                <li>
+                  <CircleCheckBig size={14} strokeWidth={1.8} aria-hidden="true" style={{ color: 'var(--ok)' }} />{' '}
+                  Publicado
+                </li>
+                <li>
+                  <CircleDashed size={14} strokeWidth={1.8} aria-hidden="true" /> Não publicado
+                </li>
+                <li>
+                  <ClipboardCheck size={14} strokeWidth={1.8} aria-hidden="true" /> Correções pendentes
+                </li>
+                <li>
+                  <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" /> Abrir atividade no Canvas
+                </li>
+                <li>
+                  <ClipboardList size={14} strokeWidth={1.8} aria-hidden="true" /> Correção de Atividade
+                </li>
+                <li>
+                  <ListPlus size={14} strokeWidth={1.8} aria-hidden="true" /> Importar questões (quizzes clássicos)
+                </li>
+              </ul>
+            </InfoHint>
+          </div>
           <ContextBanner
             items={[
               {
@@ -63,9 +99,6 @@ export default async function AtividadesPage({ params }) {
               },
             ]}
           />
-          <p className="lede">
-            Avaliações pendentes de correção por atividade. Quizzes clássicos podem receber questões importadas.
-          </p>
         </div>
         <Link href="/questoes" className="btn btn-secondary">
           Gerar questões com IA

@@ -112,13 +112,16 @@ export default function TaskCard({ task, onSelect }) {
       style={style}
       className={`kanban-card${isDragging ? ' is-dragging' : ''}${condensed ? ' kanban-card--condensed' : ''}`}
       onClick={() => onSelect(task)}
-      {...listeners}
-      {...attributes}
     >
       {condensed ? (
         <>
           <div className="kanban-card-condensed-text">
-            <div className="kanban-card-title">{task.title}</div>
+            {/* Drag activation is scoped to the title text (not the whole
+                card) — on touch, dragging from anywhere else on the card
+                fought with tapping to open it or scrolling the column. */}
+            <div className="kanban-card-title" {...listeners} {...attributes}>
+              {task.title}
+            </div>
             <div className="kanban-card-project">{project ? project.name : 'Sem projeto'}</div>
           </div>
           <div className="kanban-card-condensed-side">
@@ -136,7 +139,9 @@ export default function TaskCard({ task, onSelect }) {
         </>
       ) : (
         <>
-          <div className="kanban-card-title">{task.title}</div>
+          <div className="kanban-card-title" {...listeners} {...attributes}>
+            {task.title}
+          </div>
           {project && <div className="kanban-card-project">{project.name}</div>}
           {task.tags?.length > 0 && (
             <div className="kanban-card-tags">
