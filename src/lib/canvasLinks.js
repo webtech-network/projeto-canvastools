@@ -8,6 +8,19 @@ export function courseUrl(baseUrl, courseId) {
   return `${baseUrl}/courses/${courseId}`;
 }
 
+// Canvas's own assignments list for the course — used by the Atividades
+// screen's ContextBanner icon so it deep-links straight to the equivalent
+// Canvas view instead of the generic course home page.
+export function courseAssignmentsUrl(baseUrl, courseId) {
+  return `${baseUrl}/courses/${courseId}/assignments`;
+}
+
+// Canvas's "People" page for the course — used by the Alunos screen's
+// ContextBanner icon, same reasoning as courseAssignmentsUrl above.
+export function coursePeopleUrl(baseUrl, courseId) {
+  return `${baseUrl}/courses/${courseId}/users`;
+}
+
 // Same hash-filter format Canvas's own Inbox UI uses to deep-link into a
 // single course's messages (see MessageList.jsx's conversationUrl for the
 // prior art this was extracted from). `&course=course_<id>` (not the comma-

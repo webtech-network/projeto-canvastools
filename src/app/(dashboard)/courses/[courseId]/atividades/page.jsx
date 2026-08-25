@@ -4,7 +4,7 @@ import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, listAssignments } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
 import { isRealGroupAssignment, correctedGroupNeedsGradingCount } from '@/lib/groupGrading';
-import { courseUrl } from '@/lib/canvasLinks';
+import { courseAssignmentsUrl } from '@/lib/canvasLinks';
 import ContextBanner from '@/components/ContextBanner';
 import AssignmentsTable from '@/components/AssignmentsTable';
 import InfoHint from '@/components/InfoHint';
@@ -95,7 +95,7 @@ export default async function AtividadesPage({ params }) {
               {
                 label: 'Curso',
                 value: course.name,
-                link: { href: courseUrl(session.baseUrl, courseId), title: 'Abrir curso no Canvas' },
+                link: { href: courseAssignmentsUrl(session.baseUrl, courseId), title: 'Abrir atividades do curso no Canvas' },
               },
             ]}
           />

@@ -3,7 +3,7 @@ import { createClient, getCourse, listCourseStudents } from '@/lib/canvasClient'
 import { refreshAccessToken } from '@/lib/canvasOAuth';
 import { buildStudentRows } from '@/lib/studentReport';
 import { listProviders } from '@/lib/aiProviders';
-import { courseUrl } from '@/lib/canvasLinks';
+import { coursePeopleUrl } from '@/lib/canvasLinks';
 import StudentReport from '@/components/StudentReport';
 import ContextBanner from '@/components/ContextBanner';
 
@@ -41,7 +41,7 @@ export default async function AlunosPage({ params }) {
           {
             label: 'Curso',
             value: course.name,
-            link: { href: courseUrl(session.baseUrl, courseId), title: 'Abrir curso no Canvas' },
+            link: { href: coursePeopleUrl(session.baseUrl, courseId), title: 'Abrir pessoas do curso no Canvas' },
           },
         ]}
       />
