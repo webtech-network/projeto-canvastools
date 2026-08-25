@@ -12,6 +12,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import StatusIcon from './StatusIcon';
+import SortIcon from './SortIcon';
 
 function formatDueDate(iso) {
   if (!iso) return '—';
@@ -50,12 +51,24 @@ const STATUS_FILTERS = [
   { key: 'all', label: 'Todas' },
 ];
 
+// Same shape as CourseBrowser.jsx's own SORTERS/toggleSort/sortAria trio —
+// a missing value sorts as the lowest possible one (-1) so it lands first
+// ascending / last descending, consistent with that component's convention.
+const SORTERS = {
+  status: (a) => (a.published ? 0 : 1),
+  name: (a) => a.name?.toLowerCase() ?? '',
+  points: (a) => a.points_possible ?? -1,
+  dueDate: (a) => (a.due_at ? new Date(a.due_at).getTime() : -1),
+  pending: (a) => a.needs_grading_count ?? 0,
+};
+
 // Defaults to "Publicadas" — same convention as CourseBrowser.jsx's own
 // status filter (unpublished items usually aren't what a professor is
 // looking for on first load; "Todas" is still one click away).
 export default function AssignmentsTable({ courseId, assignments }) {
   const [statusFilter, setStatusFilter] = useState('published');
   const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [sort, setSort] = useState({ key: null, direction: 'asc' });
 
   function toggleExpanded(assignmentId) {
     setExpandedIds((prev) => {
@@ -76,6 +89,31 @@ export default function AssignmentsTable({ courseId, assignments }) {
       return true;
     });
   }, [assignments, statusFilter]);
+
+  const sorted = useMemo(() => {
+    if (!sort.key) return filtered;
+    const getValue = SORTERS[sort.key];
+    const sign = sort.direction === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const va = getValue(a);
+      const vb = getValue(b);
+      if (va < vb) return -1 * sign;
+      if (va > vb) return 1 * sign;
+      return 0;
+    });
+  }, [filtered, sort]);
+
+  function toggleSort(key) {
+    setSort((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+    });
+  }
+
+  function sortAria(key) {
+    if (sort.key !== key) return 'none';
+    return sort.direction === 'asc' ? 'ascending' : 'descending';
+  }
 
   if (assignments.length === 0) {
     return <p>Nenhuma atividade encontrada neste curso.</p>;
@@ -109,21 +147,47 @@ export default function AssignmentsTable({ courseId, assignments }) {
                 <th>
                   <span className="sr-only">Expandir</span>
                 </th>
-                <th>
-                  <span className="sr-only">Status</span>
+                <th aria-sort={sortAria('status')}>
+                  <button type="button" className="th-sort-btn" onClick={() => toggleSort('status')} title="Status de publicação">
+                    <span className="sr-only">Status</span>
+                    <SortIcon direction={sort.key === 'status' ? sort.direction : null} />
+                  </button>
                 </th>
-                <th>Atividade</th>
-                <th>Valor</th>
-                <th>Data de entrega</th>
-                <th title="Correções pendentes">
-                  <ClipboardCheck size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
-                  <span className="sr-only">Correções pendentes</span>
+                <th aria-sort={sortAria('name')}>
+                  <button type="button" className="th-sort-btn" onClick={() => toggleSort('name')}>
+                    Atividade
+                    <SortIcon direction={sort.key === 'name' ? sort.direction : null} />
+                  </button>
+                </th>
+                <th aria-sort={sortAria('points')}>
+                  <button type="button" className="th-sort-btn" onClick={() => toggleSort('points')}>
+                    Valor
+                    <SortIcon direction={sort.key === 'points' ? sort.direction : null} />
+                  </button>
+                </th>
+                <th aria-sort={sortAria('dueDate')}>
+                  <button type="button" className="th-sort-btn" onClick={() => toggleSort('dueDate')}>
+                    Data de entrega
+                    <SortIcon direction={sort.key === 'dueDate' ? sort.direction : null} />
+                  </button>
+                </th>
+                <th aria-sort={sortAria('pending')}>
+                  <button
+                    type="button"
+                    className="th-sort-btn"
+                    onClick={() => toggleSort('pending')}
+                    title="Correções pendentes"
+                  >
+                    <ClipboardCheck size={16} strokeWidth={1.8} className="col-icon" aria-hidden="true" />
+                    <span className="sr-only">Correções pendentes</span>
+                    <SortIcon direction={sort.key === 'pending' ? sort.direction : null} />
+                  </button>
                 </th>
                 <th>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((assignment) => {
+              {sorted.map((assignment) => {
                 const expanded = expandedIds.has(assignment.id);
                 return (
                   <Fragment key={assignment.id}>

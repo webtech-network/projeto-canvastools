@@ -1,10 +1,11 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Download, Sparkles, BarChart3 } from 'lucide-react';
+import { Download, Mail, BarChart3 } from 'lucide-react';
 import { ENROLLMENT_STATE_LABELS } from '@/lib/studentReport';
 import { studentGradesUrl } from '@/lib/canvasLinks';
 import StudentMessageModal from './StudentMessageModal';
+import SortIcon from './SortIcon';
 
 function formatDate(iso) {
   if (!iso) return '—';
@@ -85,9 +86,26 @@ function allGradesMissing(rows) {
   return rows.every((r) => r.currentScore == null && r.currentGrade == null && r.finalScore == null && r.finalGrade == null);
 }
 
+// Same shape as CourseBrowser.jsx's own SORTERS/toggleSort/sortAria trio —
+// a missing value sorts as the lowest possible one (-1 or '') so it lands
+// first ascending / last descending. Grade columns sort by the numeric
+// score only (currentGrade/finalGrade can be a non-numeric letter grade
+// depending on the course's grading scheme, so score is the one reliably
+// sortable field between the two formatGrade() already falls back through).
+const SORTERS = {
+  name: (r) => r.name?.toLowerCase() ?? '',
+  contact: (r) => r.contact?.toLowerCase() ?? '',
+  enrollmentState: (r) => ENROLLMENT_STATE_LABELS[r.enrollmentState]?.toLowerCase() ?? '',
+  lastActivity: (r) => (r.lastActivityAt ? new Date(r.lastActivityAt).getTime() : -1),
+  activityTime: (r) => r.totalActivityTime ?? -1,
+  currentScore: (r) => r.currentScore ?? -1,
+  finalScore: (r) => r.finalScore ?? -1,
+};
+
 export default function StudentReport({ rows, courseId, baseUrl, providers = [] }) {
   const [query, setQuery] = useState('');
   const [messageStudent, setMessageStudent] = useState(null);
+  const [sort, setSort] = useState({ key: null, direction: 'asc' });
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -96,6 +114,31 @@ export default function StudentReport({ rows, courseId, baseUrl, providers = [] 
       (row) => row.name?.toLowerCase().includes(term) || row.contact?.toLowerCase().includes(term),
     );
   }, [rows, query]);
+
+  const sorted = useMemo(() => {
+    if (!sort.key) return filtered;
+    const getValue = SORTERS[sort.key];
+    const sign = sort.direction === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const va = getValue(a);
+      const vb = getValue(b);
+      if (va < vb) return -1 * sign;
+      if (va > vb) return 1 * sign;
+      return 0;
+    });
+  }, [filtered, sort]);
+
+  function toggleSort(key) {
+    setSort((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+    });
+  }
+
+  function sortAria(key) {
+    if (sort.key !== key) return 'none';
+    return sort.direction === 'asc' ? 'ascending' : 'descending';
+  }
 
   const gradesUnavailable = useMemo(() => allGradesMissing(rows), [rows]);
 
@@ -134,18 +177,53 @@ export default function StudentReport({ rows, courseId, baseUrl, providers = [] 
         <table className="data-table">
           <thead>
             <tr>
-              <th>Nome</th>
-              <th>E-mail/Login</th>
-              <th>Status</th>
-              <th>Última atividade</th>
-              <th>Tempo de atividade</th>
-              <th>Nota atual</th>
-              <th>Nota final</th>
+              <th aria-sort={sortAria('name')}>
+                <button type="button" className="th-sort-btn" onClick={() => toggleSort('name')}>
+                  Nome
+                  <SortIcon direction={sort.key === 'name' ? sort.direction : null} />
+                </button>
+              </th>
+              <th aria-sort={sortAria('contact')}>
+                <button type="button" className="th-sort-btn" onClick={() => toggleSort('contact')}>
+                  E-mail/Login
+                  <SortIcon direction={sort.key === 'contact' ? sort.direction : null} />
+                </button>
+              </th>
+              <th aria-sort={sortAria('enrollmentState')}>
+                <button type="button" className="th-sort-btn" onClick={() => toggleSort('enrollmentState')}>
+                  Status
+                  <SortIcon direction={sort.key === 'enrollmentState' ? sort.direction : null} />
+                </button>
+              </th>
+              <th aria-sort={sortAria('lastActivity')}>
+                <button type="button" className="th-sort-btn" onClick={() => toggleSort('lastActivity')}>
+                  Última atividade
+                  <SortIcon direction={sort.key === 'lastActivity' ? sort.direction : null} />
+                </button>
+              </th>
+              <th aria-sort={sortAria('activityTime')}>
+                <button type="button" className="th-sort-btn" onClick={() => toggleSort('activityTime')}>
+                  Tempo de atividade
+                  <SortIcon direction={sort.key === 'activityTime' ? sort.direction : null} />
+                </button>
+              </th>
+              <th aria-sort={sortAria('currentScore')}>
+                <button type="button" className="th-sort-btn" onClick={() => toggleSort('currentScore')}>
+                  Nota atual
+                  <SortIcon direction={sort.key === 'currentScore' ? sort.direction : null} />
+                </button>
+              </th>
+              <th aria-sort={sortAria('finalScore')}>
+                <button type="button" className="th-sort-btn" onClick={() => toggleSort('finalScore')}>
+                  Nota final
+                  <SortIcon direction={sort.key === 'finalScore' ? sort.direction : null} />
+                </button>
+              </th>
               <th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((row) => (
+            {sorted.map((row) => (
               <tr key={row.id}>
                 <td className="course-name-cell">{row.name}</td>
                 <td title={row.contactIsLogin ? 'E-mail não disponível — exibindo login do Canvas' : undefined}>
@@ -164,7 +242,7 @@ export default function StudentReport({ rows, courseId, baseUrl, providers = [] 
                     aria-label={`Enviar mensagem com IA para ${row.name}`}
                     onClick={() => setMessageStudent(row)}
                   >
-                    <Sparkles size={18} strokeWidth={1.8} />
+                    <Mail size={18} strokeWidth={1.8} />
                   </button>
                   <a
                     href={studentGradesUrl(baseUrl, courseId, row.id)}
