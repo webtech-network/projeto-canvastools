@@ -7,11 +7,27 @@ export const ENROLLMENT_STATE_LABELS = {
 };
 
 // A user can carry more than one enrollment in the same course (rare, but
-// possible with multiple sections) — the StudentEnrollment one is what the
-// report cares about; any other type present is ignored.
+// possible with multiple sections, or a re-enrollment after being removed
+// and re-added) — the StudentEnrollment one(s) are what the report cares
+// about; any other type present is ignored. When more than one
+// StudentEnrollment exists, the "best" one wins by this priority order
+// (active > invited > completed > inactive) rather than whichever Canvas
+// happens to list first — otherwise a student who's genuinely active in one
+// section could get masked by a stale/removed enrollment in another,
+// showing the wrong status for no reason a professor could see in Canvas's
+// own UI (which always surfaces the most relevant enrollment per student).
+const ENROLLMENT_STATE_PRIORITY = ['active', 'invited', 'completed', 'inactive'];
+
 function primaryEnrollment(student) {
   const enrollments = student.enrollments || [];
-  return enrollments.find((e) => e.type === 'StudentEnrollment') || enrollments[0] || null;
+  const studentEnrollments = enrollments.filter((e) => e.type === 'StudentEnrollment');
+  if (studentEnrollments.length <= 1) return studentEnrollments[0] || enrollments[0] || null;
+
+  return studentEnrollments.reduce((best, e) => {
+    const bestRank = ENROLLMENT_STATE_PRIORITY.indexOf(best.enrollment_state);
+    const rank = ENROLLMENT_STATE_PRIORITY.indexOf(e.enrollment_state);
+    return rank !== -1 && (bestRank === -1 || rank < bestRank) ? e : best;
+  });
 }
 
 /**

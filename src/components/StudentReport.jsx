@@ -106,14 +106,22 @@ export default function StudentReport({ rows, courseId, baseUrl, providers = [] 
   const [query, setQuery] = useState('');
   const [messageStudent, setMessageStudent] = useState(null);
   const [sort, setSort] = useState({ key: null, direction: 'asc' });
+  // Defaults to hiding inactive students — matches this page's own stated
+  // scope ("Listagem dos alunos ativos do curso") — but stays a toggle
+  // rather than a hard filter, since a professor might want to see who was
+  // deactivated. See listCourseStudents() in canvasClient.js for why the
+  // 'inactive' state is now fetched at all instead of being excluded
+  // server-side.
+  const [hideInactive, setHideInactive] = useState(true);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
-    if (!term) return rows;
-    return rows.filter(
-      (row) => row.name?.toLowerCase().includes(term) || row.contact?.toLowerCase().includes(term),
-    );
-  }, [rows, query]);
+    return rows.filter((row) => {
+      if (hideInactive && row.enrollmentState === 'inactive') return false;
+      if (!term) return true;
+      return row.name?.toLowerCase().includes(term) || row.contact?.toLowerCase().includes(term);
+    });
+  }, [rows, query, hideInactive]);
 
   const sorted = useMemo(() => {
     if (!sort.key) return filtered;
@@ -157,6 +165,10 @@ export default function StudentReport({ rows, courseId, baseUrl, providers = [] 
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Pesquisar alunos"
         />
+        <label className="checkbox-filter">
+          <input type="checkbox" checked={hideInactive} onChange={(e) => setHideInactive(e.target.checked)} />
+          Ocultar alunos inativos
+        </label>
         <button type="button" className="btn btn-secondary" onClick={() => downloadCsv(filtered)}>
           <Download size={16} strokeWidth={1.8} aria-hidden="true" />
           Exportar CSV
@@ -171,7 +183,11 @@ export default function StudentReport({ rows, courseId, baseUrl, providers = [] 
       )}
 
       {filtered.length === 0 ? (
-        <p className="lede">Nenhum aluno encontrado com essa pesquisa.</p>
+        <p className="lede">
+          {hideInactive && query.trim() === ''
+            ? 'Nenhum aluno ativo encontrado — desmarque "Ocultar alunos inativos" para ver todos.'
+            : 'Nenhum aluno encontrado com essa pesquisa.'}
+        </p>
       ) : (
         <div className="data-table-wrap">
         <table className="data-table">

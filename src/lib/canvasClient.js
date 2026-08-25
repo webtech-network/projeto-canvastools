@@ -254,12 +254,24 @@ export async function replyToConversation(client, conversationId, body) {
  * unrecognized include[] value is silently ignored rather than erroring, and
  * some Canvas instances do return it; callers should still fall back to the
  * always-present `login_id` when `email` doesn't come back.
+ *
+ * `enrollment_state[]` is deliberately requested as this broader set —
+ * active/invited/inactive/completed — rather than just 'active'. Canvas's
+ * own filtering for this parameter on this endpoint isn't reliable enough
+ * to trust blindly (observed live: students the professor had deactivated
+ * in Canvas still came back labeled 'active' when only 'active' was
+ * requested here). Fetching the wider set and filtering/labeling client-side
+ * from each enrollment's own `enrollment_state` (see studentReport.js and
+ * StudentReport.jsx's "Ocultar alunos inativos" toggle) is the only way to
+ * guarantee the status shown actually matches Canvas's real data. 'rejected'
+ * and 'deleted' are left out on purpose — those aren't students a professor
+ * would ever expect to see in a roster.
  */
 export async function listCourseStudents(client, courseId, { include = [] } = {}) {
   return fetchAllPages(client, `/courses/${courseId}/users`, {
     per_page: 100,
     'enrollment_type[]': 'student',
-    'enrollment_state[]': 'active',
+    'enrollment_state[]': ['active', 'invited', 'inactive', 'completed'],
     ...(include.length ? { 'include[]': include } : {}),
   });
 }

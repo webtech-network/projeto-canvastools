@@ -1942,6 +1942,18 @@ tr.is-expanded .course-name-btn {
   gap: 0.4rem;
   font-size: 0.9rem;
 }
+
+/* StudentReport.jsx's "Ocultar alunos inativos" toggle — same shape as
+   .rubric-grader-filter above, kept as its own class per this codebase's
+   convention of per-component checkbox-row classes rather than one shared
+   cross-cutting name. */
+.checkbox-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
 .rubric-grader-table-wrap {
   overflow-x: auto;
   margin: 1.25rem 0;
