@@ -261,29 +261,31 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
         </p>
       )}
 
-      <div className="browser-controls">
+      <div className="browser-controls rubric-grader-toolbar">
         <label className="rubric-grader-filter">
           <input type="checkbox" checked={hideMissing} onChange={(e) => setHideMissing(e.target.checked)} />
           Ocultar sem entrega
         </label>
         <button
           type="button"
-          className="btn btn-secondary btn-icon"
+          className="btn btn-secondary"
           onClick={setMaxGradeForAllSubmitted}
           title="Nota máxima para quem entregou"
           aria-label="Nota máxima para quem entregou"
         >
           <Award size={16} strokeWidth={1.8} />
+          <span className="rubric-grader-toolbar-btn-text">Nota máxima para quem entregou</span>
         </button>
         <button
           type="button"
-          className="btn btn-primary btn-icon"
+          className="btn btn-primary"
           disabled={bulkSending}
           onClick={sendAll}
           title={bulkSending ? 'Enviando…' : 'Enviar todas as notas'}
           aria-label={bulkSending ? 'Enviando notas' : 'Enviar todas as notas ao Canvas'}
         >
           {bulkSending ? <LoaderCircle size={16} strokeWidth={1.8} className="sync-spin" /> : <Send size={16} strokeWidth={1.8} />}
+          <span className="rubric-grader-toolbar-btn-text">{bulkSending ? 'Enviando…' : 'Enviar todas as notas'}</span>
         </button>
       </div>
 

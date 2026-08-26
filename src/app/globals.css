@@ -1943,6 +1943,28 @@ tr.is-expanded .course-name-btn {
   font-size: 0.9rem;
 }
 
+/* Scoped override, not a change to the shared .browser-controls rule —
+   every other .browser-controls caller (CourseBrowser, MessageBrowser,
+   StudentReport, AssignmentsTable) keeps its own left-aligned search/filter
+   layout; only this page's toolbar (checkbox + the two bulk-action buttons)
+   groups together against the right edge. */
+.rubric-grader-toolbar {
+  justify-content: flex-end;
+}
+@media (max-width: 640px) {
+  /* Icon-only on a phone — the full label ("Nota máxima para quem
+     entregou", "Enviar todas as notas") doesn't fit next to the other
+     toolbar controls at that width; the tooltip/aria-label already on each
+     button keeps them identifiable. */
+  .rubric-grader-toolbar-btn-text {
+    display: none;
+  }
+  .rubric-grader-toolbar .btn {
+    padding: 0.5rem;
+    gap: 0;
+  }
+}
+
 /* StudentReport.jsx's "Ocultar alunos inativos" toggle — same shape as
    .rubric-grader-filter above, kept as its own class per this codebase's
    convention of per-component checkbox-row classes rather than one shared
@@ -2164,25 +2186,37 @@ tr.is-expanded .course-name-btn {
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
-.submission-viewer-toolbar-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  min-width: 0;
-}
 .submission-viewer-hint {
   margin: 0;
   font-size: 0.8rem;
   color: var(--ink-soft);
 }
-/* Which attachment is showing, for a multi-file upload — reuses the same
-   .segmented-btn pill look as every other in-page toggle group, just not
-   wrapped in .segmented's own pill-shaped container (this row can grow past
-   that container's intended width with enough files). */
-.submission-viewer-attachments {
+/* online_upload submissions — Canvas won't let a file's own URL be framed
+   any more than its preview page, so each attachment is just a direct
+   "abrir em janela própria" action instead of a doomed iframe. */
+.submission-viewer-files {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+}
+.submission-viewer-file-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.submission-viewer-file-btn {
+  width: 100%;
+  justify-content: flex-start;
+}
+.submission-viewer-file-name {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .submission-viewer-iframe {
   flex: 1;
