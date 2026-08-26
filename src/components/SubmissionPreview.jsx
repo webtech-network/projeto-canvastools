@@ -64,8 +64,8 @@ export default function SubmissionPreview({
   const isLinkList = isFileUpload || isDirectLink;
 
   const linkListMessage = isFileUpload
-    ? 'O Canvas não permite abrir arquivos enviados dentro do CanvasTools — abra cada um em uma janela própria:'
-    : 'Muitos sites não permitem ser exibidos dentro de outra página — abra o link enviado pelo aluno em uma janela própria:';
+    ? 'Não é possível pré-visualizar a entrega do aluno aqui — abra cada arquivo em uma janela própria:'
+    : 'Não é possível pré-visualizar a entrega do aluno aqui — abra o link em uma janela própria:';
   const linkListItems = isFileUpload
     ? attachments.map((a) => ({ key: a.id, Icon: FileText, label: a.name, url: a.url }))
     : isDirectLink
@@ -86,8 +86,8 @@ export default function SubmissionPreview({
       {iframeUrl && (
         <div className="submission-viewer-toolbar">
           <p className="submission-viewer-hint">
-            Carregado direto do Canvas — exige que você esteja autenticado lá neste navegador, e o Canvas pode
-            recusar ser exibido aqui. Se não carregar, abra em uma janela própria.
+            Não é possível garantir a pré-visualização da entrega do aluno aqui — se não carregar, abra em uma
+            janela própria.
           </p>
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => openInWindow(iframeUrl, studentName)}>
             <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />

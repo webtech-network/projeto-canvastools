@@ -2019,8 +2019,12 @@ tr.is-expanded .course-name-btn {
 }
 .rubric-grader-table textarea {
   resize: vertical;
-  min-width: 180px;
+  min-width: 320px;
+  width: 100%;
   white-space: normal;
+}
+.rubric-grader-comment-cell {
+  width: 320px;
 }
 .rubric-grader-total {
   font-weight: 700;

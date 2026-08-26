@@ -1,8 +1,20 @@
+import {
+  CircleAlert,
+  CircleDashed,
+  Clock,
+  Hourglass,
+  FileCheck,
+  CircleCheckBig,
+  Award,
+  Eraser,
+  Send,
+} from 'lucide-react';
 import { getSession, isSessionValid } from '@/lib/session';
 import { createClient, getCourse, getAssignment, listSubmissions } from '@/lib/canvasClient';
 import { refreshAccessToken } from '@/lib/canvasOAuth';
 import ContextBanner from '@/components/ContextBanner';
 import RubricGrader from '@/components/RubricGrader';
+import InfoHint from '@/components/InfoHint';
 
 export default async function GradeAssignmentPage({ params }) {
   const { courseId, assignmentId } = await params;
@@ -49,7 +61,54 @@ export default async function GradeAssignmentPage({ params }) {
 
   return (
     <main className="page">
-      <h1>Correção de Atividade</h1>
+      <div className="page-title-row">
+        <h1>Correção de Atividade</h1>
+        <InfoHint label="Sobre a tela de Correção de Atividade">
+          <p>
+            Lance notas para cada aluno ou grupo — por critério de rubrica quando a atividade tiver uma associada no
+            Canvas, ou em uma única nota quando não tiver. Clique no nome de um aluno/grupo para ver a entrega
+            enviada, sem sair da página.
+          </p>
+          <p>
+            Nenhuma nota chega ao Canvas até você clicar em "Enviar" (por linha) ou "Enviar todas as notas" — até lá,
+            tudo fica só como rascunho local.
+          </p>
+          <h4>Status da entrega</h4>
+          <ul className="icon-legend">
+            <li>
+              <CircleAlert size={14} strokeWidth={1.8} aria-hidden="true" style={{ color: 'var(--err)' }} /> Faltando
+            </li>
+            <li>
+              <CircleDashed size={14} strokeWidth={1.8} aria-hidden="true" /> Não entregue
+            </li>
+            <li>
+              <Clock size={14} strokeWidth={1.8} aria-hidden="true" style={{ color: 'var(--warn)' }} /> Atrasada
+            </li>
+            <li>
+              <Hourglass size={14} strokeWidth={1.8} aria-hidden="true" style={{ color: 'var(--warn)' }} /> Aguardando
+              revisão
+            </li>
+            <li>
+              <FileCheck size={14} strokeWidth={1.8} aria-hidden="true" /> Entregue
+            </li>
+            <li>
+              <CircleCheckBig size={14} strokeWidth={1.8} aria-hidden="true" style={{ color: 'var(--ok)' }} /> Avaliada
+            </li>
+          </ul>
+          <h4>Ícones e botões</h4>
+          <ul className="icon-legend">
+            <li>
+              <Award size={14} strokeWidth={1.8} aria-hidden="true" /> Nota máxima
+            </li>
+            <li>
+              <Eraser size={14} strokeWidth={1.8} aria-hidden="true" /> Limpar nota
+            </li>
+            <li>
+              <Send size={14} strokeWidth={1.8} aria-hidden="true" /> Enviar nota ao Canvas
+            </li>
+          </ul>
+        </InfoHint>
+      </div>
       <ContextBanner
         items={[
           { label: 'Curso', value: course.name },

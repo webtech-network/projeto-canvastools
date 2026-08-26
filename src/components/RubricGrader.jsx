@@ -1,7 +1,20 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import { ChevronRight, Award, Eraser, Send, LoaderCircle, CircleCheckBig } from 'lucide-react';
+import {
+  ChevronRight,
+  Award,
+  Eraser,
+  Send,
+  LoaderCircle,
+  CircleCheckBig,
+  CircleAlert,
+  CircleDashed,
+  Clock,
+  Hourglass,
+  FileCheck,
+  HelpCircle,
+} from 'lucide-react';
 import {
   extractExistingSelections,
   computeTotalPoints,
@@ -10,7 +23,24 @@ import {
   summarizeSubmissionStatus,
 } from '@/lib/rubricGrading';
 import { useUnsavedChangesGuard } from '@/lib/useUnsavedChangesGuard';
+import SortIcon from './SortIcon';
 import SubmissionPreview from './SubmissionPreview';
+
+// Icon + color + a semantic (not alphabetical) sort order for the Status
+// column — see summarizeSubmissionStatus() in rubricGrading.js for the
+// exact label strings this is keyed by. Ordered so sorting ascending
+// surfaces what most needs attention first (missing/late) before what's
+// already handled (graded), mirroring CourseBrowser.jsx's own STATUS_ORDER
+// approach for its status column.
+const SUBMISSION_STATUS_META = {
+  Faltando: { Icon: CircleAlert, color: 'var(--err)', order: 0 },
+  'Não entregue': { Icon: CircleDashed, color: 'var(--ink-soft)', order: 1 },
+  Atrasada: { Icon: Clock, color: 'var(--warn)', order: 2 },
+  'Aguardando revisão': { Icon: Hourglass, color: 'var(--warn)', order: 3 },
+  Entregue: { Icon: FileCheck, color: 'var(--ink)', order: 4 },
+  Avaliada: { Icon: CircleCheckBig, color: 'var(--ok)', order: 5 },
+};
+const DEFAULT_STATUS_META = { Icon: HelpCircle, color: 'var(--ink-soft)', order: 99 };
 
 // For a group assignment (see grade/page.jsx's own comment on
 // `isGroupAssignment`), Canvas still returns one submission per *student* —
@@ -108,6 +138,10 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
   // same expand-a-row-below pattern as AssignmentsTable.jsx's own
   // expandedIds, a Set so more than one can be open at once.
   const [expandedIds, setExpandedIds] = useState(() => new Set());
+  // Same SORTERS/toggleSort/sortAria shape as CourseBrowser.jsx — only Nome
+  // and Status are sortable here (the rubric criteria/Nota/Comentário
+  // columns are per-row editable drafts, not stable sortable values).
+  const [sort, setSort] = useState({ key: null, direction: 'asc' });
   // Rows touched since load/last successful send — drives the leave-page
   // warning below. Selections pre-filled from Canvas on load don't count as
   // dirty; only user-triggered edits do.
@@ -118,6 +152,34 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
   useUnsavedChangesGuard(dirtyRows.size > 0);
 
   const visibleRows = useMemo(() => (hideMissing ? rows.filter((r) => r.hasSubmission) : rows), [rows, hideMissing]);
+
+  const sortedRows = useMemo(() => {
+    if (!sort.key) return visibleRows;
+    const getValue =
+      sort.key === 'name'
+        ? (r) => r.name?.toLowerCase() ?? ''
+        : (r) => (SUBMISSION_STATUS_META[r.status] || DEFAULT_STATUS_META).order;
+    const sign = sort.direction === 'asc' ? 1 : -1;
+    return [...visibleRows].sort((a, b) => {
+      const va = getValue(a);
+      const vb = getValue(b);
+      if (va < vb) return -1 * sign;
+      if (va > vb) return 1 * sign;
+      return 0;
+    });
+  }, [visibleRows, sort]);
+
+  function toggleSort(key) {
+    setSort((prev) => {
+      if (prev.key !== key) return { key, direction: 'asc' };
+      return { key, direction: prev.direction === 'asc' ? 'desc' : 'asc' };
+    });
+  }
+
+  function sortAria(key) {
+    if (sort.key !== key) return 'none';
+    return sort.direction === 'asc' ? 'ascending' : 'descending';
+  }
 
   function toggleExpanded(userId) {
     setExpandedIds((prev) => {
@@ -315,8 +377,18 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
           <table className="data-table rubric-grader-table">
             <thead>
               <tr>
-                <th>{groupAssignment ? 'Grupo' : 'Aluno'}</th>
-                <th>Status</th>
+                <th aria-sort={sortAria('name')}>
+                  <button type="button" className="th-sort-btn" onClick={() => toggleSort('name')}>
+                    {groupAssignment ? 'Grupo' : 'Aluno'}
+                    <SortIcon direction={sort.key === 'name' ? sort.direction : null} />
+                  </button>
+                </th>
+                <th aria-sort={sortAria('status')}>
+                  <button type="button" className="th-sort-btn" onClick={() => toggleSort('status')}>
+                    Status
+                    <SortIcon direction={sort.key === 'status' ? sort.direction : null} />
+                  </button>
+                </th>
                 {hasRubric ? (
                   <>
                     {rubric.map((criterion) => (
@@ -334,12 +406,14 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
               </tr>
             </thead>
             <tbody>
-              {visibleRows.map((row) => {
+              {sortedRows.map((row) => {
                 const state = rowState[row.userId] || {};
                 const total = hasRubric ? computeTotalPoints(row.selections) : row.grade;
                 const hasAnySelection = rowHasGrade(row);
                 const isDirty = dirtyRows.has(row.userId);
                 const expanded = expandedIds.has(row.userId);
+                const statusMeta = SUBMISSION_STATUS_META[row.status] || DEFAULT_STATUS_META;
+                const StatusIconCmp = statusMeta.Icon;
                 return (
                   <Fragment key={row.userId}>
                   <tr className={isDirty ? 'is-dirty' : undefined}>
@@ -356,7 +430,11 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
                         {row.name}
                       </button>
                     </td>
-                    <td>{row.status}</td>
+                    <td className="status-cell">
+                      <span className="status-icon" style={{ color: statusMeta.color }} title={row.status} role="img" aria-label={row.status}>
+                        <StatusIconCmp size={16} strokeWidth={1.8} />
+                      </span>
+                    </td>
                     {hasRubric ? (
                       <>
                         {rubric.map((criterion) => {
@@ -397,7 +475,7 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
                         />
                       </td>
                     )}
-                    <td>
+                    <td className="rubric-grader-comment-cell">
                       <textarea
                         rows={2}
                         value={comments[row.userId] || ''}
@@ -408,7 +486,7 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
                     <td className="actions-cell rubric-grader-actions">
                       <button
                         type="button"
-                        className="btn btn-secondary btn-icon btn-sm"
+                        className="btn btn-primary btn-icon"
                         onClick={() => setMaxGrade(row.userId)}
                         title="Nota máxima"
                         aria-label={`Nota máxima para ${row.name}`}
@@ -417,7 +495,7 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
                       </button>
                       <button
                         type="button"
-                        className="btn btn-secondary btn-icon btn-sm"
+                        className="btn btn-primary btn-icon"
                         onClick={() => clearGrade(row.userId)}
                         title="Limpar"
                         aria-label={`Limpar nota de ${row.name}`}
@@ -426,7 +504,7 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
                       </button>
                       <button
                         type="button"
-                        className="btn btn-primary btn-icon btn-sm"
+                        className="btn btn-primary btn-icon"
                         disabled={state.saving || !hasAnySelection}
                         onClick={() => sendGrade(row.userId)}
                         title={state.saving ? 'Enviando…' : state.saved ? 'Enviado ✓' : 'Enviar nota ao Canvas'}
