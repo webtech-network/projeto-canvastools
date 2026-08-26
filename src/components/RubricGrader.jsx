@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Eye, Award, Eraser, Send, LoaderCircle, CircleCheckBig } from 'lucide-react';
+import { Fragment, useMemo, useState } from 'react';
+import { ChevronRight, Award, Eraser, Send, LoaderCircle, CircleCheckBig } from 'lucide-react';
 import {
   extractExistingSelections,
   computeTotalPoints,
@@ -10,7 +10,7 @@ import {
   summarizeSubmissionStatus,
 } from '@/lib/rubricGrading';
 import { useUnsavedChangesGuard } from '@/lib/useUnsavedChangesGuard';
-import SubmissionViewerModal from './SubmissionViewerModal';
+import SubmissionPreview from './SubmissionPreview';
 
 // For a group assignment (see grade/page.jsx's own comment on
 // `isGroupAssignment`), Canvas still returns one submission per *student* —
@@ -49,12 +49,12 @@ function buildInitialRows(submissions, groupAssignment) {
       status: summarizeSubmissionStatus(s),
       hasSubmission: s.workflow_state !== 'unsubmitted',
       // Canvas returns a preview_url even for a student with no submission
-      // (it just resolves to an empty-state page there) — the "Visualizar
-      // entrega" button below gates on `hasSubmission` too, not just this
-      // field being truthy, so it's disabled exactly when the Status column
-      // already says there's nothing to see.
+      // (it just resolves to an empty-state page there) — SubmissionPreview.jsx
+      // gates on `hasSubmission` too, not just this field being truthy, so
+      // expanding a "Faltando" row shows a plain "nothing to see" message
+      // instead of that empty-state page.
       previewUrl: s.preview_url || null,
-      // SubmissionViewerModal.jsx picks its content source from
+      // SubmissionPreview.jsx picks its content source from
       // submissionType instead of always routing through Canvas's own
       // preview_url — confirmed in real use, Canvas frequently refuses to
       // be framed there at all (X-Frame-Options), for uploaded files just
@@ -104,10 +104,10 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
   const [hideMissing, setHideMissing] = useState(false);
   const [bulkSending, setBulkSending] = useState(false);
   const [bulkError, setBulkError] = useState(null);
-  // The row currently open in SubmissionViewerModal.jsx, or null — holds the
-  // whole row (not just a userId) so the modal has both `name` and
-  // `previewUrl` on hand without a second lookup.
-  const [viewingRow, setViewingRow] = useState(null);
+  // userIds whose SubmissionPreview.jsx panel is expanded below their row —
+  // same expand-a-row-below pattern as AssignmentsTable.jsx's own
+  // expandedIds, a Set so more than one can be open at once.
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
   // Rows touched since load/last successful send — drives the leave-page
   // warning below. Selections pre-filled from Canvas on load don't count as
   // dirty; only user-triggered edits do.
@@ -118,6 +118,15 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
   useUnsavedChangesGuard(dirtyRows.size > 0);
 
   const visibleRows = useMemo(() => (hideMissing ? rows.filter((r) => r.hasSubmission) : rows), [rows, hideMissing]);
+
+  function toggleExpanded(userId) {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  }
 
   function rowHasGrade(row) {
     return hasRubric ? Object.keys(row.selections).length > 0 : row.grade !== '' && row.grade != null;
@@ -253,6 +262,10 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
     );
   }
 
+  // Aluno/Grupo + Status + (rubric criteria + Nota, or a plain Nota column)
+  // + Comentário + Ações — for the expanded SubmissionPreview row's colSpan.
+  const columnCount = 2 + (hasRubric ? rubric.length + 1 : 1) + 2;
+
   return (
     <div className="rubric-grader">
       {!hasRubric && (
@@ -326,9 +339,23 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
                 const total = hasRubric ? computeTotalPoints(row.selections) : row.grade;
                 const hasAnySelection = rowHasGrade(row);
                 const isDirty = dirtyRows.has(row.userId);
+                const expanded = expandedIds.has(row.userId);
                 return (
-                  <tr key={row.userId} className={isDirty ? 'is-dirty' : undefined}>
-                    <td className="course-name-cell">{row.name}</td>
+                  <Fragment key={row.userId}>
+                  <tr className={isDirty ? 'is-dirty' : undefined}>
+                    <td className="course-name-cell">
+                      <button
+                        type="button"
+                        className="rubric-grader-name-toggle"
+                        onClick={() => toggleExpanded(row.userId)}
+                        aria-expanded={expanded}
+                      >
+                        <span className={`group-chevron${expanded ? ' expanded' : ''}`} aria-hidden="true">
+                          <ChevronRight size={14} strokeWidth={2} />
+                        </span>
+                        {row.name}
+                      </button>
+                    </td>
                     <td>{row.status}</td>
                     {hasRubric ? (
                       <>
@@ -382,16 +409,6 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
                       <button
                         type="button"
                         className="btn btn-secondary btn-icon btn-sm"
-                        disabled={!row.hasSubmission || !row.previewUrl}
-                        onClick={() => setViewingRow(row)}
-                        title={row.hasSubmission ? 'Visualizar entrega' : 'Sem entrega para visualizar'}
-                        aria-label={`Visualizar entrega de ${row.name}`}
-                      >
-                        <Eye size={14} strokeWidth={1.8} />
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-icon btn-sm"
                         onClick={() => setMaxGrade(row.userId)}
                         title="Nota máxima"
                         aria-label={`Nota máxima para ${row.name}`}
@@ -432,23 +449,29 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
                       )}
                     </td>
                   </tr>
+                  {expanded && (
+                    <tr className="message-detail-row">
+                      <td colSpan={columnCount}>
+                        <div className="message-detail">
+                          <SubmissionPreview
+                            studentName={row.name}
+                            hasSubmission={row.hasSubmission}
+                            previewUrl={row.previewUrl}
+                            submissionType={row.submissionType}
+                            submittedUrl={row.submittedUrl}
+                            body={row.body}
+                            attachments={row.attachments}
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 );
               })}
             </tbody>
           </table>
         </div>
-      )}
-
-      {viewingRow && (
-        <SubmissionViewerModal
-          studentName={viewingRow.name}
-          previewUrl={viewingRow.previewUrl}
-          submissionType={viewingRow.submissionType}
-          submittedUrl={viewingRow.submittedUrl}
-          body={viewingRow.body}
-          attachments={viewingRow.attachments}
-          onClose={() => setViewingRow(null)}
-        />
       )}
     </div>
   );

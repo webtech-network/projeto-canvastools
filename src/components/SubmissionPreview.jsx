@@ -1,7 +1,6 @@
 'use client';
 
 import { ExternalLink, FileText, Link2 } from 'lucide-react';
-import Modal from './Modal';
 
 // Same plain-text-from-HTML approach as AssignmentsTable.jsx's own
 // descriptionToPlainText — this app has zero HTML-sanitization tooling, and
@@ -23,8 +22,12 @@ function openInWindow(url, name) {
   window.open(url, `submissao-${encodeURIComponent(name)}`, 'noopener,noreferrer,width=1100,height=850');
 }
 
-// Picks its content source from `submissionType` instead of always routing
-// through Canvas's own `preview_url`:
+// RubricGrader.jsx's "click the student's/group's name" panel — rendered
+// inline in a table row expanded below the clicked one (see that file's
+// own message-detail-row usage, the same expand-a-row-below pattern
+// AssignmentsTable.jsx already uses for an assignment's description), not
+// a modal. Picks its content source from `submissionType` instead of
+// always routing through Canvas's own `preview_url`:
 //   - online_text_entry: `body` is already sitting right here in the
 //     Submission payload — shown as plain text, no network/iframe involved.
 //   - online_upload / online_url: neither is reliably embeddable, so neither
@@ -42,15 +45,19 @@ function openInWindow(url, name) {
 //     falls back to Canvas's preview_url — the only option left, iframing
 //     it is best-effort (same X-Frame-Options risk as above), "Abrir em
 //     janela própria" is the guaranteed-to-work escape hatch either way.
-export default function SubmissionViewerModal({
+export default function SubmissionPreview({
   studentName,
+  hasSubmission,
   previewUrl,
   submissionType,
   submittedUrl,
   body,
   attachments = [],
-  onClose,
 }) {
+  if (!hasSubmission) {
+    return <p className="lede">Nenhuma entrega para visualizar.</p>;
+  }
+
   const isTextEntry = submissionType === 'online_text_entry' && Boolean(body);
   const isFileUpload = submissionType === 'online_upload' && attachments.length > 0;
   const isDirectLink = submissionType === 'online_url' && Boolean(submittedUrl);
@@ -70,55 +77,51 @@ export default function SubmissionViewerModal({
   // instead) still attempts an iframe.
   const iframeUrl = !isTextEntry && !isLinkList ? previewUrl : null;
 
+  if (!isTextEntry && !isLinkList && !iframeUrl) {
+    return <p className="lede">Sem prévia disponível para esta entrega.</p>;
+  }
+
   return (
-    // closeOnBackdropClick={false}: an iframe eats a click meant for the
-    // backdrop just as readily as one meant for its own content, so an
-    // accidental click near its edge closing the whole modal was surprising
-    // in practice. Escape still works (unlike preventBackdropClose, which
-    // would block that too) — only the backdrop click and the header's own
-    // X button are the deliberate close paths here.
-    <Modal title={`Entrega de ${studentName}`} onClose={onClose} size="lg" fullBleed closeOnBackdropClick={false}>
-      <div className="submission-viewer">
-        {iframeUrl && (
-          <div className="submission-viewer-toolbar">
-            <p className="submission-viewer-hint">
-              Carregado direto do Canvas — exige que você esteja autenticado lá neste navegador, e o Canvas pode
-              recusar ser exibido aqui. Se não carregar, abra em uma janela própria.
-            </p>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => openInWindow(iframeUrl, studentName)}>
-              <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />
-              Abrir em janela própria
-            </button>
-          </div>
-        )}
-        {isLinkList ? (
-          <div className="submission-viewer-files">
-            <p className="submission-viewer-hint">{linkListMessage}</p>
-            <ul className="submission-viewer-file-list">
-              {linkListItems.map(({ key, Icon, label, url }) => (
-                <li key={key}>
-                  <button
-                    type="button"
-                    className="btn btn-secondary submission-viewer-file-btn"
-                    onClick={() => openInWindow(url, studentName)}
-                    title={label}
-                  >
-                    <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
-                    <span className="submission-viewer-file-name">{label}</span>
-                    <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : isTextEntry ? (
-          <div className="submission-viewer-text">
-            <p className="message-detail-text">{plainTextFromHtml(body)}</p>
-          </div>
-        ) : (
-          <iframe src={iframeUrl} title={`Entrega de ${studentName}`} className="submission-viewer-iframe" />
-        )}
-      </div>
-    </Modal>
+    <div className="submission-viewer">
+      {iframeUrl && (
+        <div className="submission-viewer-toolbar">
+          <p className="submission-viewer-hint">
+            Carregado direto do Canvas — exige que você esteja autenticado lá neste navegador, e o Canvas pode
+            recusar ser exibido aqui. Se não carregar, abra em uma janela própria.
+          </p>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => openInWindow(iframeUrl, studentName)}>
+            <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />
+            Abrir em janela própria
+          </button>
+        </div>
+      )}
+      {isLinkList ? (
+        <div className="submission-viewer-files">
+          <p className="submission-viewer-hint">{linkListMessage}</p>
+          <ul className="submission-viewer-file-list">
+            {linkListItems.map(({ key, Icon, label, url }) => (
+              <li key={key}>
+                <button
+                  type="button"
+                  className="btn btn-secondary submission-viewer-file-btn"
+                  onClick={() => openInWindow(url, studentName)}
+                  title={label}
+                >
+                  <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
+                  <span className="submission-viewer-file-name">{label}</span>
+                  <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : isTextEntry ? (
+        <div className="submission-viewer-text">
+          <p className="message-detail-text">{plainTextFromHtml(body)}</p>
+        </div>
+      ) : (
+        <iframe src={iframeUrl} title={`Entrega de ${studentName}`} className="submission-viewer-iframe" />
+      )}
+    </div>
   );
 }
