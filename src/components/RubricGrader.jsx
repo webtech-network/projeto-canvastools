@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Eye } from 'lucide-react';
+import { Eye, Award, Eraser, Send, LoaderCircle, CircleCheckBig } from 'lucide-react';
 import {
   extractExistingSelections,
   computeTotalPoints,
@@ -54,6 +54,26 @@ function buildInitialRows(submissions, groupAssignment) {
       // field being truthy, so it's disabled exactly when the Status column
       // already says there's nothing to see.
       previewUrl: s.preview_url || null,
+      // SubmissionViewerModal.jsx picks its content source from
+      // submissionType instead of always routing through Canvas's own
+      // preview_url — confirmed in real use, Canvas frequently refuses to
+      // be framed there at all (X-Frame-Options), for uploaded files just
+      // as much as for the page itself. Each alternative sidesteps that in
+      // a different way: an online_url submission's own link is an ordinary
+      // external page with none of Canvas's auth/framing baggage; an
+      // uploaded file's own attachment.url is a direct(ish) file link,
+      // separate from the blocked preview wrapper page; text entered
+      // directly into Canvas is already sitting right here in `body`,
+      // needing no network request (or iframe) at all.
+      submissionType: s.submission_type || null,
+      submittedUrl: s.url || null,
+      body: s.body || null,
+      attachments: (s.attachments || []).map((a) => ({
+        id: a.id,
+        name: a.display_name || a.filename || `Arquivo ${a.id}`,
+        url: a.url,
+        contentType: a['content-type'] || '',
+      })),
       selections: extractExistingSelections(s),
       grade: s.score != null ? String(s.score) : '',
     }))
@@ -246,11 +266,24 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
           <input type="checkbox" checked={hideMissing} onChange={(e) => setHideMissing(e.target.checked)} />
           Ocultar sem entrega
         </label>
-        <button type="button" className="btn btn-secondary" onClick={setMaxGradeForAllSubmitted}>
-          Nota máxima para quem entregou
+        <button
+          type="button"
+          className="btn btn-secondary btn-icon"
+          onClick={setMaxGradeForAllSubmitted}
+          title="Nota máxima para quem entregou"
+          aria-label="Nota máxima para quem entregou"
+        >
+          <Award size={16} strokeWidth={1.8} />
         </button>
-        <button type="button" className="btn btn-primary" disabled={bulkSending} onClick={sendAll}>
-          {bulkSending ? 'Enviando…' : 'Enviar todas as notas'}
+        <button
+          type="button"
+          className="btn btn-primary btn-icon"
+          disabled={bulkSending}
+          onClick={sendAll}
+          title={bulkSending ? 'Enviando…' : 'Enviar todas as notas'}
+          aria-label={bulkSending ? 'Enviando notas' : 'Enviar todas as notas ao Canvas'}
+        >
+          {bulkSending ? <LoaderCircle size={16} strokeWidth={1.8} className="sync-spin" /> : <Send size={16} strokeWidth={1.8} />}
         </button>
       </div>
 
@@ -354,19 +387,41 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
                       >
                         <Eye size={14} strokeWidth={1.8} />
                       </button>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMaxGrade(row.userId)}>
-                        Nota máxima
-                      </button>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => clearGrade(row.userId)}>
-                        Limpar
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-icon btn-sm"
+                        onClick={() => setMaxGrade(row.userId)}
+                        title="Nota máxima"
+                        aria-label={`Nota máxima para ${row.name}`}
+                      >
+                        <Award size={14} strokeWidth={1.8} />
                       </button>
                       <button
                         type="button"
-                        className="btn btn-primary btn-sm"
+                        className="btn btn-secondary btn-icon btn-sm"
+                        onClick={() => clearGrade(row.userId)}
+                        title="Limpar"
+                        aria-label={`Limpar nota de ${row.name}`}
+                      >
+                        <Eraser size={14} strokeWidth={1.8} />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-icon btn-sm"
                         disabled={state.saving || !hasAnySelection}
                         onClick={() => sendGrade(row.userId)}
+                        title={state.saving ? 'Enviando…' : state.saved ? 'Enviado ✓' : 'Enviar nota ao Canvas'}
+                        aria-label={
+                          state.saving ? 'Enviando nota' : state.saved ? 'Nota enviada' : `Enviar nota de ${row.name} ao Canvas`
+                        }
                       >
-                        {state.saving ? 'Enviando…' : state.saved ? 'Enviado ✓' : 'Enviar'}
+                        {state.saving ? (
+                          <LoaderCircle size={14} strokeWidth={1.8} className="sync-spin" />
+                        ) : state.saved ? (
+                          <CircleCheckBig size={14} strokeWidth={1.8} />
+                        ) : (
+                          <Send size={14} strokeWidth={1.8} />
+                        )}
                       </button>
                       {state.error && (
                         <p className="alert alert-error" role="alert">
@@ -386,6 +441,10 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
         <SubmissionViewerModal
           studentName={viewingRow.name}
           previewUrl={viewingRow.previewUrl}
+          submissionType={viewingRow.submissionType}
+          submittedUrl={viewingRow.submittedUrl}
+          body={viewingRow.body}
+          attachments={viewingRow.attachments}
           onClose={() => setViewingRow(null)}
         />
       )}
