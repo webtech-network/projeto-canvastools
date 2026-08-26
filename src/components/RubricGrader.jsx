@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Eye } from 'lucide-react';
 import {
   extractExistingSelections,
   computeTotalPoints,
@@ -9,6 +10,7 @@ import {
   summarizeSubmissionStatus,
 } from '@/lib/rubricGrading';
 import { useUnsavedChangesGuard } from '@/lib/useUnsavedChangesGuard';
+import SubmissionViewerModal from './SubmissionViewerModal';
 
 // For a group assignment (see grade/page.jsx's own comment on
 // `isGroupAssignment`), Canvas still returns one submission per *student* —
@@ -46,6 +48,12 @@ function buildInitialRows(submissions, groupAssignment) {
       name: (groupAssignment && s.group?.name) || s.user?.name || `Aluno ${s.user_id}`,
       status: summarizeSubmissionStatus(s),
       hasSubmission: s.workflow_state !== 'unsubmitted',
+      // Canvas returns a preview_url even for a student with no submission
+      // (it just resolves to an empty-state page there) — the "Visualizar
+      // entrega" button below gates on `hasSubmission` too, not just this
+      // field being truthy, so it's disabled exactly when the Status column
+      // already says there's nothing to see.
+      previewUrl: s.preview_url || null,
       selections: extractExistingSelections(s),
       grade: s.score != null ? String(s.score) : '',
     }))
@@ -76,6 +84,10 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
   const [hideMissing, setHideMissing] = useState(false);
   const [bulkSending, setBulkSending] = useState(false);
   const [bulkError, setBulkError] = useState(null);
+  // The row currently open in SubmissionViewerModal.jsx, or null — holds the
+  // whole row (not just a userId) so the modal has both `name` and
+  // `previewUrl` on hand without a second lookup.
+  const [viewingRow, setViewingRow] = useState(null);
   // Rows touched since load/last successful send — drives the leave-page
   // warning below. Selections pre-filled from Canvas on load don't count as
   // dirty; only user-triggered edits do.
@@ -332,6 +344,16 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
                       />
                     </td>
                     <td className="actions-cell rubric-grader-actions">
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-icon btn-sm"
+                        disabled={!row.hasSubmission || !row.previewUrl}
+                        onClick={() => setViewingRow(row)}
+                        title={row.hasSubmission ? 'Visualizar entrega' : 'Sem entrega para visualizar'}
+                        aria-label={`Visualizar entrega de ${row.name}`}
+                      >
+                        <Eye size={14} strokeWidth={1.8} />
+                      </button>
                       <button type="button" className="btn btn-ghost btn-sm" onClick={() => setMaxGrade(row.userId)}>
                         Nota máxima
                       </button>
@@ -358,6 +380,14 @@ export default function RubricGrader({ courseId, assignmentId, rubric, pointsPos
             </tbody>
           </table>
         </div>
+      )}
+
+      {viewingRow && (
+        <SubmissionViewerModal
+          studentName={viewingRow.name}
+          previewUrl={viewingRow.previewUrl}
+          onClose={() => setViewingRow(null)}
+        />
       )}
     </div>
   );

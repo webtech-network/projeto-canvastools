@@ -2140,6 +2140,42 @@ tr.is-expanded .course-name-btn {
   padding: 1.25rem;
 }
 
+/* SubmissionViewerModal.jsx — needs far more room than a form modal to
+   usefully preview a student's submission. */
+.modal--lg {
+  max-width: min(1200px, 96vw);
+  max-height: 92vh;
+}
+.modal-body--full-bleed {
+  padding: 0;
+}
+
+.submission-viewer {
+  display: flex;
+  flex-direction: column;
+  height: 78vh;
+}
+.submission-viewer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.65rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.submission-viewer-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+.submission-viewer-iframe {
+  flex: 1;
+  border: none;
+  width: 100%;
+  background: var(--paper);
+}
+
 .import-results {
   margin-top: 1.75rem;
 }
