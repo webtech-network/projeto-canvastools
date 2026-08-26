@@ -1,6 +1,6 @@
 'use client';
 
-import { ExternalLink, FileText } from 'lucide-react';
+import { ExternalLink, FileText, Link2 } from 'lucide-react';
 import Modal from './Modal';
 
 // Same plain-text-from-HTML approach as AssignmentsTable.jsx's own
@@ -27,14 +27,17 @@ function openInWindow(url, name) {
 // through Canvas's own `preview_url`:
 //   - online_text_entry: `body` is already sitting right here in the
 //     Submission payload — shown as plain text, no network/iframe involved.
-//   - online_url: the student's own link is an ordinary external page —
-//     genuinely a different origin than Canvas, so it's worth iframing.
-//   - online_upload: each attachment's own `url` is still a Canvas-hosted
-//     link (not a truly external one), so — CONFIRMED in real use — it hits
-//     the exact same X-Frame-Options wall as `preview_url` does when
-//     iframed, even though it loads fine as a top-level navigation/popup.
-//     Iframing it was never going to work, so this case skips the iframe
-//     entirely and goes straight to a list of "abrir arquivo" actions.
+//   - online_upload / online_url: neither is reliably embeddable, so neither
+//     attempts an iframe at all — CONFIRMED in real use for both. Uploaded
+//     files are still Canvas-hosted links, hitting the same X-Frame-Options
+//     wall as `preview_url`; a submitted link is a page the *student* chose,
+//     on a site whose own framing policy this app has no control over (many
+//     sites — Google Docs, GitHub, YouTube, etc. — block being framed the
+//     same way). Both cases just list the real URL/filename Canvas reports
+//     and a direct "abrir em janela própria" action instead — the one
+//     mechanism that reliably works regardless of what the target allows,
+//     since X-Frame-Options only restricts framing, not top-level
+//     navigation.
 //   - anything else (media_recording, on_paper, basic_lti_launch, ...):
 //     falls back to Canvas's preview_url — the only option left, iframing
 //     it is best-effort (same X-Frame-Options risk as above), "Abrir em
@@ -48,20 +51,24 @@ export default function SubmissionViewerModal({
   attachments = [],
   onClose,
 }) {
-  const isFileUpload = submissionType === 'online_upload' && attachments.length > 0;
   const isTextEntry = submissionType === 'online_text_entry' && Boolean(body);
+  const isFileUpload = submissionType === 'online_upload' && attachments.length > 0;
   const isDirectLink = submissionType === 'online_url' && Boolean(submittedUrl);
-  // Only these two cases actually attempt an iframe — see the file-level
-  // comment above for why file uploads don't.
-  const iframeUrl = isDirectLink ? submittedUrl : !isTextEntry && !isFileUpload ? previewUrl : null;
+  const isLinkList = isFileUpload || isDirectLink;
 
-  let hint = null;
-  if (isDirectLink) {
-    hint = 'Link enviado pelo aluno — pode não carregar aqui se o site não permitir ser exibido em outra página.';
-  } else if (iframeUrl) {
-    hint =
-      'Carregado direto do Canvas — exige que você esteja autenticado lá neste navegador, e o Canvas pode recusar ser exibido aqui. Se não carregar, abra em uma janela própria.';
-  }
+  const linkListMessage = isFileUpload
+    ? 'O Canvas não permite abrir arquivos enviados dentro do CanvasTools — abra cada um em uma janela própria:'
+    : 'Muitos sites não permitem ser exibidos dentro de outra página — abra o link enviado pelo aluno em uma janela própria:';
+  const linkListItems = isFileUpload
+    ? attachments.map((a) => ({ key: a.id, Icon: FileText, label: a.name, url: a.url }))
+    : isDirectLink
+      ? [{ key: 'url', Icon: Link2, label: submittedUrl, url: submittedUrl }]
+      : [];
+
+  // Only this remaining case (no better alternative — media_recording,
+  // on_paper, basic_lti_launch, etc. have no discrete file/URL to point to
+  // instead) still attempts an iframe.
+  const iframeUrl = !isTextEntry && !isLinkList ? previewUrl : null;
 
   return (
     // closeOnBackdropClick={false}: an iframe eats a click meant for the
@@ -72,31 +79,32 @@ export default function SubmissionViewerModal({
     // X button are the deliberate close paths here.
     <Modal title={`Entrega de ${studentName}`} onClose={onClose} size="lg" fullBleed closeOnBackdropClick={false}>
       <div className="submission-viewer">
-        {!isFileUpload && (
+        {iframeUrl && (
           <div className="submission-viewer-toolbar">
-            {hint && <p className="submission-viewer-hint">{hint}</p>}
-            {!isTextEntry && (
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => openInWindow(iframeUrl, studentName)}>
-                <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />
-                Abrir em janela própria
-              </button>
-            )}
+            <p className="submission-viewer-hint">
+              Carregado direto do Canvas — exige que você esteja autenticado lá neste navegador, e o Canvas pode
+              recusar ser exibido aqui. Se não carregar, abra em uma janela própria.
+            </p>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => openInWindow(iframeUrl, studentName)}>
+              <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />
+              Abrir em janela própria
+            </button>
           </div>
         )}
-        {isFileUpload ? (
+        {isLinkList ? (
           <div className="submission-viewer-files">
-            <p className="submission-viewer-hint">
-              {/* Canvas hosts uploaded files behind the same login/framing wall as its
-                  preview page — confirmed not embeddable here, so each file just gets
-                  its own direct "abrir" action instead of a doomed iframe attempt. */}
-              O Canvas não permite abrir arquivos enviados dentro do CanvasTools — abra cada um em uma janela própria:
-            </p>
+            <p className="submission-viewer-hint">{linkListMessage}</p>
             <ul className="submission-viewer-file-list">
-              {attachments.map((a) => (
-                <li key={a.id}>
-                  <button type="button" className="btn btn-secondary submission-viewer-file-btn" onClick={() => openInWindow(a.url, a.name)}>
-                    <FileText size={16} strokeWidth={1.8} aria-hidden="true" />
-                    <span className="submission-viewer-file-name">{a.name}</span>
+              {linkListItems.map(({ key, Icon, label, url }) => (
+                <li key={key}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary submission-viewer-file-btn"
+                    onClick={() => openInWindow(url, studentName)}
+                    title={label}
+                  >
+                    <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
+                    <span className="submission-viewer-file-name">{label}</span>
                     <ExternalLink size={14} strokeWidth={1.8} aria-hidden="true" />
                   </button>
                 </li>
