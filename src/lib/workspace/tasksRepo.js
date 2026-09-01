@@ -26,6 +26,10 @@ export async function createTask({ title, projectId = null }) {
     description: '',
     status: 'BACKLOG',
     priority: { urgent: false, important: false },
+    // 0 (maior) a 9 (menor); toda tarefa nasce em 3 ("alta") — ver
+    // taskSort.js's comparePriority, que ordena Kanban/Matriz/Tabela por
+    // este campo (desempate por urgência e depois importância).
+    priorityRank: 3,
     projectId,
     tags: [],
     dueDate: null,
@@ -84,6 +88,7 @@ export async function replaceAllTasks(tasksArray) {
         description: t.description || '',
         status: STATUSES.includes(t.status) ? t.status : 'BACKLOG',
         priority: { urgent: Boolean(t.priority?.urgent), important: Boolean(t.priority?.important) },
+        priorityRank: Number.isInteger(t.priorityRank) ? Math.min(9, Math.max(0, t.priorityRank)) : 3,
         projectId: t.projectId ?? null,
         tags: Array.isArray(t.tags) ? t.tags : [],
         dueDate: t.dueDate ?? null,

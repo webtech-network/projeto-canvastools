@@ -6,34 +6,11 @@ import { Flag, Zap, CalendarDays } from 'lucide-react';
 import { useWorkspace } from './WorkspaceProvider';
 import { STATUS_META } from '@/lib/workspace/statusMeta';
 import { projectCardStyle } from '@/lib/workspace/projectColors';
+import { formatDueDate, isPastDue } from '@/lib/workspace/dueDate';
 
-// `dueDate` is stored as a plain 'YYYY-MM-DD' string (no time/timezone) —
-// parsing it via `new Date('YYYY-MM-DD')` treats it as UTC midnight per the
-// ISO 8601 spec, which then displays as the *previous* day in any timezone
-// behind UTC (e.g. Brazil) once formatted in local time. Building the Date
-// from its numeric parts instead uses the local-time constructor, so the
-// displayed day always matches what was picked in the date input.
-function formatDueDate(dateStr) {
-  if (!dateStr) return null;
-  const [year, month, day] = dateStr.split('-').map(Number);
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-}
-
-// A finished task is never "late" regardless of its due date, so DONE is
-// excluded — same reasoning as EisenhowerMatrix.jsx's MATRIX_ALWAYS_EXCLUDED.
-function isPastDue(dateStr, status) {
-  if (!dateStr || status === 'DONE') return false;
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const due = new Date(year, month - 1, day);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return due < today;
-}
-
-// Interleaves a thin visual separator between whichever of the three meta
-// groups (status / classification / due date) actually have content —
-// never a dangling separator next to nothing.
+// Interleaves a thin visual separator between whichever of the meta groups
+// (priority rank / status / classification / due date) actually have
+// content — never a dangling separator next to nothing.
 function withSeparators(nodes) {
   const visible = nodes.filter(Boolean);
   return visible.flatMap((node, i) =>
@@ -73,6 +50,16 @@ export default function TaskCard({ task, onSelect }) {
   const condensed = cardDensity === 'condensed';
   const iconSize = condensed ? 14 : 13;
 
+  // 0 (maior) a 9 (menor) — see taskSort.js's comparePriority, which orders
+  // this task within its Kanban column / Eisenhower quadrant / TaskTable row
+  // by this same value. Shown here so that ordering is legible on the card
+  // itself, not just as an invisible sort key.
+  const priorityRankSeg = (
+    <span key="priority" className="priority-rank-badge" title="Prioridade (0 = maior, 9 = menor)">
+      P{task.priorityRank ?? 3}
+    </span>
+  );
+
   const statusSeg = StatusIcon ? (
     <span key="status" className="kanban-card-status-icon" title={STATUS_META[task.status].label}>
       <StatusIcon size={iconSize} strokeWidth={1.8} />
@@ -104,7 +91,7 @@ export default function TaskCard({ task, onSelect }) {
     </span>
   ) : null;
 
-  const metaSegments = withSeparators([statusSeg, classificationSeg, dueSeg]);
+  const metaSegments = withSeparators([priorityRankSeg, statusSeg, classificationSeg, dueSeg]);
 
   return (
     <div

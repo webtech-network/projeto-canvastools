@@ -29,7 +29,8 @@ const initialState = {
   filters: EMPTY_FILTERS,
   view: 'kanban',
   cardDensity: 'expanded',
-  stagesCollapsed: false,
+  collapsedColumns: [],
+  groupByProject: false,
   loading: true,
 };
 
@@ -76,8 +77,10 @@ function reducer(state, action) {
       return { ...state, view: action.view };
     case 'SET_DENSITY':
       return { ...state, cardDensity: action.density };
-    case 'SET_STAGES_COLLAPSED':
-      return { ...state, stagesCollapsed: action.collapsed };
+    case 'SET_COLLAPSED_COLUMNS':
+      return { ...state, collapsedColumns: action.columns };
+    case 'SET_GROUP_BY_PROJECT':
+      return { ...state, groupByProject: action.groupByProject };
     default:
       return state;
   }
@@ -157,7 +160,8 @@ export function WorkspaceProvider({ children }) {
     const prefs = resolveWorkspacePreferences();
     dispatch({ type: 'SET_DENSITY', density: prefs.cardDensity });
     dispatch({ type: 'SET_VIEW', view: prefs.view });
-    dispatch({ type: 'SET_STAGES_COLLAPSED', collapsed: prefs.stagesCollapsed });
+    dispatch({ type: 'SET_COLLAPSED_COLUMNS', columns: prefs.collapsedColumns });
+    dispatch({ type: 'SET_GROUP_BY_PROJECT', groupByProject: prefs.groupByProject });
   }, []);
 
   const addTask = useCallback(async (title, projectId = null) => {
@@ -230,11 +234,13 @@ export function WorkspaceProvider({ children }) {
     scheduleWorkspaceSync();
   }, []);
 
-  // These three write only to the session-tier override (workspacePreferences.js)
-  // — never to the persistent default, which is only ever changed via
-  // /perfil's Preferências tab (TarefasPreferences.jsx). "Ao alterar algo
-  // [na tela de Tarefas], mantenha estas opções nas configurações de
-  // sessão que devem sobrepor as configurações padrões durante a sessão."
+  // setView/setCardDensity/setColumnCollapsed/setStagesCollapsed below write
+  // only to the session-tier override (workspacePreferences.js) — never to
+  // the persistent default, which is only ever changed via /perfil's
+  // Preferências tab (TarefasPreferences.jsx). "Ao alterar algo [na tela de
+  // Tarefas], mantenha estas opções nas configurações de sessão que devem
+  // sobrepor as configurações padrões durante a sessão." (setFilters below
+  // doesn't persist at all — filters reset every visit.)
   const setFilters = useCallback((filters) => dispatch({ type: 'SET_FILTERS', filters }), []);
   const setView = useCallback((view) => {
     patchSessionOverride({ view });
@@ -244,10 +250,38 @@ export function WorkspaceProvider({ children }) {
     patchSessionOverride({ cardDensity: density });
     dispatch({ type: 'SET_DENSITY', density });
   }, []);
-  const setStagesCollapsed = useCallback((collapsed) => {
-    patchSessionOverride({ stagesCollapsed: collapsed });
-    dispatch({ type: 'SET_STAGES_COLLAPSED', collapsed });
+  const setGroupByProject = useCallback((groupByProject) => {
+    patchSessionOverride({ groupByProject });
+    dispatch({ type: 'SET_GROUP_BY_PROJECT', groupByProject });
   }, []);
+  // Closes/reopens a single Kanban column — the header close button (any
+  // status) and the collapsed strip's click-to-expand (KanbanColumn.jsx)
+  // both go through here.
+  const setColumnCollapsed = useCallback(
+    (status, collapsed) => {
+      const next = collapsed
+        ? Array.from(new Set([...state.collapsedColumns, status]))
+        : state.collapsedColumns.filter((s) => s !== status);
+      patchSessionOverride({ collapsedColumns: next });
+      dispatch({ type: 'SET_COLLAPSED_COLUMNS', columns: next });
+    },
+    [state.collapsedColumns],
+  );
+  // Convenience batch action over the same collapsedColumns state — kept for
+  // WorkspaceView.jsx's toolbar shortcut and TarefasPreferences.jsx's
+  // persisted default, both of which still treat Backlog/Block as one pair.
+  // Independent from per-column closes: collapsing Backlog on its own via
+  // its header button doesn't affect Block, and vice versa.
+  const setStagesCollapsed = useCallback(
+    (collapsed) => {
+      const next = collapsed
+        ? Array.from(new Set([...state.collapsedColumns, 'BACKLOG', 'BLOCK']))
+        : state.collapsedColumns.filter((s) => s !== 'BACKLOG' && s !== 'BLOCK');
+      patchSessionOverride({ collapsedColumns: next });
+      dispatch({ type: 'SET_COLLAPSED_COLUMNS', columns: next });
+    },
+    [state.collapsedColumns],
+  );
 
   // For mutations that bypass the wrappers above and write to IndexedDB
   // directly (WorkspaceExportImport.jsx's file import, via
@@ -276,6 +310,8 @@ export function WorkspaceProvider({ children }) {
     setFilters,
     setView,
     setCardDensity,
+    setGroupByProject,
+    setColumnCollapsed,
     setStagesCollapsed,
     refreshFromLocal,
   };

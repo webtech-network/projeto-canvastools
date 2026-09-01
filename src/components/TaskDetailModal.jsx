@@ -39,6 +39,7 @@ export default function TaskDetailModal({ task = null, initialStatus, onClose })
   const [status, setStatus] = useState(task?.status || initialStatus || STATUSES[0]);
   const [urgent, setUrgent] = useState(Boolean(task?.priority?.urgent));
   const [important, setImportant] = useState(Boolean(task?.priority?.important));
+  const [priorityRank, setPriorityRank] = useState(Number.isInteger(task?.priorityRank) ? task.priorityRank : 3);
   const [assignmentId, setAssignmentId] = useState(task?.canvasReferences?.assignmentId || '');
   const [studentId, setStudentId] = useState(task?.canvasReferences?.studentId || '');
 
@@ -111,6 +112,7 @@ export default function TaskDetailModal({ task = null, initialStatus, onClose })
         dueDate: dueDate || null,
         status,
         priority: { urgent, important },
+        priorityRank,
         canvasReferences: courseId
           ? { courseId, assignmentId: assignmentId || null, studentId: studentId || null }
           : null,
@@ -244,6 +246,20 @@ export default function TaskDetailModal({ task = null, initialStatus, onClose })
             <label className="task-detail-checkbox">
               <input type="checkbox" checked={important} onChange={(e) => setImportant(e.target.checked)} />
               Importante
+            </label>
+            <label className="compose-message-field task-detail-priority-field">
+              <span>Prioridade (0 = maior, 9 = menor)</span>
+              <input
+                type="number"
+                min={0}
+                max={9}
+                value={priorityRank}
+                onChange={(e) => {
+                  const value = Number(e.target.value);
+                  if (Number.isNaN(value)) return;
+                  setPriorityRank(Math.min(9, Math.max(0, value)));
+                }}
+              />
             </label>
           </div>
 

@@ -15,12 +15,15 @@ import {
   Rows4,
   Columns3,
   Grid2x2,
+  Table2,
+  Layers,
 } from 'lucide-react';
 import { useWorkspace } from './WorkspaceProvider';
 import WorkspaceFilterModal from './WorkspaceFilterModal';
 import QuickAddTask from './QuickAddTask';
 import KanbanBoard from './KanbanBoard';
 import EisenhowerMatrix from './EisenhowerMatrix';
+import TaskTable from './TaskTable';
 import TaskDetailModal from './TaskDetailModal';
 import ProjectsManagerModal from './ProjectsManagerModal';
 import WorkspaceExportImport from './WorkspaceExportImport';
@@ -34,12 +37,18 @@ export default function WorkspaceView() {
     setView,
     cardDensity,
     setCardDensity,
-    stagesCollapsed,
+    groupByProject,
+    setGroupByProject,
+    collapsedColumns,
     setStagesCollapsed,
     loading,
     tasks,
     filters,
   } = useWorkspace();
+  // Toolbar shortcut still targets Backlog+Block as a pair — independent
+  // per-column closes (via each column's own header button) don't affect
+  // this derived flag unless both happen to end up collapsed anyway.
+  const stagesCollapsed = collapsedColumns.includes('BACKLOG') && collapsedColumns.includes('BLOCK');
   const [selectedTaskId, setSelectedTaskId] = useState(null);
   const [showProjectsManager, setShowProjectsManager] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -91,15 +100,28 @@ export default function WorkspaceView() {
 
         <div className="workspace-toolbar-secondary">
         <div className="workspace-toolbar-right">
+          {view !== 'table' && (
+            <button
+              type="button"
+              className={`btn btn-secondary btn-icon${stagesCollapsed ? ' active' : ''}`}
+              onClick={() => setStagesCollapsed(!stagesCollapsed)}
+              title={stagesToggleTitle}
+              aria-label={stagesToggleTitle}
+              aria-pressed={stagesCollapsed}
+            >
+              {stagesCollapsed ? <PanelLeftOpen size={16} strokeWidth={1.8} /> : <PanelLeftClose size={16} strokeWidth={1.8} />}
+            </button>
+          )}
+
           <button
             type="button"
-            className={`btn btn-secondary btn-icon${stagesCollapsed ? ' active' : ''}`}
-            onClick={() => setStagesCollapsed(!stagesCollapsed)}
-            title={stagesToggleTitle}
-            aria-label={stagesToggleTitle}
-            aria-pressed={stagesCollapsed}
+            className={`btn btn-secondary btn-icon${groupByProject ? ' active' : ''}`}
+            onClick={() => setGroupByProject(!groupByProject)}
+            title="Agrupar por projeto"
+            aria-label="Agrupar por projeto"
+            aria-pressed={groupByProject}
           >
-            {stagesCollapsed ? <PanelLeftOpen size={16} strokeWidth={1.8} /> : <PanelLeftClose size={16} strokeWidth={1.8} />}
+            <Layers size={16} strokeWidth={1.8} />
           </button>
 
           <div className="segmented" role="group" aria-label="Densidade dos cards">
@@ -146,6 +168,16 @@ export default function WorkspaceView() {
             >
               <Grid2x2 size={16} strokeWidth={1.8} />
             </button>
+            <button
+              type="button"
+              className={`segmented-btn icon-only${view === 'table' ? ' active' : ''}`}
+              onClick={() => setView('table')}
+              title="Tabela"
+              aria-label="Tabela"
+              aria-pressed={view === 'table'}
+            >
+              <Table2 size={16} strokeWidth={1.8} />
+            </button>
           </div>
 
           <button type="button" className="btn btn-secondary btn-icon" onClick={() => setShowProjectsManager(true)} title="Projetos" aria-label="Projetos">
@@ -174,11 +206,11 @@ export default function WorkspaceView() {
         </div>
       </div>
 
-      {view === 'kanban' ? (
+      {view === 'kanban' && (
         <KanbanBoard onSelect={(task) => setSelectedTaskId(task.id)} onCreate={(status) => setCreatingStatus(status)} />
-      ) : (
-        <EisenhowerMatrix onSelect={(task) => setSelectedTaskId(task.id)} />
       )}
+      {view === 'eisenhower' && <EisenhowerMatrix onSelect={(task) => setSelectedTaskId(task.id)} />}
+      {view === 'table' && <TaskTable onSelect={(task) => setSelectedTaskId(task.id)} />}
 
       {/* Status is invisible while looking at the Eisenhower matrix, and
           priority is invisible while looking at the Kanban board — this

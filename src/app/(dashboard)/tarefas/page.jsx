@@ -1,4 +1,17 @@
-import { Filter, PanelLeftClose, Rows3, Columns3, Grid2x2, FolderKanban, FileJson, Settings, Flag, Zap } from 'lucide-react';
+import {
+  Filter,
+  PanelLeftClose,
+  Rows3,
+  Columns3,
+  Grid2x2,
+  Table2,
+  Layers,
+  FolderKanban,
+  FileJson,
+  Settings,
+  Flag,
+  Zap,
+} from 'lucide-react';
 import { getSession, isSessionValid } from '@/lib/session';
 import { WorkspaceProvider } from '@/components/WorkspaceProvider';
 import WorkspaceView from '@/components/WorkspaceView';
@@ -44,6 +57,12 @@ export default async function TarefasPage() {
             </li>
             <li>
               <Grid2x2 size={14} strokeWidth={1.8} aria-hidden="true" /> Visão Matriz de Eisenhower
+            </li>
+            <li>
+              <Table2 size={14} strokeWidth={1.8} aria-hidden="true" /> Visão em Tabela
+            </li>
+            <li>
+              <Layers size={14} strokeWidth={1.8} aria-hidden="true" /> Agrupar por projeto
             </li>
             <li>
               <FolderKanban size={14} strokeWidth={1.8} aria-hidden="true" /> Projetos

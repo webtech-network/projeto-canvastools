@@ -3119,6 +3119,13 @@ tr.is-expanded .course-name-btn {
   flex: 1;
   min-width: 160px;
 }
+.task-detail-priority-field {
+  flex: 0 0 auto;
+  min-width: 140px;
+}
+.task-detail-priority-field input {
+  width: 5rem;
+}
 .task-detail-project-row,
 .task-detail-tag-input {
   display: flex;
@@ -3204,15 +3211,20 @@ tr.is-expanded .course-name-btn {
   flex: none;
 }
 
+/* display: flex (not grid) specifically so any subset of columns can be
+   individually collapsed — .kanban-column--collapsed below sets its own
+   flex-basis regardless of which/how many siblings are also collapsed,
+   which a fixed grid-template-columns (position-dependent) can't express. */
 .kanban-board {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(220px, 1fr));
+  display: flex;
   gap: 1rem;
   overflow-x: auto;
   padding-bottom: 0.5rem;
 }
 .kanban-column {
-  min-width: 0;
+  flex: 1 1 220px;
+  min-width: 220px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   background: var(--paper);
@@ -3241,6 +3253,28 @@ tr.is-expanded .course-name-btn {
   align-items: center;
   gap: 0.4rem;
 }
+.kanban-column-header-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.kanban-column-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.kanban-column-close-btn:hover {
+  background: var(--paper-raised);
+  color: var(--ink);
+}
 .kanban-column-body {
   display: flex;
   flex-direction: column;
@@ -3248,13 +3282,11 @@ tr.is-expanded .course-name-btn {
   min-height: 60px;
 }
 
-/* Backlog/Block collapse toggle (WorkspaceView.jsx) — assumes these are
-   grid children 1 and 2, which STATUSES (tasksRepo.js) guarantees by
-   ordering them first. The other three columns pick up the freed space. */
-.kanban-board--stages-collapsed {
-  grid-template-columns: 56px 56px repeat(3, minmax(220px, 1fr));
-}
+/* Per-column collapse (any status — KanbanColumn.jsx's own close button, or
+   WorkspaceView.jsx's Backlog/Block toolbar shortcut) shrinks just this
+   column to a narrow strip; siblings keep their own flex-basis untouched. */
 .kanban-column--collapsed {
+  flex: 0 0 56px;
   width: 56px;
   min-width: 56px;
   align-items: center;
@@ -3466,12 +3498,52 @@ tr.is-expanded .course-name-btn {
   color: var(--ink-soft);
 }
 
+/* Priority rank (0 = maior, 9 = menor — see taskSort.js) — same small pill
+   language as .pending-badge, reused by TaskCard.jsx's meta row and
+   TaskTable.jsx's own column so the value reads identically in every view. */
+.priority-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+}
+
+/* "Agrupar por projeto" (WorkspaceView.jsx toolbar toggle) — sub-clusters
+   inside a Kanban column or Eisenhower quadrant body (see grouping.js's
+   groupTasksByProject). Each group is just a header row above its own run of
+   .kanban-card children, still inside the same single droppable container. */
+.task-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.task-group-header {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+.task-group-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 900px) {
-  .kanban-board {
-    grid-template-columns: repeat(5, minmax(200px, 1fr));
-  }
-  .kanban-board--stages-collapsed {
-    grid-template-columns: 56px 56px repeat(3, minmax(200px, 1fr));
+  .kanban-column {
+    flex-basis: 200px;
+    min-width: 200px;
   }
   .eisenhower-matrix {
     grid-template-columns: 1fr;
@@ -3486,6 +3558,97 @@ tr.is-expanded .course-name-btn {
   .eisenhower-matrix {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/* TaskTable.jsx — third Tarefas view, alongside Kanban/Matriz: every filtered
+   task in one sortable table instead of split across columns/quadrants.
+   overflow-x lives on this wrapper (not the table itself) so a narrow
+   viewport scrolls the table horizontally instead of the whole page — same
+   pattern as every other data table in this app. */
+.task-table-wrapper {
+  overflow-x: auto;
+  min-height: 0;
+}
+.page-tarefas .task-table-wrapper {
+  flex: 1;
+}
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.task-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid var(--line);
+  white-space: nowrap;
+}
+.task-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  vertical-align: middle;
+}
+.task-table-row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.task-table-row:hover {
+  background: var(--paper);
+}
+.task-table-cell-center {
+  text-align: center;
+}
+.task-table-title {
+  font-weight: 600;
+}
+.task-table-project {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--ink-soft);
+}
+.task-table-empty {
+  text-align: center;
+  color: var(--ink-soft);
+  padding: 1.5rem 0.75rem;
+}
+/* One header row per project group (grouping.js's groupTasksByProject),
+   spanning every column — same "Sem projeto" fallback and color-dot styling
+   as .task-group-header in the Kanban/Matriz views. */
+.task-table-group-row td {
+  background: var(--paper);
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+.task-table-group-row .workspace-projects-color-dot {
+  margin-right: 0.4rem;
+  vertical-align: middle;
+}
+.task-table-group-row .pending-badge {
+  margin-left: 0.5rem;
+}
+.task-table-sort-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.task-table-sort-btn:hover,
+.task-table-sort-btn.active {
+  color: var(--ink);
 }
 
 /* Course notes (CourseNoteEditor.jsx / MarkdownEditor.jsx) — the inline row
@@ -3605,39 +3768,70 @@ tr.is-expanded .course-name-btn {
 .markdown-editor-rich h1,
 .markdown-editor-rich h2,
 .markdown-editor-rich h3,
-.markdown-editor-rich h4 {
+.markdown-editor-rich h4,
+.course-note-view h1,
+.course-note-view h2,
+.course-note-view h3,
+.course-note-view h4 {
   margin: 0.9rem 0 0.4rem;
   font-family: var(--font-display), serif;
 }
 .markdown-editor-rich p,
-.markdown-editor-rich div {
+.markdown-editor-rich div,
+.course-note-view p,
+.course-note-view div {
   margin: 0 0 0.75rem;
 }
 .markdown-editor-rich ul,
-.markdown-editor-rich ol {
+.markdown-editor-rich ol,
+.course-note-view ul,
+.course-note-view ol {
   margin: 0 0 0.75rem;
   padding-left: 1.4rem;
 }
-.markdown-editor-rich blockquote {
+.markdown-editor-rich blockquote,
+.course-note-view blockquote {
   margin: 0 0 0.75rem;
   padding-left: 0.85rem;
   border-left: 3px solid var(--line);
   color: var(--ink-soft);
 }
-.markdown-editor-rich code {
+.markdown-editor-rich code,
+.course-note-view code {
   background: var(--paper);
   border-radius: 4px;
   padding: 0.1rem 0.3rem;
   font-size: 0.88em;
 }
-.markdown-editor-rich pre {
+.markdown-editor-rich pre,
+.course-note-view pre {
   background: var(--paper);
   border-radius: 8px;
   padding: 0.75rem;
   overflow-x: auto;
   margin: 0 0 0.75rem;
 }
-.markdown-editor-rich pre code {
+.markdown-editor-rich pre code,
+.course-note-view pre code {
   background: none;
   padding: 0;
+}
+.markdown-editor-rich a,
+.course-note-view a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* View-mode surface (CourseNoteView, in CourseNoteEditor.jsx) — same
+   typography as .markdown-editor-rich above, but never contentEditable, so
+   links navigate on a normal click instead of just placing the caret. */
+.course-note-view {
+  padding: 0.85rem 1rem;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+.course-note-view:last-child > *:last-child {
+  margin-bottom: 0;
 }

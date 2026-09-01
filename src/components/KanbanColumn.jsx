@@ -1,15 +1,29 @@
 'use client';
 
+import { X } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import TaskCard from './TaskCard';
+import { groupTasksByProject } from '@/lib/workspace/grouping';
 
-// `collapsed` (Backlog/Block, toggled from WorkspaceView.jsx) shrinks the
-// column to a narrow strip showing only its count + label — the droppable
-// stays active even collapsed, so a card can still be dragged straight into
-// Backlog/Block without expanding it first. Clicking the collapsed strip
-// (via `onExpand`) is a second way to reveal it, alongside the shared toggle
-// button in WorkspaceView.jsx.
-export default function KanbanColumn({ status, label, Icon, tasks, onSelect, collapsed, onExpand, onCreate }) {
+// `collapsed` (per column, toggled either from this column's own close
+// button below or from WorkspaceView.jsx's Backlog/Block toolbar shortcut)
+// shrinks the column to a narrow strip showing only its count + label — the
+// droppable stays active even collapsed, so a card can still be dragged
+// straight into a closed column without expanding it first. Clicking the
+// collapsed strip (via `onExpand`) is the way back to the normal view.
+export default function KanbanColumn({
+  status,
+  label,
+  Icon,
+  tasks,
+  projects,
+  groupByProject,
+  onSelect,
+  collapsed,
+  onCollapse,
+  onExpand,
+  onCreate,
+}) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   // Only fires when the double-click landed on the body wrapper itself, not
@@ -43,16 +57,41 @@ export default function KanbanColumn({ status, label, Icon, tasks, onSelect, col
               <Icon size={15} strokeWidth={1.8} aria-hidden="true" />
               {label}
             </span>
-            <span className="pending-badge">{tasks.length}</span>
+            <span className="kanban-column-header-right">
+              <span className="pending-badge">{tasks.length}</span>
+              <button
+                type="button"
+                className="kanban-column-close-btn"
+                onClick={onCollapse}
+                title={`Fechar coluna ${label}`}
+                aria-label={`Fechar coluna ${label}`}
+              >
+                <X size={14} strokeWidth={1.8} />
+              </button>
+            </span>
           </div>
           <div
             className="kanban-column-body"
             onDoubleClick={handleBodyDoubleClick}
             title="Duplo clique para criar uma tarefa neste estágio"
           >
-            {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} onSelect={onSelect} />
-            ))}
+            {groupByProject
+              ? groupTasksByProject(tasks, projects).map(({ project, tasks: groupTasks }) => (
+                  <div key={project?.id || 'none'} className="task-group">
+                    <div className="task-group-header">
+                      <span
+                        className="workspace-projects-color-dot"
+                        style={{ backgroundColor: project?.color || 'transparent' }}
+                      />
+                      <span className="task-group-name">{project ? project.name : 'Sem projeto'}</span>
+                      <span className="pending-badge">{groupTasks.length}</span>
+                    </div>
+                    {groupTasks.map((task) => (
+                      <TaskCard key={task.id} task={task} onSelect={onSelect} />
+                    ))}
+                  </div>
+                ))
+              : tasks.map((task) => <TaskCard key={task.id} task={task} onSelect={onSelect} />)}
           </div>
         </>
       )}

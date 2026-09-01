@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Rows3, Rows4, Columns3, Grid2x2, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Rows3, Rows4, Columns3, Grid2x2, Table2, Layers, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { getDefaultPreferences, patchDefaultPreferences, FALLBACK_PREFERENCES } from '@/lib/workspace/workspacePreferences';
 
 // Edits only the persistent "default" tier of the Tarefas module's view
@@ -24,6 +24,20 @@ export default function TarefasPreferences() {
   function update(patch) {
     setPrefs((p) => ({ ...p, ...patch }));
     patchDefaultPreferences(patch);
+  }
+
+  // This preference is still a Backlog/Block pair (matching the toolbar
+  // shortcut in WorkspaceView.jsx) — individual columns (including Backlog
+  // or Block on their own) can still be closed per-session from their own
+  // header button, that just isn't something a default value applies to.
+  const collapsedColumns = prefs.collapsedColumns || [];
+  const stagesCollapsed = collapsedColumns.includes('BACKLOG') && collapsedColumns.includes('BLOCK');
+
+  function toggleStagesCollapsed() {
+    const next = stagesCollapsed
+      ? collapsedColumns.filter((s) => s !== 'BACKLOG' && s !== 'BLOCK')
+      : Array.from(new Set([...collapsedColumns, 'BACKLOG', 'BLOCK']));
+    update({ collapsedColumns: next });
   }
 
   return (
@@ -88,23 +102,51 @@ export default function TarefasPreferences() {
           >
             <Grid2x2 size={16} strokeWidth={1.8} />
           </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={prefs.view === 'table'}
+            className={`segmented-btn icon-only${prefs.view === 'table' ? ' active' : ''}`}
+            onClick={() => update({ view: 'table' })}
+            title="Tabela"
+            aria-label="Tabela"
+          >
+            <Table2 size={16} strokeWidth={1.8} />
+          </button>
         </div>
+      </label>
+
+      <label className="compose-message-field">
+        <span>Agrupar por projeto</span>
+        <button
+          type="button"
+          className={`btn btn-secondary btn-icon${prefs.groupByProject ? ' active' : ''}`}
+          onClick={() => update({ groupByProject: !prefs.groupByProject })}
+          title={prefs.groupByProject ? 'Desagrupar por padrão' : 'Agrupar por padrão'}
+          aria-label={prefs.groupByProject ? 'Desagrupar por padrão' : 'Agrupar por padrão'}
+          aria-pressed={Boolean(prefs.groupByProject)}
+        >
+          <Layers size={16} strokeWidth={1.8} />
+        </button>
+        <span className="field-note">
+          {prefs.groupByProject ? 'Tarefas agrupadas por projeto por padrão.' : 'Sem agrupamento por padrão.'}
+        </span>
       </label>
 
       <label className="compose-message-field">
         <span>Backlog/Block</span>
         <button
           type="button"
-          className={`btn btn-secondary btn-icon${prefs.stagesCollapsed ? ' active' : ''}`}
-          onClick={() => update({ stagesCollapsed: !prefs.stagesCollapsed })}
-          title={prefs.stagesCollapsed ? 'Mostrar Backlog/Block por padrão' : 'Ocultar Backlog/Block por padrão'}
-          aria-label={prefs.stagesCollapsed ? 'Mostrar Backlog/Block por padrão' : 'Ocultar Backlog/Block por padrão'}
-          aria-pressed={prefs.stagesCollapsed}
+          className={`btn btn-secondary btn-icon${stagesCollapsed ? ' active' : ''}`}
+          onClick={toggleStagesCollapsed}
+          title={stagesCollapsed ? 'Mostrar Backlog/Block por padrão' : 'Ocultar Backlog/Block por padrão'}
+          aria-label={stagesCollapsed ? 'Mostrar Backlog/Block por padrão' : 'Ocultar Backlog/Block por padrão'}
+          aria-pressed={stagesCollapsed}
         >
-          {prefs.stagesCollapsed ? <PanelLeftOpen size={16} strokeWidth={1.8} /> : <PanelLeftClose size={16} strokeWidth={1.8} />}
+          {stagesCollapsed ? <PanelLeftOpen size={16} strokeWidth={1.8} /> : <PanelLeftClose size={16} strokeWidth={1.8} />}
         </button>
         <span className="field-note">
-          {prefs.stagesCollapsed
+          {stagesCollapsed
             ? 'Oculto por padrão (colapsado no Kanban, filtrado na Matriz).'
             : 'Visível por padrão.'}
         </span>

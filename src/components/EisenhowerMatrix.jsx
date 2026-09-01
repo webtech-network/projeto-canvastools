@@ -4,6 +4,7 @@ import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import EisenhowerQuadrant from './EisenhowerQuadrant';
 import { useWorkspace } from './WorkspaceProvider';
 import { applyFilters } from '@/lib/workspace/filters';
+import { sortTasksByPriority } from '@/lib/workspace/taskSort';
 import { QUADRANTS, quadrantOf, priorityForQuadrant } from '@/lib/workspace/quadrant';
 
 const QUADRANT_LABELS = {
@@ -25,21 +26,23 @@ const QUADRANT_ORDER = [
 
 // Done (already finished) never belongs in a priority call — that exclusion
 // is unconditional. Backlog/Block are conditional instead, driven by the
-// same `stagesCollapsed` toggle that collapses those two columns in the
-// Kanban board (see WorkspaceView.jsx's shared toggle button): "collapsed"
-// here means "hide Backlog/Block from the matrix too", not yet planned or
-// blocked work isn't worth a priority call either, while "expanded" (the
-// default) shows every in-flight status.
+// same per-column `collapsedColumns` state that collapses those columns in
+// the Kanban board (see KanbanColumn.jsx's own close button and
+// WorkspaceView.jsx's Backlog/Block toolbar shortcut): a status collapsed
+// there is hidden from the matrix too — closing just Backlog, say, hides
+// only Backlog tasks here, not Block's — not yet planned or blocked work
+// isn't worth a priority call either, while "expanded" (the default) shows
+// every in-flight status.
 const MATRIX_ALWAYS_EXCLUDED = new Set(['DONE']);
 const MATRIX_HIDDEN_WHEN_COLLAPSED = new Set(['BACKLOG', 'BLOCK']);
 
 export default function EisenhowerMatrix({ onSelect }) {
-  const { tasks, projects, filters, moveTaskPriority, stagesCollapsed } = useWorkspace();
+  const { tasks, projects, filters, moveTaskPriority, collapsedColumns, groupByProject } = useWorkspace();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const filtered = applyFilters(tasks, filters, projects).filter((t) => {
     if (MATRIX_ALWAYS_EXCLUDED.has(t.status)) return false;
-    if (stagesCollapsed && MATRIX_HIDDEN_WHEN_COLLAPSED.has(t.status)) return false;
+    if (MATRIX_HIDDEN_WHEN_COLLAPSED.has(t.status) && collapsedColumns.includes(t.status)) return false;
     return true;
   });
 
@@ -58,7 +61,9 @@ export default function EisenhowerMatrix({ onSelect }) {
             key={quadrant}
             quadrant={quadrant}
             label={QUADRANT_LABELS[quadrant]}
-            tasks={filtered.filter((t) => quadrantOf(t.priority) === quadrant)}
+            tasks={sortTasksByPriority(filtered.filter((t) => quadrantOf(t.priority) === quadrant))}
+            projects={projects}
+            groupByProject={groupByProject}
             onSelect={onSelect}
           />
         ))}
