@@ -9,19 +9,20 @@ import {
   deleteTask as repoDeleteTask,
   setTaskStatus as repoSetTaskStatus,
   setTaskPriority as repoSetTaskPriority,
-} from '@/lib/workspace/tasksRepo';
+  setTaskPriorityRank as repoSetTaskPriorityRank,
+} from '@/lib/tasks/tasksRepo';
 import {
   listProjects,
   createProject as repoCreateProject,
   updateProject as repoUpdateProject,
   deleteProject as repoDeleteProject,
-} from '@/lib/workspace/projectsRepo';
-import { EMPTY_FILTERS } from '@/lib/workspace/filters';
-import { scheduleWorkspaceSync, flushWorkspaceSyncNow } from '@/lib/sync/workspaceSyncScheduler';
+} from '@/lib/tasks/projectsRepo';
+import { EMPTY_FILTERS } from '@/lib/tasks/filters';
+import { scheduleTasksSync, flushTasksSyncNow } from '@/lib/sync/tasksSyncScheduler';
 import { subscribeSyncStatus, getSyncStatusSnapshot } from '@/lib/sync/syncStatusStore';
-import { resolveWorkspacePreferences, patchSessionOverride } from '@/lib/workspace/workspacePreferences';
+import { resolveTasksPreferences, patchSessionOverride } from '@/lib/tasks/tasksViewPreferences';
 
-const WorkspaceContext = createContext(null);
+const TasksContext = createContext(null);
 
 const initialState = {
   tasks: [],
@@ -95,7 +96,7 @@ function reducer(state, action) {
 // record is dispatched into state — components never call dbPut/dbGet
 // directly, and the UI never re-reads IndexedDB after the initial hydrate,
 // only writes through it.
-export function WorkspaceProvider({ children }) {
+export function TasksProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   useEffect(() => {
@@ -114,22 +115,21 @@ export function WorkspaceProvider({ children }) {
     // "Ao acionar a interface, automaticamente deve disparar a
     // sincronização em background" — reconcile with Drive right away,
     // without blocking the local-first paint above. Silently a no-op if
-    // Google isn't connected (see workspaceSyncScheduler.js).
-    flushWorkspaceSyncNow();
+    // Google isn't connected (see tasksSyncScheduler.js).
+    flushTasksSyncNow();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Re-reads local IndexedDB whenever a workspace sync just completed —
-  // picks up whatever mergeSyncWorkspace() reconciled (tasks/projects
-  // created, edited or tombstoned on another device) without requiring a
-  // page reload.
+  // Re-reads local IndexedDB whenever a tasks sync just completed — picks up
+  // whatever mergeSyncTasks() reconciled (tasks/projects created, edited or
+  // tombstoned on another device) without requiring a page reload.
   useEffect(() => {
     let cancelled = false;
-    let previousState = getSyncStatusSnapshot().workspace.state;
+    let previousState = getSyncStatusSnapshot().tasks.state;
     const unsubscribe = subscribeSyncStatus(() => {
-      const current = getSyncStatusSnapshot().workspace.state;
+      const current = getSyncStatusSnapshot().tasks.state;
       if (current === 'synced' && previousState !== 'synced' && !cancelled) {
         Promise.all([listTasks(), listProjects()]).then(([tasks, projects]) => {
           if (!cancelled) {
@@ -153,11 +153,11 @@ export function WorkspaceProvider({ children }) {
   // server-rendered markup (initialState's hardcoded values, which match
   // FALLBACK_PREFERENCES) never mismatches the client's first paint.
   // Resolves the persistent default (edited in /perfil's Preferências tab)
-  // merged with this tab's session override (see workspacePreferences.js) —
+  // merged with this tab's session override (see tasksViewPreferences.js) —
   // "abra com as configurações predefinidas" on a session's first visit,
   // then whatever was toggled directly on this screen for the rest of it.
   useEffect(() => {
-    const prefs = resolveWorkspacePreferences();
+    const prefs = resolveTasksPreferences();
     dispatch({ type: 'SET_DENSITY', density: prefs.cardDensity });
     dispatch({ type: 'SET_VIEW', view: prefs.view });
     dispatch({ type: 'SET_COLLAPSED_COLUMNS', columns: prefs.collapsedColumns });
@@ -167,7 +167,7 @@ export function WorkspaceProvider({ children }) {
   const addTask = useCallback(async (title, projectId = null) => {
     const task = await repoCreateTask({ title, projectId });
     dispatch({ type: 'TASK_UPSERT', task });
-    scheduleWorkspaceSync();
+    scheduleTasksSync();
     return task;
   }, []);
 
@@ -175,7 +175,7 @@ export function WorkspaceProvider({ children }) {
     const task = await repoUpdateTask(id, patch);
     if (task) {
       dispatch({ type: 'TASK_UPSERT', task });
-      scheduleWorkspaceSync();
+      scheduleTasksSync();
     }
     return task;
   }, []);
@@ -183,7 +183,7 @@ export function WorkspaceProvider({ children }) {
   const removeTask = useCallback(async (id) => {
     await repoDeleteTask(id);
     dispatch({ type: 'TASK_REMOVE', id });
-    scheduleWorkspaceSync();
+    scheduleTasksSync();
   }, []);
 
   // Optimistic: state updates immediately (drag feels instant) via
@@ -195,7 +195,7 @@ export function WorkspaceProvider({ children }) {
   const moveTaskStatus = useCallback((id, status) => {
     dispatch({ type: 'TASK_PATCH', id, patch: { status } });
     repoSetTaskStatus(id, status)
-      .then(() => scheduleWorkspaceSync())
+      .then(() => scheduleTasksSync())
       .catch(async () => {
         const fresh = await repoGetTask(id);
         if (fresh) dispatch({ type: 'TASK_UPSERT', task: fresh });
@@ -205,7 +205,21 @@ export function WorkspaceProvider({ children }) {
   const moveTaskPriority = useCallback((id, priority) => {
     dispatch({ type: 'TASK_PATCH', id, patch: { priority } });
     repoSetTaskPriority(id, priority)
-      .then(() => scheduleWorkspaceSync())
+      .then(() => scheduleTasksSync())
+      .catch(async () => {
+        const fresh = await repoGetTask(id);
+        if (fresh) dispatch({ type: 'TASK_UPSERT', task: fresh });
+      });
+  }, []);
+
+  // Drag-to-reorder within a column/quadrant (KanbanBoard.jsx's and
+  // EisenhowerMatrix.jsx's handleDragEnd, dropping a card onto another card
+  // instead of onto the column/quadrant background) — same optimistic
+  // patch-then-persist shape as moveTaskStatus/moveTaskPriority above.
+  const moveTaskPriorityRank = useCallback((id, priorityRank) => {
+    dispatch({ type: 'TASK_PATCH', id, patch: { priorityRank } });
+    repoSetTaskPriorityRank(id, priorityRank)
+      .then(() => scheduleTasksSync())
       .catch(async () => {
         const fresh = await repoGetTask(id);
         if (fresh) dispatch({ type: 'TASK_UPSERT', task: fresh });
@@ -215,7 +229,7 @@ export function WorkspaceProvider({ children }) {
   const addProject = useCallback(async ({ name, type, canvasReference = null, color = null }) => {
     const project = await repoCreateProject({ name, type, canvasReference, color });
     dispatch({ type: 'PROJECT_UPSERT', project });
-    scheduleWorkspaceSync();
+    scheduleTasksSync();
     return project;
   }, []);
 
@@ -223,7 +237,7 @@ export function WorkspaceProvider({ children }) {
     const project = await repoUpdateProject(id, patch);
     if (project) {
       dispatch({ type: 'PROJECT_UPSERT', project });
-      scheduleWorkspaceSync();
+      scheduleTasksSync();
     }
     return project;
   }, []);
@@ -231,11 +245,11 @@ export function WorkspaceProvider({ children }) {
   const removeProject = useCallback(async (id) => {
     await repoDeleteProject(id);
     dispatch({ type: 'PROJECT_REMOVE', id });
-    scheduleWorkspaceSync();
+    scheduleTasksSync();
   }, []);
 
   // setView/setCardDensity/setColumnCollapsed/setStagesCollapsed below write
-  // only to the session-tier override (workspacePreferences.js) — never to
+  // only to the session-tier override (tasksViewPreferences.js) — never to
   // the persistent default, which is only ever changed via /perfil's
   // Preferências tab (TarefasPreferences.jsx). "Ao alterar algo [na tela de
   // Tarefas], mantenha estas opções nas configurações de sessão que devem
@@ -268,8 +282,8 @@ export function WorkspaceProvider({ children }) {
     [state.collapsedColumns],
   );
   // Convenience batch action over the same collapsedColumns state — kept for
-  // WorkspaceView.jsx's toolbar shortcut and TarefasPreferences.jsx's
-  // persisted default, both of which still treat Backlog/Block as one pair.
+  // TasksView.jsx's toolbar shortcut and TarefasPreferences.jsx's persisted
+  // default, both of which still treat Backlog/Block as one pair.
   // Independent from per-column closes: collapsing Backlog on its own via
   // its header button doesn't affect Block, and vice versa.
   const setStagesCollapsed = useCallback(
@@ -284,10 +298,10 @@ export function WorkspaceProvider({ children }) {
   );
 
   // For mutations that bypass the wrappers above and write to IndexedDB
-  // directly (WorkspaceExportImport.jsx's file import, via
-  // workspaceExport.js's replaceAllTasks/replaceAllProjects) — re-reads
-  // local IndexedDB and re-hydrates state, same as the post-sync effect
-  // above, but callable on demand instead of waiting for a sync transition.
+  // directly (TasksExportImport.jsx's file import, via tasksExport.js's
+  // replaceAllTasks/replaceAllProjects) — re-reads local IndexedDB and
+  // re-hydrates state, same as the post-sync effect above, but callable on
+  // demand instead of waiting for a sync transition.
   const refreshFromLocal = useCallback(async () => {
     const [tasks, projects] = await Promise.all([listTasks(), listProjects()]);
     dispatch({
@@ -304,6 +318,7 @@ export function WorkspaceProvider({ children }) {
     removeTask,
     moveTaskStatus,
     moveTaskPriority,
+    moveTaskPriorityRank,
     addProject,
     editProject,
     removeProject,
@@ -316,9 +331,9 @@ export function WorkspaceProvider({ children }) {
     refreshFromLocal,
   };
 
-  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
+  return <TasksContext.Provider value={value}>{children}</TasksContext.Provider>;
 }
 
-export function useWorkspace() {
-  return useContext(WorkspaceContext);
+export function useTasks() {
+  return useContext(TasksContext);
 }

@@ -38,7 +38,7 @@ function CourseNoteView({ text }) {
 // table, when that course's name is clicked. Local-first: the textarea
 // reflects IndexedDB immediately, edits save to IndexedDB on every
 // "Salvar" click regardless of Drive. Drive sync (mergeSyncCourseNotes,
-// same bidirectional merge scheme as the Tarefas workspace, see
+// same bidirectional merge scheme as the Tarefas module, see
 // courseNotesSync.js) fires twice, both explicitly, not on a debounce:
 // once on mount ("ao abrir estas anotações pela primeira vez, deve
 // sincronizar com a base no AppDataFolder") and again every time "Salvar"

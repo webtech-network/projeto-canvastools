@@ -2,13 +2,15 @@
 
 import { Fragment, useMemo, useState } from 'react';
 import { ChevronUp, ChevronDown, ChevronsUpDown, Flag, Zap } from 'lucide-react';
-import { useWorkspace } from './WorkspaceProvider';
-import { applyFilters } from '@/lib/workspace/filters';
-import { comparePriority } from '@/lib/workspace/taskSort';
-import { groupTasksByProject } from '@/lib/workspace/grouping';
-import { formatDueDate, isPastDue } from '@/lib/workspace/dueDate';
-import { STATUSES } from '@/lib/workspace/tasksRepo';
-import { STATUS_META } from '@/lib/workspace/statusMeta';
+import { useTasks } from './TasksProvider';
+import { useWorkspaceScope } from './WorkspaceScopeProvider';
+import { BASE_WORKSPACE_ID } from '@/lib/workspaces/workspacesRepo';
+import { applyFilters } from '@/lib/tasks/filters';
+import { comparePriority } from '@/lib/tasks/taskSort';
+import { groupTasksByProject } from '@/lib/tasks/grouping';
+import { formatDueDate, isPastDue } from '@/lib/tasks/dueDate';
+import { STATUSES } from '@/lib/tasks/tasksRepo';
+import { STATUS_META } from '@/lib/tasks/statusMeta';
 
 // Every sortable column but "Prioridade" needs its own comparator; that one
 // reuses taskSort.js's comparePriority (same rank → urgência → importância
@@ -57,14 +59,15 @@ const COLUMNS = [
 // order for a set-valued column.
 const TOTAL_COLUMNS = COLUMNS.length + 1;
 
-// Third view alongside Kanban/Matriz (WorkspaceView.jsx) — every non-deleted,
+// Third view alongside Kanban/Matriz (TasksView.jsx) — every non-deleted,
 // filtered task in one sortable table instead of split across status columns
 // or priority quadrants. Shares the same `groupByProject` toolbar toggle as
 // the other two views (grouping.js's groupTasksByProject): grouping clusters
 // rows by project, the active column sort still orders tasks *within* each
 // group.
 export default function TaskTable({ onSelect }) {
-  const { tasks, projects, filters, groupByProject } = useWorkspace();
+  const { tasks, projects, filters, groupByProject } = useTasks();
+  const { activeWorkspaceId, getVisibleResourceIds } = useWorkspaceScope();
   const [sortKey, setSortKey] = useState('priorityRank');
   const [sortDir, setSortDir] = useState('asc');
 
@@ -80,14 +83,18 @@ export default function TaskTable({ onSelect }) {
   }
 
   const sorted = useMemo(() => {
-    const filtered = applyFilters(tasks, filters, projects);
+    const scope =
+      activeWorkspaceId === BASE_WORKSPACE_ID
+        ? null
+        : { visibleProjectIds: getVisibleResourceIds('project'), visibleCourseIds: getVisibleResourceIds('course') };
+    const filtered = applyFilters(tasks, filters, projects, scope);
     const cmp = buildComparator(sortKey, projectsById);
     const dir = sortDir === 'asc' ? 1 : -1;
     // comparePriority as a secondary key keeps ties (equal titles, same
     // status, both with no due date, …) in a stable, meaningful order
     // instead of whatever order they happened to come out of IndexedDB in.
     return [...filtered].sort((a, b) => dir * cmp(a, b) || comparePriority(a, b));
-  }, [tasks, filters, projects, sortKey, sortDir, projectsById]);
+  }, [tasks, filters, projects, sortKey, sortDir, projectsById, activeWorkspaceId, getVisibleResourceIds]);
 
   const groups = groupByProject ? groupTasksByProject(sorted, projects) : null;
 
@@ -104,7 +111,7 @@ export default function TaskTable({ onSelect }) {
         <td>
           <span className="task-table-project">
             <span
-              className="workspace-projects-color-dot"
+              className="tasks-projects-color-dot"
               style={{ backgroundColor: project?.color || 'transparent' }}
             />
             {project ? project.name : 'Sem projeto'}
@@ -192,7 +199,7 @@ export default function TaskTable({ onSelect }) {
                   <tr className="task-table-group-row">
                     <td colSpan={TOTAL_COLUMNS}>
                       <span
-                        className="workspace-projects-color-dot"
+                        className="tasks-projects-color-dot"
                         style={{ backgroundColor: project?.color || 'transparent' }}
                       />
                       {project ? project.name : 'Sem projeto'}

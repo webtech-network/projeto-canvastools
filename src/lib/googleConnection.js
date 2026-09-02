@@ -26,12 +26,23 @@ export async function saveGoogleConnection(fields) {
     fileId: fields.fileId !== undefined ? fields.fileId : existing?.fileId,
     lastSuccessfulSyncAt: fields.lastSuccessfulSyncAt !== undefined ? fields.lastSuccessfulSyncAt : existing?.lastSuccessfulSyncAt,
     // Same idea as fileId/lastSuccessfulSyncAt above, but for the separate
-    // workspace (tasks/projects) Drive file — see workspace/workspaceDriveSync.js.
-    workspaceFileId: fields.workspaceFileId !== undefined ? fields.workspaceFileId : existing?.workspaceFileId,
-    workspaceLastSuccessfulSyncAt:
-      fields.workspaceLastSuccessfulSyncAt !== undefined
-        ? fields.workspaceLastSuccessfulSyncAt
-        : existing?.workspaceLastSuccessfulSyncAt,
+    // tasks/projects Drive file — see tasks/tasksDriveSync.js. Field renamed
+    // from workspaceFileId/workspaceLastSuccessfulSyncAt when that feature
+    // (formerly "Workspace") became "Tarefas"; safe because tasksDriveSync.js's
+    // resolveTasksFileId() falls back to finding the file by name
+    // (TASKS_FILE_NAME, unchanged) whenever this cached id is empty.
+    tasksFileId: fields.tasksFileId !== undefined ? fields.tasksFileId : existing?.tasksFileId,
+    tasksLastSuccessfulSyncAt:
+      fields.tasksLastSuccessfulSyncAt !== undefined
+        ? fields.tasksLastSuccessfulSyncAt
+        : existing?.tasksLastSuccessfulSyncAt,
+    // The new multi-workspace feature's own Drive file — see
+    // workspaces/workspacesDriveSync.js.
+    workspacesFileId: fields.workspacesFileId !== undefined ? fields.workspacesFileId : existing?.workspacesFileId,
+    workspacesLastSuccessfulSyncAt:
+      fields.workspacesLastSuccessfulSyncAt !== undefined
+        ? fields.workspacesLastSuccessfulSyncAt
+        : existing?.workspacesLastSuccessfulSyncAt,
     // Same idea again, but for the course-notes Drive file — see
     // courseNotes/courseNotesSync.js.
     courseNotesFileId: fields.courseNotesFileId !== undefined ? fields.courseNotesFileId : existing?.courseNotesFileId,

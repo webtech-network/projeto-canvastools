@@ -18,20 +18,20 @@ import {
   Table2,
   Layers,
 } from 'lucide-react';
-import { useWorkspace } from './WorkspaceProvider';
-import WorkspaceFilterModal from './WorkspaceFilterModal';
+import { useTasks } from './TasksProvider';
+import TasksFilterModal from './TasksFilterModal';
 import QuickAddTask from './QuickAddTask';
 import KanbanBoard from './KanbanBoard';
 import EisenhowerMatrix from './EisenhowerMatrix';
 import TaskTable from './TaskTable';
 import TaskDetailModal from './TaskDetailModal';
 import ProjectsManagerModal from './ProjectsManagerModal';
-import WorkspaceExportImport from './WorkspaceExportImport';
-import { STATUS_META } from '@/lib/workspace/statusMeta';
-import { STATUSES } from '@/lib/workspace/tasksRepo';
-import { EMPTY_FILTERS } from '@/lib/workspace/filters';
+import TasksExportImport from './TasksExportImport';
+import { STATUS_META } from '@/lib/tasks/statusMeta';
+import { STATUSES } from '@/lib/tasks/tasksRepo';
+import { EMPTY_FILTERS } from '@/lib/tasks/filters';
 
-export default function WorkspaceView() {
+export default function TasksView() {
   const {
     view,
     setView,
@@ -44,7 +44,7 @@ export default function WorkspaceView() {
     loading,
     tasks,
     filters,
-  } = useWorkspace();
+  } = useTasks();
   // Toolbar shortcut still targets Backlog+Block as a pair — independent
   // per-column closes (via each column's own header button) don't affect
   // this derived flag unless both happen to end up collapsed anyway.
@@ -80,11 +80,11 @@ export default function WorkspaceView() {
 
   return (
     <>
-      <div className="workspace-toolbar">
+      <div className="tasks-toolbar">
         {/* Nova tarefa + Filtrar tarefas share the first line — everything
             else (including o botão de mostrar/ocultar Backlog/Block) lives
-            on the second line, in workspace-toolbar-right. */}
-        <div className="workspace-toolbar-primary">
+            on the second line, in tasks-toolbar-right. */}
+        <div className="tasks-toolbar-primary">
           <QuickAddTask />
           <button
             type="button"
@@ -98,8 +98,8 @@ export default function WorkspaceView() {
           </button>
         </div>
 
-        <div className="workspace-toolbar-secondary">
-        <div className="workspace-toolbar-right">
+        <div className="tasks-toolbar-secondary">
+        <div className="tasks-toolbar-right">
           {view !== 'table' && (
             <button
               type="button"
@@ -237,8 +237,8 @@ export default function WorkspaceView() {
       {selectedTask && <TaskDetailModal task={selectedTask} onClose={() => setSelectedTaskId(null)} />}
       {creatingStatus && <TaskDetailModal initialStatus={creatingStatus} onClose={() => setCreatingStatus(null)} />}
       {showProjectsManager && <ProjectsManagerModal onClose={() => setShowProjectsManager(false)} />}
-      {showFilterModal && <WorkspaceFilterModal onClose={() => setShowFilterModal(false)} />}
-      {showExportImport && <WorkspaceExportImport onClose={() => setShowExportImport(false)} />}
+      {showFilterModal && <TasksFilterModal onClose={() => setShowFilterModal(false)} />}
+      {showExportImport && <TasksExportImport onClose={() => setShowExportImport(false)} />}
     </>
   );
 }

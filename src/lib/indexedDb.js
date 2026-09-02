@@ -1,7 +1,16 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'canvastools';
-const DB_VERSION = 6;
+// NOTE: bumped straight from 6 to 8, skipping 7 — during development some
+// browsers ran openDB(..., 7) in the narrow window between the version bump
+// and the STORE_WORKSPACES/STORE_WORKSPACE_LINKS createObjectStore calls
+// being added below, which permanently records "version 7, without those
+// stores" for that origin (IndexedDB only re-runs `upgrade` when the
+// requested version goes *up* from whatever's already stored — no amount of
+// reloading re-triggers it once a browser is stuck at 7). Bumping to 8
+// forces `upgrade` to run again everywhere; the `if (!contains(...))` guards
+// below make that a no-op for anything that already has the stores.
+const DB_VERSION = 8;
 
 export const STORE_SHORTCUTS = 'shortcuts';
 export const STORE_CACHE = 'cache';
@@ -11,6 +20,8 @@ export const STORE_GOOGLE = 'google';
 export const STORE_TASKS = 'tasks';
 export const STORE_PROJECTS = 'projects';
 export const STORE_COURSE_NOTES = 'courseNotes';
+export const STORE_WORKSPACES = 'workspaces';
+export const STORE_WORKSPACE_LINKS = 'workspaceLinks';
 
 let dbPromise = null;
 
@@ -45,10 +56,25 @@ function getDb() {
           db.createObjectStore(STORE_PROJECTS, { keyPath: 'id' });
         }
         if (!db.objectStoreNames.contains(STORE_COURSE_NOTES)) {
-          // keyPath 'id' (not 'courseCode') so mergeRecords (workspace/
-          // workspaceMerge.js, reused as-is for course notes) can operate on
-          // it identically to tasks/projects — id is set to the course code.
+          // keyPath 'id' (not 'courseCode') so mergeRecords (recordMerge.js,
+          // reused as-is for course notes) can operate on it identically to
+          // tasks/projects — id is set to the course code.
           db.createObjectStore(STORE_COURSE_NOTES, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(STORE_WORKSPACES)) {
+          // The "Base" workspace is never stored here — it's a synthetic
+          // constant (see workspaces/workspacesRepo.js's BASE_WORKSPACE) that
+          // always exists on every device without needing sync or storage.
+          db.createObjectStore(STORE_WORKSPACES, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(STORE_WORKSPACE_LINKS)) {
+          // No secondary index (see every other store above — this app
+          // never uses one, `dbGetAll` + in-memory filter is enough at
+          // personal-scale). `id` is deterministic
+          // (`${workspaceId}:${resourceType}:${resourceId}`), not a random
+          // UUID like every other store's records — see
+          // workspaces/workspacesRepo.js for why that matters for merging.
+          db.createObjectStore(STORE_WORKSPACE_LINKS, { keyPath: 'id' });
         }
       },
     });

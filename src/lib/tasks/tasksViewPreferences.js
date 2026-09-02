@@ -4,7 +4,7 @@
 //    Preferências tab (TarefasPreferences.jsx). What a brand-new browser
 //    session starts from.
 //  - "session" tier — sessionStorage, written automatically by
-//    WorkspaceProvider.jsx whenever the professor toggles one of these
+//    TasksProvider.jsx whenever the professor toggles one of these
 //    straight from the Tarefas toolbar or a Kanban column's own close
 //    button. Takes precedence over the default for the rest of this browser
 //    tab's session, without touching the persistent default itself —
@@ -29,7 +29,7 @@ export const FALLBACK_PREFERENCES = {
   // covering only BACKLOG+BLOCK together; generalized to a status list so
   // any column can be closed independently, via its own header button.
   collapsedColumns: [],
-  // "Agrupar por projeto" toolbar toggle (WorkspaceView.jsx) — clusters each
+  // "Agrupar por projeto" toolbar toggle (TasksView.jsx) — clusters each
   // view's task list by project (see grouping.js's groupTasksByProject)
   // instead of one flat list.
   groupByProject: false,
@@ -87,16 +87,16 @@ function getSessionOverride() {
   }
 }
 
-// Called from WorkspaceProvider.jsx's setCardDensity/setView/
-// setStagesCollapsed — every toggle made directly on the Tarefas screen
-// lands here, not in the persistent default.
+// Called from TasksProvider.jsx's setCardDensity/setView/setStagesCollapsed
+// — every toggle made directly on the Tarefas screen lands here, not in the
+// persistent default.
 export function patchSessionOverride(patch) {
   window.sessionStorage.setItem(SESSION_KEY, JSON.stringify({ ...getSessionOverride(), ...patch }));
 }
 
 // Merges the persistent default with this tab's session override (session
-// wins) — called once, on WorkspaceProvider mount, to resolve the module's
+// wins) — called once, on TasksProvider mount, to resolve the module's
 // initial density/view/collapsedColumns.
-export function resolveWorkspacePreferences() {
+export function resolveTasksPreferences() {
   return { ...getDefaultPreferences(), ...getSessionOverride() };
 }

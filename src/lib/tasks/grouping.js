@@ -1,4 +1,4 @@
-// "Agrupar por projeto" (WorkspaceView.jsx's toolbar toggle, WorkspaceProvider's
+// "Agrupar por projeto" (TasksView.jsx's toolbar toggle, TasksProvider's
 // groupByProject) — shared by KanbanColumn.jsx, EisenhowerQuadrant.jsx and
 // TaskTable.jsx so all three views cluster the same way when it's on. Pure
 // re-bucketing: it preserves whatever order `tasks` is already in within each

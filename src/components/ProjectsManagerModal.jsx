@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import Modal from './Modal';
 import ProjectFormModal from './ProjectFormModal';
-import { useWorkspace } from './WorkspaceProvider';
+import { useTasks } from './TasksProvider';
 
 // Spec section 7's "PROJETOS" panel — view + maintain every registered
 // project, grouped Canvas vs Pessoais, with edit/delete per row. Creation
@@ -12,7 +12,7 @@ import { useWorkspace } from './WorkspaceProvider';
 // trigger opens, just stacked on top of this one (same nested-modal pattern
 // TaskDetailModal.jsx already uses for its own "+ Novo projeto" shortcut).
 export default function ProjectsManagerModal({ onClose }) {
-  const { projects, tasks, removeProject } = useWorkspace();
+  const { projects, tasks, removeProject } = useTasks();
   const [editingProject, setEditingProject] = useState(null);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -42,19 +42,19 @@ export default function ProjectsManagerModal({ onClose }) {
   function renderGroup(title, group) {
     if (group.length === 0) return null;
     return (
-      <div className="workspace-projects-group">
+      <div className="tasks-projects-group">
         <h3>{title}</h3>
-        <ul className="workspace-projects-list">
+        <ul className="tasks-projects-list">
           {group.map((project) => (
-            <li key={project.id} className="workspace-projects-row">
+            <li key={project.id} className="tasks-projects-row">
               <span
-                className="workspace-projects-color-dot"
+                className="tasks-projects-color-dot"
                 style={{ backgroundColor: project.color || 'transparent' }}
                 aria-hidden="true"
               />
-              <span className="workspace-projects-name">{project.name}</span>
-              <span className="workspace-projects-count">{taskCountFor(project.id)} tarefa(s)</span>
-              <span className="workspace-projects-actions">
+              <span className="tasks-projects-name">{project.name}</span>
+              <span className="tasks-projects-count">{taskCountFor(project.id)} tarefa(s)</span>
+              <span className="tasks-projects-actions">
                 <button
                   type="button"
                   className="btn btn-secondary btn-icon btn-sm"

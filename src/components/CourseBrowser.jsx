@@ -14,10 +14,14 @@ import {
   CircleCheckBig,
   CircleDashed,
   List,
+  Layers,
 } from 'lucide-react';
 import StatusIcon from './StatusIcon';
 import SortIcon from './SortIcon';
 import CourseNoteEditor from './CourseNoteEditor';
+import ResourceWorkspacesModal from './ResourceWorkspacesModal';
+import { useWorkspaceScope } from './WorkspaceScopeProvider';
+import { BASE_WORKSPACE_ID } from '@/lib/workspaces/workspacesRepo';
 import { isPublished } from '@/lib/dashboard';
 import { readCache, writeCache } from '@/lib/dashboardCache';
 
@@ -55,7 +59,9 @@ const STATUS_FILTERS = [
 ];
 
 export default function CourseBrowser() {
+  const { activeWorkspaceId, getVisibleResourceIds } = useWorkspaceScope();
   const [courseList, setCourseList] = useState([]);
+  const [workspacesModalCourse, setWorkspacesModalCourse] = useState(null);
   const [query, setQuery] = useState('');
   // At most one course's notes editor open at a time — clicking the same
   // course's name again collapses it, clicking a different course switches
@@ -142,7 +148,9 @@ export default function CourseBrowser() {
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
+    const visibleCourseIds = activeWorkspaceId === BASE_WORKSPACE_ID ? null : getVisibleResourceIds('course');
     return courseList.filter((course) => {
+      if (visibleCourseIds && !visibleCourseIds.has(String(course.id))) return false;
       if (onlyFavorites && !course.is_favorite) return false;
       if (statusFilter === 'published' && !isPublished(course)) return false;
       if (statusFilter === 'unpublished' && isPublished(course)) return false;
@@ -151,7 +159,7 @@ export default function CourseBrowser() {
         course.name?.toLowerCase().includes(term) || course.course_code?.toLowerCase().includes(term)
       );
     });
-  }, [courseList, query, onlyFavorites, statusFilter]);
+  }, [courseList, query, onlyFavorites, statusFilter, activeWorkspaceId, getVisibleResourceIds]);
 
   async function toggleFavorite(course) {
     const nextFavorite = !course.is_favorite;
@@ -442,6 +450,15 @@ export default function CourseBrowser() {
                   >
                     <Users size={18} strokeWidth={1.8} />
                   </Link>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-icon"
+                    title="Workspaces deste curso"
+                    aria-label="Workspaces deste curso"
+                    onClick={() => setWorkspacesModalCourse(course)}
+                  >
+                    <Layers size={18} strokeWidth={1.8} />
+                  </button>
                 </td>
               </tr>
               {expanded && (
@@ -491,6 +508,15 @@ export default function CourseBrowser() {
         <p className="alert alert-error" role="alert">
           {loadError}
         </p>
+      )}
+
+      {workspacesModalCourse && (
+        <ResourceWorkspacesModal
+          resourceType="course"
+          resourceId={workspacesModalCourse.id}
+          title={`Workspaces de "${workspacesModalCourse.name}"`}
+          onClose={() => setWorkspacesModalCourse(null)}
+        />
       )}
     </div>
   );

@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Flag, Zap, ArrowRight } from 'lucide-react';
-import { listTasks } from '@/lib/workspace/tasksRepo';
-import { listProjects } from '@/lib/workspace/projectsRepo';
+import { listTasks } from '@/lib/tasks/tasksRepo';
+import { listProjects } from '@/lib/tasks/projectsRepo';
 
 // Same "pure IndexedDB read, never gated on DashboardPanel's Canvas fetch"
 // pattern as DashboardShortcuts.jsx's useShortcuts() — tasks/projects live
-// entirely client-side (see WorkspaceProvider.jsx), so there's nothing to
+// entirely client-side (see TasksProvider.jsx), so there's nothing to
 // stale-while-revalidate against a network cache for.
 export default function DashboardDoingTasks() {
   const [tasks, setTasks] = useState([]);

@@ -3,10 +3,10 @@
 import { X } from 'lucide-react';
 import { useDroppable } from '@dnd-kit/core';
 import TaskCard from './TaskCard';
-import { groupTasksByProject } from '@/lib/workspace/grouping';
+import { groupTasksByProject } from '@/lib/tasks/grouping';
 
 // `collapsed` (per column, toggled either from this column's own close
-// button below or from WorkspaceView.jsx's Backlog/Block toolbar shortcut)
+// button below or from TasksView.jsx's Backlog/Block toolbar shortcut)
 // shrinks the column to a narrow strip showing only its count + label — the
 // droppable stays active even collapsed, so a card can still be dragged
 // straight into a closed column without expanding it first. Clicking the
@@ -80,7 +80,7 @@ export default function KanbanColumn({
                   <div key={project?.id || 'none'} className="task-group">
                     <div className="task-group-header">
                       <span
-                        className="workspace-projects-color-dot"
+                        className="tasks-projects-color-dot"
                         style={{ backgroundColor: project?.color || 'transparent' }}
                       />
                       <span className="task-group-name">{project ? project.name : 'Sem projeto'}</span>

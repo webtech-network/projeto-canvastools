@@ -3,22 +3,28 @@
 import { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 import Modal from './Modal';
-import { useWorkspace } from './WorkspaceProvider';
-import { listCoursesCached } from '@/lib/workspace/canvasResolution';
-import { PROJECT_COLORS } from '@/lib/workspace/projectColors';
+import { useTasks } from './TasksProvider';
+import { useWorkspaceScope } from './WorkspaceScopeProvider';
+import WorkspaceMultiSelect from './WorkspaceMultiSelect';
+import { listCoursesCached } from '@/lib/tasks/canvasResolution';
+import { PROJECT_COLORS } from '@/lib/tasks/projectColors';
 
 // Doubles as create and edit — `project` (optional) pre-fills the form and
 // switches the submit action to editProject instead of addProject; used
-// both by WorkspaceView.jsx's top-level "+ Novo projeto" and by
+// both by TasksView.jsx's top-level "+ Novo projeto" and by
 // ProjectsManagerModal.jsx's per-row "Editar".
 export default function ProjectFormModal({ project = null, onClose }) {
-  const { addProject, editProject } = useWorkspace();
+  const { addProject, editProject } = useTasks();
+  const { getWorkspaceIdsForResource, setResourceWorkspaces } = useWorkspaceScope();
   const isEditing = Boolean(project);
 
   const [name, setName] = useState(project?.name || '');
   const [type, setType] = useState(project?.type || 'personal');
   const [courseId, setCourseId] = useState(project?.canvasReference?.courseId || '');
   const [color, setColor] = useState(project?.color || null);
+  const [workspaceIds, setWorkspaceIds] = useState(() =>
+    isEditing ? getWorkspaceIdsForResource('project', project.id) : [],
+  );
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -53,11 +59,8 @@ export default function ProjectFormModal({ project = null, onClose }) {
         canvasReference: type === 'canvas-course' ? { courseId } : null,
         color,
       };
-      if (isEditing) {
-        await editProject(project.id, payload);
-      } else {
-        await addProject(payload);
-      }
+      const saved = isEditing ? await editProject(project.id, payload) : await addProject(payload);
+      await setResourceWorkspaces('project', saved.id, workspaceIds);
       onClose();
     } catch (err) {
       setError(err.message || 'Falha ao salvar o projeto.');
@@ -147,6 +150,11 @@ export default function ProjectFormModal({ project = null, onClose }) {
             ))}
           </div>
           <span className="field-note">A cor escolhida é usada como fundo suave nas tarefas deste projeto.</span>
+        </label>
+
+        <label className="compose-message-field">
+          <span>Workspaces</span>
+          <WorkspaceMultiSelect selectedIds={workspaceIds} onChange={setWorkspaceIds} />
         </label>
 
         {error && (

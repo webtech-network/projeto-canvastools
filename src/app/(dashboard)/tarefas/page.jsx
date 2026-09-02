@@ -13,8 +13,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { getSession, isSessionValid } from '@/lib/session';
-import { WorkspaceProvider } from '@/components/WorkspaceProvider';
-import WorkspaceView from '@/components/WorkspaceView';
+import { TasksProvider } from '@/components/TasksProvider';
+import TasksView from '@/components/TasksView';
 import InfoHint from '@/components/InfoHint';
 
 // No Canvas data fetched server-side — projects/tasks live entirely in the
@@ -83,9 +83,9 @@ export default async function TarefasPage() {
         </InfoHint>
       </div>
 
-      <WorkspaceProvider>
-        <WorkspaceView />
-      </WorkspaceProvider>
+      <TasksProvider>
+        <TasksView />
+      </TasksProvider>
     </main>
   );
 }

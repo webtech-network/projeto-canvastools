@@ -1,10 +1,10 @@
 import { getGoogleConnection, getValidAccessToken, saveGoogleConnection } from '@/lib/googleConnection';
 import { findDriveFile, createDriveFile, downloadDriveFile, updateDriveFile, COURSE_NOTES_FILE_NAME } from '@/lib/googleDriveClient';
-import { mergeRecords } from '@/lib/workspace/workspaceMerge';
+import { mergeRecords } from '@/lib/recordMerge';
 import { listCourseNotes, replaceAllCourseNotes } from './courseNotesRepo';
 
-// Same bidirectional merge scheme as workspace/workspaceDriveSync.js's
-// mergeSyncWorkspace() (download, reconcile via mergeRecords — last-write-
+// Same bidirectional merge scheme as tasks/tasksDriveSync.js's
+// mergeSyncTasks() (download, reconcile via mergeRecords — last-write-
 // wins by updatedAt — write the merged result back locally, then push it to
 // Drive) — reused verbatim, just scoped to one course-notes file instead of
 // tasks+projects. The trigger is different by design, though: no debounced
@@ -30,7 +30,7 @@ export async function mergeSyncCourseNotes() {
   let remoteNotes = [];
   if (fileId) {
     // Same "never treat a failed download as an empty remote" reasoning as
-    // mergeSyncWorkspace — a network hiccup here must abort the whole
+    // mergeSyncTasks — a network hiccup here must abort the whole
     // attempt, not let the push step below overwrite real remote notes.
     const fileBody = await downloadDriveFile(accessToken, fileId);
     if (fileBody?.kind === EXPORT_KIND) {

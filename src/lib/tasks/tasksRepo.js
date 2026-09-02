@@ -2,7 +2,7 @@ import { dbGetAll, dbGet, dbPut, dbDelete, dbUpdate, STORE_TASKS } from '../inde
 
 // Backlog and Block lead the board on purpose — they're the two "not
 // actively being worked" stages (not yet planned, and blocked/stuck), kept
-// together up front so the collapse toggle in WorkspaceView.jsx has a
+// together up front so the collapse toggle in TasksView.jsx has a
 // single contiguous pair of columns to fold away (see .kanban-board--
 // stages-collapsed in globals.css, which assumes these are the first two).
 export const STATUSES = ['BACKLOG', 'BLOCK', 'TODO', 'DOING', 'DONE'];
@@ -55,8 +55,8 @@ export async function updateTask(id, patch) {
 // Soft delete — a tombstone (deletedAt stamped) instead of a physical row
 // removal, so a deletion can be reconciled against edits made on another
 // device the same way any other field change would be (see
-// workspace/workspaceMerge.js). The row is filtered out of the UI at the
-// WorkspaceProvider hydrate boundary, not here — listTasks() itself must
+// recordMerge.js). The row is filtered out of the UI at the
+// TasksProvider hydrate boundary, not here — listTasks() itself must
 // keep returning tombstones, since the merge/sync engine needs them.
 export async function deleteTask(id) {
   return updateTask(id, { deletedAt: Date.now() });
@@ -70,12 +70,21 @@ export async function setTaskPriority(id, priority) {
   return updateTask(id, { priority });
 }
 
+// Drag-to-reorder within a single Kanban column / Eisenhower quadrant (see
+// KanbanBoard.jsx's and EisenhowerMatrix.jsx's handleDragEnd) bumps
+// priorityRank by exactly one level per drop — not a full re-rank of every
+// task in between — so this is a plain single-field patch, same shape as
+// setTaskStatus/setTaskPriority above.
+export async function setTaskPriorityRank(id, priorityRank) {
+  return updateTask(id, { priorityRank });
+}
+
 // Replace, not merge — same reasoning as shortcuts.js's replaceAllShortcuts:
 // ids pulled from Drive come from this same device's own prior push in the
 // common case, but could in principle be a different device's
 // crypto.randomUUID() sequence, so merging risks silent id collisions.
-// Called only from workspace/workspaceDriveSync.js's pull path — never from
-// WorkspaceProvider.jsx, so it never re-triggers scheduleWorkspaceSync().
+// Called only from tasks/tasksDriveSync.js's pull path — never from
+// TasksProvider.jsx, so it never re-triggers scheduleTasksSync().
 export async function replaceAllTasks(tasksArray) {
   const existing = await listTasks();
   await Promise.all(existing.map((t) => dbDelete(STORE_TASKS, t.id)));

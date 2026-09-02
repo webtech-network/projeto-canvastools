@@ -20,7 +20,15 @@ function taskCourseId(task, projectsById) {
   return project?.canvasReference?.courseId ? String(project.canvasReference.courseId) : null;
 }
 
-export function applyFilters(tasks, filters, projects = []) {
+// `scope` is the active-workspace filter (WorkspaceScopeProvider's
+// getVisibleResourceIds), layered on top of the manual `filters` above —
+// `null` means Base is active (no restriction); otherwise
+// `{ visibleProjectIds, visibleCourseIds }`, each a Set or null. A task with
+// neither a project nor its own Canvas course reference is hidden whenever
+// a non-Base workspace is active — it has nothing to be "associated" with,
+// so it only ever shows up under Base (see TaskDetailModal.jsx, which
+// surfaces this to the user rather than letting a task silently vanish).
+export function applyFilters(tasks, filters, projects = [], scope = null) {
   const projectsById = new Map(projects.map((p) => [p.id, p]));
   const dueBeforeTime = filters.dueBefore ? new Date(filters.dueBefore).getTime() : null;
 
@@ -42,6 +50,12 @@ export function applyFilters(tasks, filters, projects = []) {
     if (dueBeforeTime !== null) {
       if (!task.dueDate) return false;
       if (new Date(task.dueDate).getTime() > dueBeforeTime) return false;
+    }
+    if (scope) {
+      const courseId = taskCourseId(task, projectsById);
+      const projectVisible = task.projectId && scope.visibleProjectIds?.has(task.projectId);
+      const courseVisible = courseId && scope.visibleCourseIds?.has(courseId);
+      if (!projectVisible && !courseVisible) return false;
     }
     return true;
   });

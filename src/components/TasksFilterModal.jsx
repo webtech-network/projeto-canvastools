@@ -2,19 +2,19 @@
 
 import { useMemo, useState } from 'react';
 import Modal from './Modal';
-import { useWorkspace } from './WorkspaceProvider';
-import { EMPTY_FILTERS } from '@/lib/workspace/filters';
-import { STATUSES } from '@/lib/workspace/tasksRepo';
-import { STATUS_META } from '@/lib/workspace/statusMeta';
+import { useTasks } from './TasksProvider';
+import { EMPTY_FILTERS } from '@/lib/tasks/filters';
+import { STATUSES } from '@/lib/tasks/tasksRepo';
+import { STATUS_META } from '@/lib/tasks/statusMeta';
 
 // Replaces the old always-visible WorkspaceFilterBar.jsx inline row — filter
 // fields are edited in a local draft here, only written back to
-// WorkspaceProvider's shared `filters` state (and applied to the board/
+// TasksProvider's shared `filters` state (and applied to the board/
 // matrix) when "Aplicar" is pressed; both "Aplicar" and "Limpar" close the
 // modal, per spec. Switching between Kanban/Eisenhower still preserves the
-// applied filters, since they live in WorkspaceProvider's reducer either way.
-export default function WorkspaceFilterModal({ onClose }) {
-  const { tasks, projects, filters, setFilters } = useWorkspace();
+// applied filters, since they live in TasksProvider's reducer either way.
+export default function TasksFilterModal({ onClose }) {
+  const { tasks, projects, filters, setFilters } = useTasks();
   const [draft, setDraft] = useState(filters);
 
   const allTags = useMemo(() => {
@@ -39,8 +39,8 @@ export default function WorkspaceFilterModal({ onClose }) {
 
   return (
     <Modal title="Filtrar tarefas" onClose={onClose}>
-      <div className="workspace-filter-modal-fields">
-        <label className="workspace-filter-modal-field">
+      <div className="tasks-filter-modal-fields">
+        <label className="tasks-filter-modal-field">
           Projeto
           <select value={draft.projectId || ''} onChange={(e) => patch({ projectId: e.target.value || null })}>
             <option value="">Todos os projetos</option>
@@ -52,7 +52,7 @@ export default function WorkspaceFilterModal({ onClose }) {
           </select>
         </label>
 
-        <label className="workspace-filter-modal-field">
+        <label className="tasks-filter-modal-field">
           Tag
           <select value={draft.tag || ''} onChange={(e) => patch({ tag: e.target.value || null })}>
             <option value="">Todas as tags</option>
@@ -64,7 +64,7 @@ export default function WorkspaceFilterModal({ onClose }) {
           </select>
         </label>
 
-        <label className="workspace-filter-modal-field">
+        <label className="tasks-filter-modal-field">
           Status
           <select value={draft.status || ''} onChange={(e) => patch({ status: e.target.value || null })}>
             <option value="">Todos os status</option>
@@ -76,7 +76,7 @@ export default function WorkspaceFilterModal({ onClose }) {
           </select>
         </label>
 
-        <label className="workspace-filter-modal-field">
+        <label className="tasks-filter-modal-field">
           Prazo até
           <input type="date" value={draft.dueBefore || ''} onChange={(e) => patch({ dueBefore: e.target.value || null })} />
         </label>

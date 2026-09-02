@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { Rows3, Rows4, Columns3, Grid2x2, Table2, Layers, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
-import { getDefaultPreferences, patchDefaultPreferences, FALLBACK_PREFERENCES } from '@/lib/workspace/workspacePreferences';
+import { getDefaultPreferences, patchDefaultPreferences, FALLBACK_PREFERENCES } from '@/lib/tasks/tasksViewPreferences';
 
 // Edits only the persistent "default" tier of the Tarefas module's view
-// state — see workspacePreferences.js. Auto-saves on every click (same
+// state — see tasksViewPreferences.js. Auto-saves on every click (same
 // pattern as ThemeToggle.jsx, its neighbor in the Geral tab), no separate
 // save button. Read after mount only, so the server-rendered markup never
 // has to guess a localStorage value that isn't available during SSR.
 //
-// Same controls/icons as WorkspaceView.jsx's own Tarefas toolbar (icon-only
+// Same controls/icons as TasksView.jsx's own Tarefas toolbar (icon-only
 // segmented pairs for density/view, the single dual-icon Backlog/Block
 // toggle) — deliberately, so picking a default here looks and behaves like
 // the live control it's setting the starting value for.
@@ -27,7 +27,7 @@ export default function TarefasPreferences() {
   }
 
   // This preference is still a Backlog/Block pair (matching the toolbar
-  // shortcut in WorkspaceView.jsx) — individual columns (including Backlog
+  // shortcut in TasksView.jsx) — individual columns (including Backlog
   // or Block on their own) can still be closed per-session from their own
   // header button, that just isn't something a default value applies to.
   const collapsedColumns = prefs.collapsedColumns || [];

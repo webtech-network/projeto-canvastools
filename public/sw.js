@@ -1,6 +1,6 @@
 // Resilience/offline-shell layer only — never the primary sync mechanism.
 // The real Google Drive sync (OAuth token refresh, the actual push/pull)
-// only ever runs on an open page via workspaceSyncScheduler.js; this worker
+// only ever runs on an open page via tasksSyncScheduler.js; this worker
 // has no clean way to do that OAuth dance itself, so it doesn't try. Its
 // job is (1) let the app shell load when offline, and (2) best-effort
 // notify open tabs to retry a pending sync — nothing more.
@@ -74,17 +74,17 @@ self.addEventListener('fetch', (event) => {
 // Best-effort only — Background Sync support and reliability vary across
 // browsers, and there's no OAuth-token access in here to actually push. All
 // this does is nudge any open tab to retry via its own already-authenticated
-// workspaceSyncScheduler.js.
+// tasksSyncScheduler.js.
 self.addEventListener('message', (event) => {
   if (event.data === 'retry-sync') {
-    self.clients.matchAll().then((clients) => clients.forEach((client) => client.postMessage('retry-workspace-sync')));
+    self.clients.matchAll().then((clients) => clients.forEach((client) => client.postMessage('retry-tasks-sync')));
   }
 });
 
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'workspace-sync-retry') {
+  if (event.tag === 'tasks-sync-retry') {
     event.waitUntil(
-      self.clients.matchAll().then((clients) => clients.forEach((client) => client.postMessage('retry-workspace-sync'))),
+      self.clients.matchAll().then((clients) => clients.forEach((client) => client.postMessage('retry-tasks-sync'))),
     );
   }
 });

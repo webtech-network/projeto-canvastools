@@ -4,7 +4,7 @@ import { dbGetAll, dbGet, dbPut, dbDelete, STORE_COURSE_NOTES } from '../indexed
 // numeric Canvas id) — per product decision, so a note travels with the
 // human-readable code a professor recognizes rather than an opaque id.
 // `id` mirrors `courseCode` (see indexedDb.js's keyPath comment) purely so
-// workspace/workspaceMerge.js's mergeRecords — built for tasks/projects —
+// recordMerge.js's mergeRecords — built for tasks/projects —
 // can reconcile these records unmodified.
 export async function listCourseNotes() {
   return dbGetAll(STORE_COURSE_NOTES);

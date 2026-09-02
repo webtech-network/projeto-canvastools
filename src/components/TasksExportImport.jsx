@@ -3,18 +3,18 @@
 import { useState } from 'react';
 import { Download, Upload } from 'lucide-react';
 import Modal from './Modal';
-import { useWorkspace } from './WorkspaceProvider';
-import { exportWorkspaceFile, importWorkspaceFile } from '@/lib/workspace/workspaceExport';
-import { scheduleWorkspaceSync } from '@/lib/sync/workspaceSyncScheduler';
+import { useTasks } from './TasksProvider';
+import { exportTasksFile, importTasksFile } from '@/lib/tasks/tasksExport';
+import { scheduleTasksSync } from '@/lib/sync/tasksSyncScheduler';
 
 // Local JSON backup/restore for tasks + projects — independent of the
 // automatic Google Drive sync (Fase 3), for a professor who wants a plain
 // file (to keep offline, move between accounts, etc). Import merges rather
-// than replaces (see workspaceExport.js's importWorkspaceFile), then
-// re-hydrates WorkspaceProvider's state and nudges the Drive sync scheduler
+// than replaces (see tasksExport.js's importTasksFile), then re-hydrates
+// TasksProvider's state and nudges the Drive sync scheduler
 // so the merged result reaches Drive too, same as any other local edit.
-export default function WorkspaceExportImport({ onClose }) {
-  const { refreshFromLocal } = useWorkspace();
+export default function TasksExportImport({ onClose }) {
+  const { refreshFromLocal } = useTasks();
 
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState(null);
@@ -30,7 +30,7 @@ export default function WorkspaceExportImport({ onClose }) {
     setExportError(null);
     setExportMessage(null);
     try {
-      const result = await exportWorkspaceFile();
+      const result = await exportTasksFile();
       setExportMessage(`Arquivo exportado: ${result.tasks} tarefa(s), ${result.projects} projeto(s).`);
     } catch (err) {
       setExportError(err.message);
@@ -61,9 +61,9 @@ export default function WorkspaceExportImport({ onClose }) {
     setImportError(null);
     setImportMessage(null);
     try {
-      const result = await importWorkspaceFile(importFile);
+      const result = await importTasksFile(importFile);
       await refreshFromLocal();
-      scheduleWorkspaceSync();
+      scheduleTasksSync();
       setImportMessage(`Importado: ${result.tasks} tarefa(s), ${result.projects} projeto(s) no total.`);
       setImportFile(null);
     } catch (err) {
@@ -75,8 +75,8 @@ export default function WorkspaceExportImport({ onClose }) {
 
   return (
     <Modal title="Exportar/Importar tarefas" onClose={onClose}>
-      <div className="workspace-export-import">
-        <section className="workspace-export-import-section">
+      <div className="tasks-export-import">
+        <section className="tasks-export-import-section">
           <h3>Exportar</h3>
           <p className="lede">Baixa um arquivo JSON com todas as tarefas e projetos atuais.</p>
           <button type="button" className="btn btn-secondary btn-sm" disabled={exporting} onClick={handleExport}>
@@ -95,16 +95,16 @@ export default function WorkspaceExportImport({ onClose }) {
           )}
         </section>
 
-        <section className="workspace-export-import-section">
+        <section className="tasks-export-import-section">
           <h3>Importar</h3>
           <p className="lede">Mescla tarefas e projetos de um arquivo JSON exportado anteriormente.</p>
-          <div className="workspace-export-import-actions">
-            <label className="btn btn-secondary btn-sm" htmlFor="workspace-import-file">
+          <div className="tasks-export-import-actions">
+            <label className="btn btn-secondary btn-sm" htmlFor="tasks-import-file">
               <Upload size={15} strokeWidth={1.8} />
               Selecionar arquivo
             </label>
             <input
-              id="workspace-import-file"
+              id="tasks-import-file"
               type="file"
               accept=".json,application/json"
               onChange={handleFileSelected}

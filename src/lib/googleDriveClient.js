@@ -2,16 +2,23 @@
 // space — no googleapis SDK dependency, same "zero new npm dependency"
 // approach already used by settingsCrypto.js for Web Crypto.
 //
-// Filename-parameterized (not hardcoded to one file) — settings and the
-// workspace (tasks/projects) sync to two separate files in appDataFolder,
-// see googleDriveSync.js and workspace/workspaceDriveSync.js. Two files
-// instead of one keeps the domains isolated: a bug in one sync path can't
-// corrupt the other's data, and a task drag doesn't rewrite the whole
-// settings blob.
+// Filename-parameterized (not hardcoded to one file) — settings and tasks
+// (tasks/projects) sync to two separate files in appDataFolder, see
+// googleDriveSync.js and tasks/tasksDriveSync.js. Two files instead of one
+// keeps the domains isolated: a bug in one sync path can't corrupt the
+// other's data, and a task drag doesn't rewrite the whole settings blob.
 
 export const SETTINGS_FILE_NAME = 'canvastools-preferences.json';
-export const WORKSPACE_FILE_NAME = 'canvastools-workspace.json';
+// Literal value kept as 'canvastools-workspace.json' even though the
+// constant was renamed from WORKSPACE_FILE_NAME (this feature used to be
+// called "Workspace"; it's now "Tarefas", freeing that name for the actual
+// multi-workspace feature) — every existing user's Drive file was already
+// created under this name, and there is no reason to migrate it.
+export const TASKS_FILE_NAME = 'canvastools-workspace.json';
 export const COURSE_NOTES_FILE_NAME = 'canvastools-course-notes.json';
+// The multi-workspace feature's own file — unrelated to TASKS_FILE_NAME
+// above despite the historical name collision (see its own comment).
+export const WORKSPACES_FILE_NAME = 'canvastools-workspaces.json';
 
 async function driveFetch(url, options) {
   const response = await fetch(url, options);

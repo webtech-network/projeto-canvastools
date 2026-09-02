@@ -512,6 +512,96 @@ a {
   text-decoration: underline;
 }
 
+/* Global workspace filter selector (WorkspaceSwitcher.jsx) — same popover
+   shape as .user-menu-popover/.sync-status-popover, its neighbors in
+   Topbar.jsx's topbar-user. */
+.workspace-switcher {
+  position: relative;
+}
+.workspace-switcher-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.workspace-switcher-trigger:hover {
+  background: var(--paper-raised);
+}
+.workspace-switcher-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-switcher-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  min-width: 220px;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.4rem;
+  z-index: 30;
+}
+.workspace-switcher-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.workspace-switcher-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+}
+.workspace-switcher-item:hover {
+  background: var(--paper);
+}
+.workspace-switcher-item.active {
+  font-weight: 700;
+}
+.workspace-switcher-item svg:last-child {
+  margin-left: auto;
+  flex: none;
+  color: var(--accent);
+}
+.workspace-switcher-actions {
+  margin-top: 0.3rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--line);
+}
+
+.workspace-multiselect-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
 @media (max-width: 640px) {
   /* Below this width the sidebar stops being a permanently docked rail and
      becomes an off-canvas drawer instead: hidden by default (translated
@@ -610,7 +700,7 @@ a {
 /* Tarefas (tarefas/page.jsx) opts into filling all the way down to the
    viewport bottom — flex: 1 inside .dashboard-content's column flex, which
    only takes effect because .dashboard-content is that flex column's
-   container. WorkspaceView.jsx renders as a Fragment (no wrapping element),
+   container. TasksView.jsx renders as a Fragment (no wrapping element),
    so its toolbar/board/legend all become direct children of this box —
    .kanban-board/.eisenhower-matrix below target that DOM position directly
    to grow into the remaining space while the toolbar and legend keep their
@@ -2956,7 +3046,7 @@ tr.is-expanded .course-name-btn {
   line-height: 1.55;
 }
 
-/* Tarefas (workspace) — Kanban board + Eisenhower matrix, both built from
+/* Tarefas — Kanban board + Eisenhower matrix, both built from
    the same TaskCard component and the same paper/line/radius/shadow tokens
    every other card-based surface in this app already uses — no new colors
    introduced, so no extra dark-mode overrides are needed here. */
@@ -2986,31 +3076,31 @@ tr.is-expanded .course-name-btn {
    widths that made wrapping unpredictable (a button could end up sharing
    the quick-add's line depending on exactly how much room was left). Each
    block has its own min-width below, so when they don't both fit on one
-   row, .workspace-toolbar's own flex-wrap puts each on its own line
+   row, .tasks-toolbar's own flex-wrap puts each on its own line
    (exactly two lines on a phone), rather than wrapping mid-block. */
-.workspace-toolbar {
+.tasks-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
   margin: 0 0 1.25rem;
 }
-.workspace-toolbar-primary {
+.tasks-toolbar-primary {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   flex: 1 1 240px;
   min-width: 200px;
 }
-.workspace-toolbar-primary .quick-add-task {
+.tasks-toolbar-primary .quick-add-task {
   flex: 1;
   min-width: 0;
   margin: 0;
 }
-.workspace-toolbar-primary > .btn-icon {
+.tasks-toolbar-primary > .btn-icon {
   flex-shrink: 0;
 }
-.workspace-toolbar-secondary {
+.tasks-toolbar-secondary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -3018,7 +3108,7 @@ tr.is-expanded .course-name-btn {
   flex: 2 1 420px;
   min-width: 0;
 }
-.workspace-toolbar-right {
+.tasks-toolbar-right {
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -3026,7 +3116,7 @@ tr.is-expanded .course-name-btn {
 }
 
 @media (max-width: 640px) {
-  /* Without this, .workspace-toolbar's own flex-wrap alone only guarantees
+  /* Without this, .tasks-toolbar's own flex-wrap alone only guarantees
      primary (nova tarefa + filtrar) and secondary (mostrar/ocultar Backlog-
      Block, densidade, visão, projetos, exportar, preferências) land on
      separate lines — secondary's own content is still too wide for a phone,
@@ -3036,7 +3126,7 @@ tr.is-expanded .course-name-btn {
      room line 1 has left over (flex:1, min-width:0 from the base rule) once
      it's sharing that line with just the "+" and filter buttons, so it needs
      no extra override here. */
-  .workspace-toolbar-secondary {
+  .tasks-toolbar-secondary {
     flex-wrap: nowrap;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -3044,13 +3134,13 @@ tr.is-expanded .course-name-btn {
   }
 }
 
-.workspace-filter-modal-fields {
+.tasks-filter-modal-fields {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
   margin-bottom: 1rem;
 }
-.workspace-filter-modal-field {
+.tasks-filter-modal-field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -3058,8 +3148,8 @@ tr.is-expanded .course-name-btn {
   font-size: 0.88rem;
   color: var(--ink-soft);
 }
-.workspace-filter-modal-field select,
-.workspace-filter-modal-field input {
+.tasks-filter-modal-field select,
+.tasks-filter-modal-field input {
   font: inherit;
   font-weight: 400;
   font-size: 0.94rem;
@@ -3070,29 +3160,29 @@ tr.is-expanded .course-name-btn {
   color: var(--ink);
 }
 
-.workspace-export-import {
+.tasks-export-import {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
-.workspace-export-import-section h3 {
+.tasks-export-import-section h3 {
   margin: 0 0 0.3rem;
   font-size: 1rem;
 }
-.workspace-export-import-section .lede {
+.tasks-export-import-section .lede {
   margin: 0 0 0.65rem;
 }
-.workspace-export-import-section .alert {
+.tasks-export-import-section .alert {
   margin-top: 0.65rem;
 }
-.workspace-export-import-actions {
+.tasks-export-import-actions {
   display: flex;
   align-items: center;
   gap: 0.6rem;
   flex-wrap: wrap;
 }
-.workspace-filter-bar select,
-.workspace-filter-bar input[type='date'] {
+.tasks-filter-bar select,
+.tasks-filter-bar input[type='date'] {
   font: inherit;
   font-size: 0.88rem;
   padding: 0.45rem 0.6rem;
@@ -3157,17 +3247,17 @@ tr.is-expanded .course-name-btn {
   justify-content: space-between;
 }
 
-.workspace-projects-group {
+.tasks-projects-group {
   margin: 0 0 1.1rem;
 }
-.workspace-projects-group h3 {
+.tasks-projects-group h3 {
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--ink-soft);
   margin: 0 0 0.4rem;
 }
-.workspace-projects-list {
+.tasks-projects-list {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -3175,7 +3265,7 @@ tr.is-expanded .course-name-btn {
   flex-direction: column;
   gap: 0.4rem;
 }
-.workspace-projects-row {
+.tasks-projects-row {
   display: flex;
   align-items: center;
   gap: 0.6rem;
@@ -3184,14 +3274,14 @@ tr.is-expanded .course-name-btn {
   border-radius: 8px;
   background: var(--paper-raised);
 }
-.workspace-projects-color-dot {
+.tasks-projects-color-dot {
   flex: none;
   width: 0.85rem;
   height: 0.85rem;
   border-radius: 50%;
   border: 1px solid rgba(0, 0, 0, 0.12);
 }
-.workspace-projects-name {
+.tasks-projects-name {
   flex: 1;
   min-width: 0;
   font-weight: 600;
@@ -3200,12 +3290,12 @@ tr.is-expanded .course-name-btn {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.workspace-projects-count {
+.tasks-projects-count {
   font-size: 0.78rem;
   color: var(--ink-soft);
   white-space: nowrap;
 }
-.workspace-projects-actions {
+.tasks-projects-actions {
   display: flex;
   gap: 0.4rem;
   flex: none;
@@ -3283,7 +3373,7 @@ tr.is-expanded .course-name-btn {
 }
 
 /* Per-column collapse (any status — KanbanColumn.jsx's own close button, or
-   WorkspaceView.jsx's Backlog/Block toolbar shortcut) shrinks just this
+   TasksView.jsx's Backlog/Block toolbar shortcut) shrinks just this
    column to a narrow strip; siblings keep their own flex-basis untouched. */
 .kanban-column--collapsed {
   flex: 0 0 56px;
@@ -3352,6 +3442,20 @@ tr.is-expanded .course-name-btn {
   font-size: 0.9rem;
   color: var(--ink);
 }
+/* Classic Eisenhower verb-per-quadrant naming (Fazer/Agendar/Delegar/
+   Descartar — see EisenhowerMatrix.jsx's QUADRANT_LABELS) — the action word
+   itself stands out (bold, uppercase-as-typed, slightly wider tracking); the
+   urgent/importante breakdown that used to be the whole label rides along as
+   a lighter, smaller parenthetical instead of disappearing. */
+.eisenhower-quadrant-title strong {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.eisenhower-quadrant-criteria {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
 .eisenhower-quadrant-body {
   display: flex;
   flex-direction: column;
@@ -3369,6 +3473,14 @@ tr.is-expanded .course-name-btn {
 }
 .kanban-card.is-dragging {
   opacity: 0.6;
+}
+/* Hovering another card while dragging within the same column/quadrant
+   (see TaskCard.jsx's own useDroppable and KanbanBoard.jsx/
+   EisenhowerMatrix.jsx's handleDragEnd) — signals "drop here to reorder by
+   priority" before the drop actually happens. */
+.kanban-card--drop-over {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent);
 }
 /* The drag handle is just the title text (see TaskCard.jsx) — cursor and
    touch-action live here, not on .kanban-card, so the rest of the card
@@ -3448,7 +3560,7 @@ tr.is-expanded .course-name-btn {
   font-weight: 600;
 }
 
-/* Condensed density (TaskCard.jsx, toggled in WorkspaceView.jsx) — one line
+/* Condensed density (TaskCard.jsx, toggled in TasksView.jsx) — one line
    for the title, one for the project/course, everything else (tags, status
    icon, priority icons, due date) moves into a column on the right instead
    of stacking below, so the card stays compact regardless of which board
@@ -3513,7 +3625,7 @@ tr.is-expanded .course-name-btn {
   padding: 0.05rem 0.4rem;
 }
 
-/* "Agrupar por projeto" (WorkspaceView.jsx toolbar toggle) — sub-clusters
+/* "Agrupar por projeto" (TasksView.jsx toolbar toggle) — sub-clusters
    inside a Kanban column or Eisenhower quadrant body (see grouping.js's
    groupTasksByProject). Each group is just a header row above its own run of
    .kanban-card children, still inside the same single droppable container. */
@@ -3624,7 +3736,7 @@ tr.is-expanded .course-name-btn {
   letter-spacing: 0.02em;
   color: var(--ink-soft);
 }
-.task-table-group-row .workspace-projects-color-dot {
+.task-table-group-row .tasks-projects-color-dot {
   margin-right: 0.4rem;
   vertical-align: middle;
 }

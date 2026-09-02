@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import Modal from './Modal';
 import ProjectFormModal from './ProjectFormModal';
-import { useWorkspace } from './WorkspaceProvider';
-import { STATUSES } from '@/lib/workspace/tasksRepo';
-import { STATUS_META } from '@/lib/workspace/statusMeta';
-import { listCourseAssignments, listCourseStudentsCached } from '@/lib/workspace/canvasResolution';
+import { useTasks } from './TasksProvider';
+import { useWorkspaceScope } from './WorkspaceScopeProvider';
+import { BASE_WORKSPACE_ID } from '@/lib/workspaces/workspacesRepo';
+import { STATUSES } from '@/lib/tasks/tasksRepo';
+import { STATUS_META } from '@/lib/tasks/statusMeta';
+import { listCourseAssignments, listCourseStudentsCached } from '@/lib/tasks/canvasResolution';
 
 // dueDate is stored as a plain 'YYYY-MM-DD' string — same shape a <input
 // type="date"> already produces, so no conversion is needed either way (see
@@ -21,13 +23,14 @@ function toDateInputValue(dateStr) {
 // either view. Also doubles as the "new task" screen: omit `task` and pass
 // `initialStatus` instead (KanbanColumn.jsx's double-click-on-empty-space,
 // pre-selecting that column's stage) — creation is a two-step
-// addTask()-then-editTask() under the hood, since WorkspaceProvider's
+// addTask()-then-editTask() under the hood, since TasksProvider's
 // addTask only takes title/projectId, but the modal collects every field in
 // one form either way. Wraps the existing Modal.jsx (same component every
 // other modal in this app uses); preventBackdropClose guards unsaved edits,
 // same rationale as MessageList.jsx's AI reply modal.
 export default function TaskDetailModal({ task = null, initialStatus, onClose }) {
-  const { projects, addTask, editTask, removeTask } = useWorkspace();
+  const { projects, addTask, editTask, removeTask } = useTasks();
+  const { activeWorkspaceId, activeWorkspace, getVisibleResourceIds } = useWorkspaceScope();
   const isCreating = !task;
 
   const [title, setTitle] = useState(task?.title || '');
@@ -54,8 +57,17 @@ export default function TaskDetailModal({ task = null, initialStatus, onClose })
   const selectedProject = projects.find((p) => p.id === projectId);
   const courseId = selectedProject?.canvasReference?.courseId || null;
 
-  const canvasProjects = useMemo(() => projects.filter((p) => p.type === 'canvas-course'), [projects]);
-  const personalProjects = useMemo(() => projects.filter((p) => p.type !== 'canvas-course'), [projects]);
+  // Scoped to the active workspace (guides creation toward the right
+  // context) but never drops the task's own already-selected project, even
+  // if it falls outside the current scope — switching workspace mid-edit
+  // must not silently blank a field out from under the user.
+  const scopedProjects = useMemo(() => {
+    if (activeWorkspaceId === BASE_WORKSPACE_ID) return projects;
+    const visibleIds = getVisibleResourceIds('project');
+    return projects.filter((p) => visibleIds?.has(p.id) || p.id === projectId);
+  }, [projects, activeWorkspaceId, getVisibleResourceIds, projectId]);
+  const canvasProjects = useMemo(() => scopedProjects.filter((p) => p.type === 'canvas-course'), [scopedProjects]);
+  const personalProjects = useMemo(() => scopedProjects.filter((p) => p.type !== 'canvas-course'), [scopedProjects]);
 
   useEffect(() => {
     if (!courseId) {
@@ -185,6 +197,12 @@ export default function TaskDetailModal({ task = null, initialStatus, onClose })
                 + Novo projeto
               </button>
             </div>
+            {!projectId && activeWorkspaceId !== BASE_WORKSPACE_ID && (
+              <span className="field-note">
+                Sem projeto, esta tarefa só aparecerá no workspace Base — não aparecerá no workspace atual (
+                {activeWorkspace.name}).
+              </span>
+            )}
           </label>
 
           <label className="compose-message-field">

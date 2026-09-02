@@ -3,7 +3,7 @@ import { getSession, isSessionValid } from '@/lib/session';
 import { listAssignments } from '@/lib/canvasClient';
 import { buildClient } from '@/lib/canvasSession';
 
-// Backs TaskDetailModal.jsx's assignment picker (workspace feature) — a
+// Backs TaskDetailModal.jsx's assignment picker (tasks feature) — a
 // single, course-scoped call, fetched lazily once a Canvas-linked project is
 // selected, then cached client-side via canvasResolution.js.
 export async function GET(request, { params }) {

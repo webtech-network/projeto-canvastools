@@ -2,7 +2,7 @@ import { readCache, writeCache } from '../dashboardCache';
 
 // Resolves a Task/Project's Canvas id references (courseId/assignmentId/
 // studentId) into display names, without ever storing that data in the
-// workspace's own IndexedDB records (see CLAUDE.md — Canvas stays the
+// tasks module's own IndexedDB records (see CLAUDE.md — Canvas stays the
 // source of truth). Stale-while-revalidate through the same `cache` store
 // dashboardCache.js already backs CourseBrowser.jsx with.
 
@@ -32,7 +32,7 @@ export async function resolveCourseName(courseId) {
 
 export async function resolveAssignmentName(courseId, assignmentId) {
   if (!courseId || !assignmentId) return null;
-  const cacheKey = `workspace:assignments:${courseId}`;
+  const cacheKey = `tasks:assignments:${courseId}`;
   const cached = await readCache(cacheKey);
   let assignments = cached?.data;
 
@@ -53,7 +53,7 @@ export async function resolveAssignmentName(courseId, assignmentId) {
 
 export async function resolveStudentName(courseId, studentId) {
   if (!courseId || !studentId) return null;
-  const cacheKey = `workspace:students:${courseId}`;
+  const cacheKey = `tasks:students:${courseId}`;
   const cached = await readCache(cacheKey);
   let students = cached?.data;
 
@@ -74,7 +74,7 @@ export async function resolveStudentName(courseId, studentId) {
 
 export async function listCourseAssignments(courseId) {
   if (!courseId) return [];
-  const cacheKey = `workspace:assignments:${courseId}`;
+  const cacheKey = `tasks:assignments:${courseId}`;
   const cached = await readCache(cacheKey);
   if (cached && !isStale(cached.fetchedAt)) return cached.data;
 
@@ -91,7 +91,7 @@ export async function listCourseAssignments(courseId) {
 
 export async function listCourseStudentsCached(courseId) {
   if (!courseId) return [];
-  const cacheKey = `workspace:students:${courseId}`;
+  const cacheKey = `tasks:students:${courseId}`;
   const cached = await readCache(cacheKey);
   if (cached && !isStale(cached.fetchedAt)) return cached.data;
 

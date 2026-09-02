@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { scheduleWorkspaceSync } from '@/lib/sync/workspaceSyncScheduler';
+import { scheduleTasksSync } from '@/lib/sync/tasksSyncScheduler';
 import { claimStashedPrompt, markInstalled, INSTALL_PROMPT_READY_EVENT } from '@/lib/pwaInstall';
 
 // No visible UI — registers public/sw.js (offline shell cache, see that
@@ -19,7 +19,7 @@ export default function ServiceWorkerRegistration() {
     });
 
     function onMessage(event) {
-      if (event.data === 'retry-workspace-sync') scheduleWorkspaceSync();
+      if (event.data === 'retry-tasks-sync') scheduleTasksSync();
     }
     navigator.serviceWorker.addEventListener('message', onMessage);
     return () => navigator.serviceWorker.removeEventListener('message', onMessage);

@@ -3,7 +3,7 @@ import { getSession, isSessionValid } from '@/lib/session';
 import { listCourseStudents } from '@/lib/canvasClient';
 import { buildClient } from '@/lib/canvasSession';
 
-// Backs TaskDetailModal.jsx's student picker (workspace feature) — a
+// Backs TaskDetailModal.jsx's student picker (tasks feature) — a
 // single, course-scoped call, fetched lazily once a Canvas-linked project is
 // selected, then cached client-side via canvasResolution.js (the whole
 // roster is cached per course, not one student at a time — there's no

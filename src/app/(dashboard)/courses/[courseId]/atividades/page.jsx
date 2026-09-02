@@ -6,6 +6,7 @@ import { refreshAccessToken } from '@/lib/canvasOAuth';
 import { isRealGroupAssignment, correctedGroupNeedsGradingCount } from '@/lib/groupGrading';
 import { courseAssignmentsUrl } from '@/lib/canvasLinks';
 import ContextBanner from '@/components/ContextBanner';
+import ActiveWorkspaceCourseBanner from '@/components/ActiveWorkspaceCourseBanner';
 import AssignmentsTable from '@/components/AssignmentsTable';
 import InfoHint from '@/components/InfoHint';
 
@@ -104,6 +105,8 @@ export default async function AtividadesPage({ params }) {
           Gerar questões com IA
         </Link>
       </div>
+
+      <ActiveWorkspaceCourseBanner courseId={courseId} />
 
       <AssignmentsTable courseId={courseId} assignments={assignments} />
     </main>

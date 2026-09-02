@@ -7,25 +7,27 @@ import {
   subscribeSyncStatus,
   getSyncStatusSnapshot,
   getServerSyncStatusSnapshot,
-  setWorkspaceSyncState,
+  setTasksSyncState,
   setSettingsSyncState,
+  setWorkspacesSyncState,
 } from '@/lib/sync/syncStatusStore';
 import { getGoogleConnection } from '@/lib/googleConnection';
-import { flushWorkspaceSyncNow } from '@/lib/sync/workspaceSyncScheduler';
+import { flushTasksSyncNow } from '@/lib/sync/tasksSyncScheduler';
+import { flushWorkspacesSyncNow } from '@/lib/sync/workspacesSyncScheduler';
 
 function formatDateTime(iso) {
   if (!iso) return null;
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 }
 
-// Highest-priority state across both domains wins the combined badge — an
-// error/reauth on either domain must be impossible to miss, while "synced"
-// only wins when nothing more urgent is going on in either one.
+// Highest-priority state across all three domains wins the combined badge —
+// an error/reauth on any domain must be impossible to miss, while "synced"
+// only wins when nothing more urgent is going on in any of them.
 const PRIORITY = ['reauth-required', 'error', 'offline', 'syncing', 'pending', 'not-connected', 'synced'];
 
-function pickCombinedState(workspaceState, settingsState) {
+function pickCombinedState(tasksState, settingsState, workspacesState) {
   for (const state of PRIORITY) {
-    if (workspaceState === state || settingsState === state) return state;
+    if (tasksState === state || settingsState === state || workspacesState === state) return state;
   }
   return 'synced';
 }
@@ -64,9 +66,10 @@ function domainLine(label, domain) {
 // state so they trust the app). Reads syncStatusStore.js via
 // useSyncExternalStore — a plain module singleton, not React Context, so it
 // stays correct regardless of which dashboard route is currently mounted
-// (workspaceSyncScheduler.js keeps running after /tarefas unmounts).
+// (tasksSyncScheduler.js/workspacesSyncScheduler.js keep running after their
+// respective providers unmount).
 export default function SyncStatusIndicator() {
-  const { workspace, settings } = useSyncExternalStore(
+  const { tasks, settings, workspaces } = useSyncExternalStore(
     subscribeSyncStatus,
     getSyncStatusSnapshot,
     getServerSyncStatusSnapshot,
@@ -74,15 +77,16 @@ export default function SyncStatusIndicator() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef(null);
 
-  // Seeds both slices from the real IndexedDB connection on mount — without
-  // this, an already-connected, already-synced user would see
-  // "not-connected" until their next task edit or manual settings sync.
+  // Seeds all three slices from the real IndexedDB connection on mount —
+  // without this, an already-connected, already-synced user would see
+  // "not-connected" until their next edit or manual sync.
   useEffect(() => {
     (async () => {
       const connection = await getGoogleConnection();
       if (!connection) {
-        setWorkspaceSyncState({ state: 'not-connected' });
+        setTasksSyncState({ state: 'not-connected' });
         setSettingsSyncState({ state: 'not-connected' });
+        setWorkspacesSyncState({ state: 'not-connected' });
         return;
       }
       // 'synced' (not 'not-connected') as soon as a connection exists at
@@ -90,13 +94,17 @@ export default function SyncStatusIndicator() {
       // what matters for "should this look alarming or not"; a domain that
       // simply hasn't pushed anything yet is a harmless resting state, not
       // an invitation to reconnect.
-      setWorkspaceSyncState({
+      setTasksSyncState({
         state: 'synced',
-        lastSyncAt: connection.workspaceLastSuccessfulSyncAt || null,
+        lastSyncAt: connection.tasksLastSuccessfulSyncAt || null,
       });
       setSettingsSyncState({
         state: 'synced',
         lastSyncAt: connection.lastSuccessfulSyncAt || null,
+      });
+      setWorkspacesSyncState({
+        state: 'synced',
+        lastSyncAt: connection.workspacesLastSuccessfulSyncAt || null,
       });
     })();
   }, []);
@@ -119,7 +127,7 @@ export default function SyncStatusIndicator() {
     };
   }, [open]);
 
-  const combined = pickCombinedState(workspace.state, settings.state);
+  const combined = pickCombinedState(tasks.state, settings.state, workspaces.state);
   const { Icon, color, label } = BADGE[combined];
 
   return (
@@ -138,12 +146,16 @@ export default function SyncStatusIndicator() {
 
       {open && (
         <div className="sync-status-popover" role="menu">
-          <p className="sync-status-line">{domainLine('Tarefas', workspace)}</p>
+          <p className="sync-status-line">{domainLine('Tarefas', tasks)}</p>
+          <p className="sync-status-line">{domainLine('Workspaces', workspaces)}</p>
           <p className="sync-status-line">{domainLine('Configurações', settings)}</p>
 
           <div className="sync-status-actions">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => flushWorkspaceSyncNow()}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => flushTasksSyncNow()}>
               Sincronizar tarefas agora
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => flushWorkspacesSyncNow()}>
+              Sincronizar workspaces agora
             </button>
           </div>
 

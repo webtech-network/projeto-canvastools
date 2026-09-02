@@ -1,12 +1,12 @@
 'use client';
 
-import { useDraggable } from '@dnd-kit/core';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Flag, Zap, CalendarDays } from 'lucide-react';
-import { useWorkspace } from './WorkspaceProvider';
-import { STATUS_META } from '@/lib/workspace/statusMeta';
-import { projectCardStyle } from '@/lib/workspace/projectColors';
-import { formatDueDate, isPastDue } from '@/lib/workspace/dueDate';
+import { useTasks } from './TasksProvider';
+import { STATUS_META } from '@/lib/tasks/statusMeta';
+import { projectCardStyle } from '@/lib/tasks/projectColors';
+import { formatDueDate, isPastDue } from '@/lib/tasks/dueDate';
 
 // Interleaves a thin visual separator between whichever of the meta groups
 // (priority rank / status / classification / due date) actually have
@@ -21,26 +21,38 @@ function withSeparators(nodes) {
 // Shared by KanbanBoard.jsx and EisenhowerMatrix.jsx — same card, same
 // click-to-open behavior; only the droppable container it sits in differs
 // between the two views (KanbanColumn vs EisenhowerQuadrant). Renders in one
-// of two densities (WorkspaceProvider's cardDensity, toggled in
-// WorkspaceView.jsx) — 'expanded' is the original full layout, 'condensed'
+// of two densities (TasksProvider's cardDensity, toggled in
+// TasksView.jsx) — 'expanded' is the original full layout, 'condensed'
 // packs the same information into two lines of text plus a column of icons,
 // so status (otherwise invisible in the Eisenhower view) and priority
 // (otherwise invisible in the Kanban view) stay visible regardless of which
-// board is showing. See the icon legend in WorkspaceView.jsx's footer for
+// board is showing. See the icon legend in TasksView.jsx's footer for
 // what each icon means. Status/classification/due date share one
 // `metaSegments` builder below (separators, per-density icon size and
 // label visibility) so both densities stay in sync automatically.
 export default function TaskCard({ task, onSelect }) {
-  const { projects, cardDensity } = useWorkspace();
+  const { projects, cardDensity } = useTasks();
   const project = task.projectId ? projects.find((p) => p.id === task.projectId) : null;
   const dueDate = formatDueDate(task.dueDate);
   const StatusIcon = STATUS_META[task.status]?.Icon;
   const overdue = isPastDue(task.dueDate, task.status);
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef: setDragRef, transform, isDragging } = useDraggable({
     id: task.id,
     data: { task },
   });
+  // A card is also its own drop target — same id as the draggable above,
+  // dnd-kit keeps draggable/droppable ids in separate namespaces (this is
+  // exactly what @dnd-kit/sortable's useSortable does internally, minus the
+  // package). This is what lets KanbanBoard.jsx/EisenhowerMatrix.jsx's
+  // handleDragEnd tell "dropped onto this specific card" (reorder within the
+  // same column/quadrant — see comparePriority's tie-break) apart from
+  // "dropped onto the column/quadrant background" (status/priority change).
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: task.id, data: { task } });
+  const setRefs = (node) => {
+    setDragRef(node);
+    setDropRef(node);
+  };
 
   const style = {
     ...projectCardStyle(project),
@@ -95,9 +107,9 @@ export default function TaskCard({ task, onSelect }) {
 
   return (
     <div
-      ref={setNodeRef}
+      ref={setRefs}
       style={style}
-      className={`kanban-card${isDragging ? ' is-dragging' : ''}${condensed ? ' kanban-card--condensed' : ''}`}
+      className={`kanban-card${isDragging ? ' is-dragging' : ''}${condensed ? ' kanban-card--condensed' : ''}${isOver ? ' kanban-card--drop-over' : ''}`}
       onClick={() => onSelect(task)}
     >
       {condensed ? (

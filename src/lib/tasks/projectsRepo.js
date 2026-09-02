@@ -34,7 +34,7 @@ export async function updateProject(id, patch) {
 }
 
 // Replace, not merge — see tasksRepo.js's replaceAllTasks. Called only from
-// workspace/workspaceDriveSync.js's pull path.
+// tasks/tasksDriveSync.js's pull path.
 export async function replaceAllProjects(projectsArray) {
   const existing = await listProjects();
   await Promise.all(existing.map((p) => dbDelete(STORE_PROJECTS, p.id)));

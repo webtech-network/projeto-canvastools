@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { useWorkspace } from './WorkspaceProvider';
+import { useTasks } from './TasksProvider';
 
 // Quick-create per spec section 6 — title only, no other field shown here.
 // Everything else is filled in later via TaskDetailModal.jsx.
 export default function QuickAddTask() {
-  const { addTask } = useWorkspace();
+  const { addTask } = useTasks();
   const [title, setTitle] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
